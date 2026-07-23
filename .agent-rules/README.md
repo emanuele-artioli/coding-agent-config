@@ -69,3 +69,11 @@ above). `scripts/` is real, in active use since 2026-07-23: `session-status.py`,
 `guard-rm.py`, `paper-sync-reminder.py`, and `guard-wait-loop.py` were
 consolidated out of duplicated copies in pointstream and presley;
 `sync_agent_rules.py` follows the vendor-copy model explained above.
+
+`guard-wait-loop.py` is additionally wired into `~/.claude/settings.json`
+(tracked in this repo) as a `PreToolUse`/`Bash` hook, so it protects every
+Claude Code project on this host automatically, not just pointstream and
+presley — confirmed that Claude Code merges hooks across user- and
+project-level settings files (both fire) rather than the more specific
+level overriding, so this doesn't conflict with a project's own copy of the
+same hook.
