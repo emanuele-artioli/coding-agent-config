@@ -11,8 +11,7 @@
 !/.gitignore
 
 !/.agent-rules
-/.agent-rules/*
-!/.agent-rules/shared.md
+!/.agent-rules/**
 
 !/.claude
 /.claude/*

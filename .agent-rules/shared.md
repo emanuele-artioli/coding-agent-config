@@ -16,6 +16,13 @@ pinned env, because several forked third-party models are version-sensitive
 and a stray `pip install` silently breaks them. Being headless, save media
 and plots to disk; `cv2.imshow()`/`plt.show()` never works here.
 
+## Python dependency management
+
+Manage Python packages through `pyproject.toml`, not ad-hoc `pip install` in
+the terminal. `environment.yaml` is reserved for bootstrapping heavy
+CUDA/GPU binaries only (drivers, PyTorch wheels, compiled packages) — never
+fall back to a `requirements.txt` file.
+
 ## GitHub CLI (gh)
 
 `gh` is installed at `~/emanuele/bin/gh` (on `PATH` in every shell on this
