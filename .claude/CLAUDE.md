@@ -43,3 +43,12 @@ Note: `Monitor`'s progress-matching depends on the logging cadence described
 in the shared "Long jobs must checkpoint" rule above — a job that goes quiet
 for more than ~10 minutes gives Monitor nothing fresh to match, which looks
 identical to a hang.
+
+Same trap, different tool: **`ScheduleWakeup` is not a wait-for-completion
+mechanism.** It exists solely to self-pace `/loop` dynamic-mode iterations.
+A background agent or background `Bash` job already triggers a notification
+the moment it finishes — there is nothing to poll for. Don't call
+`ScheduleWakeup` "just to wait" for one; it also fails outright when used
+this way (it requires a `prompt` unless `stop: true`), so the mistake
+surfaces immediately rather than silently wasting a turn — still worth not
+repeating.
