@@ -1,0 +1,23 @@
+# Allowlist-only .gitignore: this repo tracks exactly the shared coding-agent
+# rules files and nothing else in this home directory. Ignore everything by
+# default, then un-ignore only the specific paths we want tracked.
+#
+# NEVER `git add -A` or `git add .` in this repo — always add the exact
+# allowlisted paths below. This directory holds real credentials
+# (.ssh, .git-credentials, .gsutil, .pki, .config/gh/hosts.yml, .claude.json,
+# .claude/projects/ transcripts, etc.) that must never enter this repo.
+
+/*
+!/.gitignore
+
+!/.agent-rules
+/.agent-rules/*
+!/.agent-rules/shared.md
+
+!/.claude
+/.claude/*
+!/.claude/CLAUDE.md
+
+!/.gemini
+/.gemini/*
+!/.gemini/GEMINI.md
