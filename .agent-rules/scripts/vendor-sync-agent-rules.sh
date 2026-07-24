@@ -17,6 +17,8 @@ SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sync_agent_rules.py"
 PROJECTS=(
   /home/itec/emanuele/pointstream
   /home/itec/emanuele/presley
+  /home/itec/emanuele/moq3dgs
+  /home/itec/emanuele/TIGAS
 )
 
 for repo in "${PROJECTS[@]}"; do
