@@ -24,6 +24,7 @@ PROJECTS=(
   /home/itec/emanuele/presley
   /home/itec/emanuele/moq3dgs
   /home/itec/emanuele/TIGAS
+  /home/itec/emanuele/4DGStudy
 )
 
 for repo in "${PROJECTS[@]}"; do
