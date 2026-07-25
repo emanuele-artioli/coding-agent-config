@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-shell.py",
+        "timeout": 15,
+        "failClosed": true
+      }
+    ]
+  }
+}

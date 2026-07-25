@@ -1,20 +1,17 @@
-# Antigravity IDE - Global Agent Constraints
+# Antigravity — global agent constraints
 
-@/home/itec/emanuele/.agent-rules/shared.md
+This file holds no rules of its own. It imports the tool-agnostic host rules
+and the Antigravity-specific ones, so that both stay single-sourced in the
+`coding-agent-config` repo at `/home/itec/emanuele`.
 
-## 1. Agent Execution & Review Paradigm
-* **Post-Task Analysis:** When a mission is completed, provide a clear structural critique regarding performance bottlenecks, structural issues, and code safety. 
-* **The Review Boundary:** During the strict Review Phase, you are prohibited from making direct code changes or outputting code snippets. Frame your feedback purely as conceptual and structural architectural guidance.
+@/home/itec/emanuele/.agent-rules/AGENTS.md
+@/home/itec/emanuele/.agent-rules/harness/antigravity.md
 
-## 2. MCP Tool Orchestration & Constraints
+Edit `.agent-rules/AGENTS.md` for anything that should apply to every agent on
+this host, and `.agent-rules/harness/antigravity.md` for Antigravity's own
+mechanics or a deliberate override of a host-wide rule (Antigravity resolves
+conflicts in `GEMINI.md`'s favour over `AGENTS.md`).
 
-### GitHub MCP Integration
-* **Version Control Awareness:** You have active read/write permissions via the GitHub MCP server. Before generating massive structural refactors, query the active repository state, issues, or recent PR histories to ensure alignment with existing branches.
-
-### Sequential Thinking Loop Optimization
-* **Gated Activation:** The `sequential_thinking` tool is active. Do not invoke this multi-step reasoning tool for simple code syntax fixes, basic docstring updates, or trivial linear scripting tasks.
-* **Mandatory Use Cases:** You MUST invoke sequential thinking loops for:
-  1. Designing cross-process shared memory abstractions (avoiding PCIe bottlenecks).
-  2. Resolving intricate Level-of-Detail (LoD) state synchronization anomalies.
-  3. Formulating mathematical definitions or geometric abstractions (like view frustum culling matrix operations).
-* **Execution Boundary:** When running a sequential thinking chain, explicitly declare your core hypothesis, map a maximum of 5–7 analytical steps, and actively cross-examine edge cases (e.g., memory overhead, latency penalties) before drafting code blocks.
+`~/.gemini/AGENTS.md` is a symlink to the same host rules file, for the native
+`AGENTS.md` support added in v1.20.3 — it is the same content by construction,
+not a second copy to maintain.

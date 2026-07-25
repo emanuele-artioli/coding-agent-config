@@ -1,0 +1,6 @@
+{
+  "_comment": "Guard values for sessions rooted at this home directory (the coding-agent-config repo itself). Projects carry their own .agent-guards.json; see .agent-rules/README.md.",
+  "protected": [".agent-rules", "__guard_probe__"],
+  "detail": "the single source of truth for every agent's rules, skills and hooks on this host",
+  "entry_points": []
+}

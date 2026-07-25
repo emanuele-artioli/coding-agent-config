@@ -1,11 +1,29 @@
-# Shared agent rules — single source of truth
+# Host-wide agent rules — single source of truth
 
-Imported by reference (`@` syntax) from each coding agent's own rules file —
-currently `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md`. Edit **only this
-file** for anything that should apply to every agent on this host. Put
-agent-specific mechanics (tool names, invocation syntax, that agent's own
-conventions) in the importing file instead, not here — this file stays
-tool-agnostic so every importer can use it as-is.
+Edit **only this file** for anything that should apply to every agent on this
+host. It stays strictly tool-agnostic: agent-specific mechanics (tool names,
+invocation syntax, where that agent keeps its own config) belong in
+`harness/<agent>.md` instead, so that every consumer below can take this file
+as-is.
+
+It is also **the register of things that have gone wrong more than once** — if
+a mistake happens twice, it belongs here, phrased as the rule that prevents it
+rather than the story of the failure.
+
+Nothing copies this file; every consumer reads these exact bytes:
+
+| Consumer | How it gets here |
+|---|---|
+| Claude Code | `@`-import from `~/.claude/CLAUDE.md` |
+| Antigravity | `@`-import from `~/.gemini/GEMINI.md`, plus `~/.gemini/AGENTS.md` → symlink |
+| Cursor (home workspace) | `~/emanuele/AGENTS.md` → symlink |
+| Codex | `~/.codex/AGENTS.md` → symlink, once Codex is installed here |
+| Cursor / Copilot / Codex, per project | the generated `host-rules` block inside each project's own `AGENTS.md` |
+
+The last row is the one that cannot be a symlink or an import: Copilot's cloud
+agent and Cursor's cloud agents run on machines that have never seen this home
+directory, so host rules have to be committed into each project's repo to
+reach them. `scripts/sync_agent_rules.py` maintains that block.
 
 ## The host
 

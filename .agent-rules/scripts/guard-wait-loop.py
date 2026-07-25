@@ -1,56 +1,25 @@
 #!/usr/bin/env python3
-"""PreToolUse guard: block hand-rolled process-wait loops.
+"""PreToolUse guard (Claude Code / Copilot CLI dialect): block wait loops.
 
-Reads the Claude Code hook JSON on stdin. Denies Bash commands that poll for
-a process to disappear (`until ! pgrep -f X; do sleep 60; done`, `while ps
--p $PID; do sleep; done`, `while kill -0 $PID; …`).
-
-Why: the harness runs the command inside `bash -c "<the whole command
-string>"`, and that string *contains* the pgrep pattern -- so `pgrep -f`
-matches the watcher's own process and the loop can never terminate. The
-watched job finishes, the watcher spins until timeout, and the completion
-goes unnoticed. This has burned >1h of wall clock at least twice.
-
-There is also nothing to poll for: `Bash` with `run_in_background: true`
-re-invokes Claude when the process exits, and `Monitor` streams progress
-events. Both are strictly better than any loop written here.
-
-Narrow by construction -- a denial needs all three of a loop keyword, a
-process-liveness check, and a sleep in the body. A bare `pgrep`, a bare
-`sleep`, or a polling loop over something other than process liveness (a
-file, an HTTP endpoint, a CI run) is allowed through.
+Thin adapter. The policy -- what counts as a hand-rolled process-wait loop and
+why it can never work here -- lives in `guardlib/wait_loop.py`, shared with
+every other agent on this host. This file only knows how Claude Code phrases a
+hook: tool-call JSON on stdin with `tool_name` / `tool_input.command`, and a
+`hookSpecificOutput` block on stdout to deny.
 
 Invoked via `python3 <path>` (not direct-exec) deliberately, matching
 guard-rm.py: if this script's path ever goes missing, the resulting exit 2
 blocks the whole Bash call rather than silently letting a hand-rolled wait
 loop through unchecked.
 """
+
 import json
-import re
 import sys
+from pathlib import Path
 
-LOOP = re.compile(r"\b(until|while)\b")
-SLEEP = re.compile(r"\bsleep\s+[\d.]+")
-# Process-liveness probes -- the class of condition that can self-match.
-PROBE = re.compile(
-    r"\bpgrep\b|\bpidof\b|\bkill\s+-0\b|\bps\s+(-p|-e|aux|ax)\b|\bpkill\s+-0\b"
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-REASON = (
-    "Blocked: this looks like a hand-rolled wait-for-process loop. It cannot "
-    "work here -- the harness runs your command as `bash -c \"<whole command "
-    "string>\"`, so the loop's own process matches its own pgrep/ps pattern "
-    "and the condition never becomes true. The job finishes and the watcher "
-    "spins until timeout.\n\n"
-    "Use instead:\n"
-    "  - Bash with run_in_background: true -- detaches, survives across "
-    "turns, and re-invokes you on exit with the output-file path. No polling.\n"
-    "  - Monitor -- if you want progress events during the run. Filter for "
-    "failure signatures (Traceback|Error|Killed|OOM) too, not just success.\n"
-    "  - Foreground Bash with an explicit timeout (max 600000 ms) if the job "
-    "genuinely finishes in under 10 minutes.\n\n"
-    "See the waiting rule in the global CLAUDE.md."
-)
+from guardlib import wait_loop  # noqa: E402
 
 
 def main() -> None:
@@ -66,15 +35,19 @@ def main() -> None:
     if not isinstance(command, str) or not command:
         sys.exit(0)
 
-    if LOOP.search(command) and PROBE.search(command) and SLEEP.search(command):
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": REASON,
-            }
-        }))
-        sys.exit(0)
+    reason = wait_loop.inspect(command, dialect="claude")
+    if reason:
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": reason,
+                    }
+                }
+            )
+        )
 
     sys.exit(0)
 

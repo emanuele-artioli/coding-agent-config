@@ -1,8 +1,5 @@
 {
   "model": "opus[1m]",
-  "effortLevel": "medium",
-  "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true,
   "hooks": {
     "PreToolUse": [
       {
@@ -11,10 +8,15 @@
           {
             "type": "command",
             "command": "python3",
-            "args": ["/home/itec/emanuele/.agent-rules/scripts/guard-wait-loop.py"]
+            "args": [
+              "/home/itec/emanuele/.agent-rules/scripts/guard-wait-loop.py"
+            ]
           }
         ]
       }
     ]
-  }
+  },
+  "effortLevel": "medium",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
 }
