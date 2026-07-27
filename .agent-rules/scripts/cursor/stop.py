@@ -7,6 +7,7 @@ Medium tier prints to stderr (Hooks channel). Does not set followup_message
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -15,6 +16,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from context_nudge import medium_aging_message  # noqa: E402
+
+_SCRIPTS = Path(__file__).resolve().parent.parent
+_LINT_SPEC = importlib.util.spec_from_file_location(
+    "lint_plan_waves", _SCRIPTS / "lint_plan_waves.py"
+)
+_lint = importlib.util.module_from_spec(_LINT_SPEC)
+assert _LINT_SPEC and _LINT_SPEC.loader
+_LINT_SPEC.loader.exec_module(_lint)
 
 
 def _git_dirty() -> bool:
@@ -75,6 +84,18 @@ def main() -> int:
             "(commit on invoke, ask before push).",
             file=sys.stderr,
         )
+
+    # Soft plan-waves advisory (recent plans only — avoid nagging on history).
+    try:
+        roots: list[Path] = [Path.home() / ".cursor" / "plans"]
+        for raw in payload.get("workspace_roots") or []:
+            if isinstance(raw, str) and raw:
+                roots.append(Path(raw) / ".cursor" / "plans")
+        plans = _lint.filter_mtime(_lint.iter_plan_files(roots), mtime_days=7.0)
+        for path, reason in _lint.check_paths(plans)[:5]:
+            print(f"plan-waves soft: {path.name}: {reason}", file=sys.stderr)
+    except Exception:
+        pass
 
     print("{}")
     return 0

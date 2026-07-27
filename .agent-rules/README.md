@@ -109,6 +109,7 @@ flowchart TB
     sc_guard_rm_py[guard-rm.py]
     sc_guard_wait_loop_py[guard-wait-loop.py]
     sc_install_py[install.py]
+    sc_lint_plan_waves_py[lint_plan_waves.py]
     sc_migrate_to_agents_md_py[migrate_to_agents_md.py]
     sc_paper_sync_reminder_py[paper-sync-reminder.py]
     sc_render_architecture_py[render_architecture.py]
@@ -151,6 +152,8 @@ flowchart TB
   auto-trigger it.
 - `candidates/` — crossed-axis knowledge queue (`open/project`, `open/platform`,
   `done/`, `pending-verification/`). Schema in `candidates/README.md`.
+- `enforceable-rules.md` — register of must-rules → mechanisms (soft plan-wave
+  linter first; see `scripts/lint_plan_waves.py`).
 - `projects.json` — host index of project roots for cross-project lifts during
   `evaluate-candidates`.
 - `mcp/catalog.json` — intentionally shared MCP servers. `install.py` upserts
@@ -366,10 +369,18 @@ Trust these claims to the extent they were actually exercised:
   regenerates marked mermaid regions in this README; freshness gate is
   `python3 scripts/render_architecture.py --check` (standalone, not folded
   into `install.py --check`). Do not freehand the SoT diagrams.
+- **Cursor SessionStart + stop fill probe (2026-07-27, live).** Fresh chat
+  wrote a real `session_id` line to `~/.cursor/session-start.log` and
+  `additional_context` reached the agent. Live `stop` payloads do **not**
+  include `context_usage_percent` (`stop-probe.log` `has_fill: false`).
+- **Soft plan-wave linter (2026-07-27).** `enforceable-rules.md` +
+  `scripts/lint_plan_waves.py`; Cursor `stop` prints advisories for recent
+  non-compliant `.cursor/plans/*.plan.md`. Soft only (`--strict` reserved).
 - **Unverified, by inheritance.** `~/.copilot/hooks/wait-loop.json` assumes
   Copilot's `preToolUse` payload is shaped like Claude's. Test it for real the
   first time Copilot CLI is installed here.
 - **Not attempted.** Antigravity and Codex hook wiring, and Claude
   SessionStart/Stop/PreCompact knowledge-loop wiring — see
-  `candidates/pending-verification/`. The event names and paths in the tables
-  above come from documentation, not from a firing hook on this host.
+  `candidates/pending-verification/` and `HANDOFF-claude.md` /
+  `HANDOFF-antigravity.md`. The event names and paths in the tables above
+  come from documentation, not from a firing hook on this host.

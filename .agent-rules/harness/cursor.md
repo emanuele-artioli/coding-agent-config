@@ -138,12 +138,17 @@ workflow should also auto-trigger from a description match.
 - Progressive nudges (never force mid-task handoff): `beforeSubmitPrompt`
   (soft/log), `stop` (medium/stderr), `preCompact` (`user_message` strong).
   Shared policy in `../scripts/context_nudge.py`. Prefer handoff before
-  auto-compact; context rot often starts ~50% fill. Documented
-  `context_usage_percent` is on `preCompact` only; `stop` logs payload keys
-  to `~/.cursor/stop-probe.log` to catch undocumented fill fields.
+  auto-compact; context rot often starts ~50% fill. Live probe: `stop` does
+  **not** carry `context_usage_percent` (see `~/.cursor/stop-probe.log`);
+  medium nudges use the stop-count proxy. `stop` still appends payload keys
+  to the probe log in case that changes.
 - Architecture diagrams: `../scripts/render_architecture.py` (`--check`
   freshness gate, standalone from `install.py`).
+- Enforceable rules register: `../enforceable-rules.md`. Soft plan-wave
+  linter: `../scripts/lint_plan_waves.py` (CLI + advisory from `stop` for
+  plans touched in the last 7 days). Soft task-change stays log-only.
 - `end-of-session`: invoke = commit consent; ask before push. Conditionally
   runs handoff as a step.
 - Platform write-ownership: do not claim Claude/Antigravity hooks verified
   from here; leave tickets under `../candidates/pending-verification/`.
+  Pickup docs: `HANDOFF-claude.md`, `HANDOFF-antigravity.md` at repo root.
