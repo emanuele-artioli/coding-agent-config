@@ -132,11 +132,17 @@ workflow should also auto-trigger from a description match.
 
 - Host SoT: `../candidates/`, skills `end-of-session`, `evaluate-candidates`,
   `handoff`. SessionStart runs `scripts/cursor/session-start.py` (pending-
-  verification + open candidates reminders).
+  verification + open candidates reminders via `additional_context` + stderr;
+  side-channel `~/.cursor/session-start.log` because Cursor may drop
+  `additional_context` on a known IDE race).
 - Progressive nudges (never force mid-task handoff): `beforeSubmitPrompt`
   (soft/log), `stop` (medium/stderr), `preCompact` (`user_message` strong).
   Shared policy in `../scripts/context_nudge.py`. Prefer handoff before
-  auto-compact; context rot often starts ~50% fill.
+  auto-compact; context rot often starts ~50% fill. Documented
+  `context_usage_percent` is on `preCompact` only; `stop` logs payload keys
+  to `~/.cursor/stop-probe.log` to catch undocumented fill fields.
+- Architecture diagrams: `../scripts/render_architecture.py` (`--check`
+  freshness gate, standalone from `install.py`).
 - `end-of-session`: invoke = commit consent; ask before push. Conditionally
   runs handoff as a step.
 - Platform write-ownership: do not claim Claude/Antigravity hooks verified

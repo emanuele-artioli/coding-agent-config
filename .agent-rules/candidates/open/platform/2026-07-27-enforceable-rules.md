@@ -6,36 +6,41 @@ source_project: .
 axis: platform
 status: open
 summary: Prose-only "must" rules (e.g. plan-mode waves) are forgotten; need enforceable register + hooks/linters
-suggested_action: Design foundation enforceable-rules register; Cursor plan-wave linter first; extend guardlib / .agent-guards.json pattern
+suggested_action: Soft-first plan-wave linter + foundation register; hard fail later per platform
 verify_platforms: [claude, antigravity]
+evaluated: 2026-07-27
 ---
 
-# Enforceable rules (deferred implementation)
+# Enforceable rules (evaluated — scheduled)
 
-## Problem
+## Evaluation (2026-07-27)
 
-Foundation / platform / project "must" rules that are advisory-only get
-forgotten. Example: "Plan mode: split complex plans into parallel-agent waves"
-in `AGENTS.md` was in context and still skipped. The twice-wrong register in
-`AGENTS.md` is necessary but insufficient for must-not-skip process rules.
+**Keep and schedule** — do not discard. Prose-only must-rules are a repeated
+failure mode (plan-wave rule skipped while in context).
 
-## Layers to design
+### Decisions
 
-1. **Foundation:** which host rules are *enforceable* vs advisory; a small
-   register listing rule id → enforcement mechanism (hook, skill gate, CI
-   check, plan linter).
-2. **Platform:** adapters — e.g. Cursor: lint `.cursor/plans/*.plan.md` for a
-   waves section (or explicit "skipped: sequential/small" rationale). Claude /
-   Antigravity equivalents. SessionStart can remind; Stop can nudge.
-3. **Project:** extend `.agent-guards.json` for project-local musts rather than
-   inventing a third config dialect.
+1. **Soft vs hard for plan-wave:** **soft first.** Missing waves section (or
+   missing explicit `skipped: sequential/small`) → advisory stderr / SessionStart
+   / stop nudge. Hard fail only after soft path is proven useful and the
+   platform can surface a clear fix message (Cursor plan files under
+   `.cursor/plans/`).
+2. **Soft task-change (`beforeSubmitPrompt`):** keep **log-only** default;
+   do not enable `CONTEXT_NUDGE_BLOCK_SOFT=1` until soft plan-wave nudges are
+   in place (separate open question from HANDOFF; answered here as keep
+   log-only).
+3. **Shape:** foundation markdown register (rule id → mechanism) under
+   `.agent-rules/`; Cursor plan-wave linter first; extend
+   `guardlib` / `.agent-guards.json` for project-local musts later — no third
+   config dialect.
 
-## First concrete target
+### Next implementation slice
 
-Plan-wave rule — detect complex plans missing a waves analysis. Soft vs hard
-fail TBD per platform capability.
+1. Add `.agent-rules/enforceable-rules.md` register with `plan-waves` →
+   `cursor-plan-linter (soft)`.
+2. Add `scripts/lint_plan_waves.py` scanning `.cursor/plans/*.plan.md` for a
+   waves heading or `skipped: sequential/small`.
+3. Wire advisory call from Cursor `stop` or a workflow; leave Claude /
+   Antigravity as `needs_verification` tickets when adapters land.
 
-## Out of band until implemented
-
-Human/agent reviewing plans checks for waves. Do not implement the register or
-linter until this candidate is evaluated and scheduled.
+Until then: human/agent reviewing plans checks for waves manually.

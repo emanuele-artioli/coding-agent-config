@@ -2,6 +2,8 @@
 """SessionStart advisory: pending-verification + open candidates.
 
 Fail-open. Pass --platform when the adapter knows which agent is running.
+Adapters may call `messages(platform)` and inject into platform-specific
+context channels (Cursor: additional_context); CLI still prints stderr.
 """
 
 from __future__ import annotations
@@ -41,32 +43,35 @@ def _pending_open(platform: str) -> int:
     return sum(1 for line in text.splitlines() if line.strip().startswith("- [ ]"))
 
 
+def messages(platform: str = "cursor", *, cwd: Path | None = None) -> list[str]:
+    """Return advisory lines for SessionStart (may be empty)."""
+    out: list[str] = []
+    pending = _pending_open(platform)
+    if pending:
+        out.append(
+            f"Knowledge loop — {pending} open pending-verification item(s) "
+            f"for {platform}: {PENDING / (platform + '.md')}. "
+            "Verify or check off what you can this session."
+        )
+
+    opened = _open_count()
+    here = (cwd or Path.cwd()).resolve()
+    # coding-agent-config on this host is $HOME (contains .agent-rules/).
+    in_config = here == HOME or here == HOST or HOST in here.parents
+    if opened and in_config:
+        out.append(
+            f"Knowledge loop — {opened} open candidate(s) under "
+            f"{CANDIDATES / 'open'}. Consider the evaluate-candidates skill."
+        )
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--platform", default="cursor")
     args = parser.parse_args()
-    platform = args.platform
-
-    pending = _pending_open(platform)
-    if pending:
-        print(
-            f"Knowledge loop — {pending} open pending-verification item(s) "
-            f"for {platform}: {PENDING / (platform + '.md')}. "
-            "Verify or check off what you can this session.",
-            file=sys.stderr,
-        )
-
-    opened = _open_count()
-    cwd = Path.cwd().resolve()
-    # coding-agent-config on this host is $HOME (contains .agent-rules/).
-    in_config = cwd == HOME or cwd == HOST or HOST in cwd.parents
-    if opened and in_config:
-        print(
-            f"Knowledge loop — {opened} open candidate(s) under "
-            f"{CANDIDATES / 'open'}. Consider the evaluate-candidates skill.",
-            file=sys.stderr,
-        )
-
+    for line in messages(args.platform):
+        print(line, file=sys.stderr)
     return 0
 
 

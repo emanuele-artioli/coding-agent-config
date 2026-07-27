@@ -33,6 +33,7 @@ than trusting either this file or a directory listing.
    suggest handoff earlier than auto-compact; they never force mid-task
    handoff.
 
+<!-- arch:flows:start -->
 ```mermaid
 flowchart LR
   subgraph cell [Any session]
@@ -44,7 +45,19 @@ flowchart LR
   Eval -->|apply or discard| SoT[SoT / harness / projects]
   Eval -->|needs other platform| Verify[pending-verification]
   Verify -->|SessionStart reminder| OtherPlat[Owning platform]
+  Work -.->|close-out| Eos[end-of-session]
+  Eos -.-> CQ
+  subgraph cursorHooks [Cursor adapters]
+    ch_before_shell[before-shell]
+    ch_before_submit_prompt[before-submit-prompt]
+    ch_pre_compact[pre-compact]
+    ch_session_start[session-start]
+    ch_stop[stop]
+  end
+  cursorHooks --> Guard[guardlib / context_nudge]
+  Install[install.py symlink farm] -.-> SoT
 ```
+<!-- arch:flows:end -->
 
 ## The one rule that shapes everything else
 
@@ -64,6 +77,53 @@ from that single asymmetry:
 | Codex | `~/.codex/AGENTS.md` plus every `AGENTS.md` from git root down to cwd, 32 KiB cap | `~/.codex/AGENTS.md` |
 
 ## Layout
+
+<!-- arch:tree:start -->
+```mermaid
+flowchart TB
+  subgraph skills[skills/]
+    sk_end_of_session[end-of-session]
+    sk_evaluate_candidates[evaluate-candidates]
+    sk_handoff[handoff]
+    sk_results_report[results-report]
+    sk_reviewer_response[reviewer-response]
+    sk_test_design[test-design]
+    sk_update_paper[update-paper]
+  end
+  subgraph agents[agents/]
+    ag_gpu_job_runner[gpu-job-runner]
+    ag_paper_editor[paper-editor]
+  end
+  subgraph workflows[workflows/]
+    wf_repo_hygiene[repo-hygiene]
+  end
+  subgraph harness[harness/]
+    ha_antigravity[antigravity]
+    ha_claude[claude]
+    ha_cursor[cursor]
+  end
+  subgraph scripts[scripts/ (top-level)]
+    sc_candidate_reminders_py[candidate-reminders.py]
+    sc_context_nudge_py[context_nudge.py]
+    sc_guard_long_run_py[guard-long-run.py]
+    sc_guard_rm_py[guard-rm.py]
+    sc_guard_wait_loop_py[guard-wait-loop.py]
+    sc_install_py[install.py]
+    sc_migrate_to_agents_md_py[migrate_to_agents_md.py]
+    sc_paper_sync_reminder_py[paper-sync-reminder.py]
+    sc_render_architecture_py[render_architecture.py]
+    sc_session_status_py[session-status.py]
+    sc_sync_agent_rules_py[sync_agent_rules.py]
+    sc_vendor_sync_agent_rules_sh[vendor-sync-agent-rules.sh]
+  end
+  subgraph candidates[candidates/]
+    ca_open_project[open/project]
+    ca_open_platform[open/platform]
+    ca_done[done]
+    ca_pending_verification[pending-verification]
+  end
+```
+<!-- arch:tree:end -->
 
 - `AGENTS.md` — host-wide prose rules, strictly tool-agnostic, and the register
   of things that have gone wrong more than once. Reached by `@`-import from
@@ -297,8 +357,15 @@ Trust these claims to the extent they were actually exercised:
 - **Cursor knowledge-loop adapters (2026-07-27).** `sessionStart`,
   `beforeSubmitPrompt`, `stop`, and `preCompact` wired to
   `scripts/cursor/*` over `context_nudge.py` / `candidate-reminders.py`.
-  Driven with sample payloads in this pass; live SessionStart reminder
-  depends on Cursor reloading `hooks.json`.
+  Driven with sample payloads; `sessionStart` now returns
+  `additional_context` and appends `~/.cursor/session-start.log`. Live
+  agent injection may still be dropped by a Cursor IDE race — confirm via
+  the side-channel log in a fresh chat. `beforeShellExecution` re-probed
+  live the same day (`rm -rf __guard_probe__` denied).
+- **Living architecture diagrams (2026-07-27).** `scripts/render_architecture.py`
+  regenerates marked mermaid regions in this README; freshness gate is
+  `python3 scripts/render_architecture.py --check` (standalone, not folded
+  into `install.py --check`). Do not freehand the SoT diagrams.
 - **Unverified, by inheritance.** `~/.copilot/hooks/wait-loop.json` assumes
   Copilot's `preToolUse` payload is shaped like Claude's. Test it for real the
   first time Copilot CLI is installed here.

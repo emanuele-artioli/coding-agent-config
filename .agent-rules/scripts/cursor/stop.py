@@ -38,12 +38,32 @@ def main() -> int:
     if not isinstance(payload, dict):
         payload = {}
 
-    for key in ("context_usage_percent", "contextUsagePercent"):
+    # Live fill-% probe: documented on preCompact only; log keys once so we
+    # can confirm whether stop ever carries an undocumented field.
+    fill_keys = ("context_usage_percent", "contextUsagePercent")
+    for key in fill_keys:
         if key in payload:
             print(
                 f"cursor/stop: saw {key}={payload[key]!r}",
                 file=sys.stderr,
             )
+    try:
+        probe = Path.home() / ".cursor" / "stop-probe.log"
+        probe.parent.mkdir(parents=True, exist_ok=True)
+        with probe.open("a") as handle:
+            handle.write(
+                json.dumps(
+                    {
+                        "keys": sorted(payload.keys()),
+                        "has_fill": any(k in payload for k in fill_keys),
+                        "status": payload.get("status"),
+                        "loop_count": payload.get("loop_count"),
+                    }
+                )
+                + "\n"
+            )
+    except OSError:
+        pass
 
     msg = medium_aging_message(payload)
     if msg:
