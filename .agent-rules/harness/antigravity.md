@@ -57,3 +57,12 @@ history so the work aligns with branches that already exist.
   **Commands must be absolute paths** — a relative path resolves against the
   directory the session was launched from and fails with exit 127, silently
   bypassing the guard it was supposed to enforce.
+
+## Knowledge loop (Antigravity)
+
+- Shared queue and skills: `../candidates/`, `../skills/` (`end-of-session`,
+  `evaluate-candidates`, `handoff`), linked under `~/.gemini/config/skills/`.
+- Hook wiring for SessionStart reminders and progressive nudges is **not**
+  verified on this host yet — see
+  `../candidates/pending-verification/antigravity.md`. Use absolute paths.
+- `end-of-session`: commit on invoke, ask before push; optional handoff step.

@@ -131,3 +131,20 @@ from clobbering each other's changes.
 **How to apply:** worth it for genuinely multi-part, multi-file tasks where
 pieces are largely independent. Skip it for small or sequential tasks — one
 file, one clear order of steps — where waves are pure coordination overhead.
+If you skip, say so explicitly in the plan (“skipped: sequential/small”).
+
+## Knowledge loop — crossed axes
+
+Platforms and projects form a **grid**, not a stack: every platform can work
+on every project. Knowledge can surface on either axis independently into the
+central queue under `.agent-rules/candidates/` (write only when there is
+something to surface):
+
+- **Project axis** → `candidates/open/project/` — other projects may want this
+- **Platform axis** → `candidates/open/platform/` — other platforms may need this
+
+Use the `end-of-session` skill to close out (consider both axes, commit on
+invoke, ask before push). Use `evaluate-candidates` from a coding-agent-config
+session to apply or discard. Live platform configs and verification claims
+belong to that platform — cross-writes become `needs_verification` tickets
+under `candidates/pending-verification/`.

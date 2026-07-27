@@ -7,6 +7,30 @@
         "timeout": 15,
         "failClosed": true
       }
+    ],
+    "sessionStart": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/session-start.py",
+        "timeout": 15
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-submit-prompt.py",
+        "timeout": 10
+      }
+    ],
+    "stop": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/stop.py",
+        "timeout": 15
+      }
+    ],
+    "preCompact": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/pre-compact.py",
+        "timeout": 10
+      }
     ]
   }
 }

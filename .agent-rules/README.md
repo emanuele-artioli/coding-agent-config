@@ -14,6 +14,38 @@ lie: a plain glob over `~/.gemini/config/` reports nothing, because every entry
 there is a symlink and globbing does not traverse them. Run the script rather
 than trusting either this file or a directory listing.
 
+## Design principles
+
+1. **Foundation** — this directory is the SoT for host rules, skills, agents,
+   workflows, shared hook policy (`guardlib`), and the candidates queue.
+2. **Platforms × projects are crossed** — not a stack. Any platform can work
+   on any project. Knowledge surfaces on either axis independently into
+   `candidates/open/{project,platform}/` (write only when there is something
+   to file). See `candidates/README.md`.
+3. **Platform write-ownership** — edit shared SoT freely from any platform.
+   Live platform configs and “this works on X” claims belong to platform X;
+   cross-writes become `needs_verification` under
+   `candidates/pending-verification/`.
+4. **Close-out / evaluate** — `skills/end-of-session` (commit on invoke, ask
+   before push; conditional handoff) and `skills/evaluate-candidates`
+   (async apply/discard from a coding-agent-config session). Progressive
+   context nudges (Cursor: `beforeSubmitPrompt` / `stop` / `preCompact`)
+   suggest handoff earlier than auto-compact; they never force mid-task
+   handoff.
+
+```mermaid
+flowchart LR
+  subgraph cell [Any session]
+    Work[Project work on a platform]
+  end
+  Work -->|project axis| CQ[candidates queue]
+  Work -->|platform axis| CQ
+  CQ --> Eval[evaluate-candidates]
+  Eval -->|apply or discard| SoT[SoT / harness / projects]
+  Eval -->|needs other platform| Verify[pending-verification]
+  Verify -->|SessionStart reminder| OtherPlat[Owning platform]
+```
+
 ## The one rule that shapes everything else
 
 `AGENTS.md` is the industry-standard filename and nearly every agent reads it.
@@ -57,6 +89,10 @@ from that single asymmetry:
   `~/.gemini/config/global_workflows/`. Claude does **not** get these: its
   slash surface is skills. Promote a workflow to a skill if Claude must also
   auto-trigger it.
+- `candidates/` — crossed-axis knowledge queue (`open/project`, `open/platform`,
+  `done/`, `pending-verification/`). Schema in `candidates/README.md`.
+- `projects.json` — host index of project roots for cross-project lifts during
+  `evaluate-candidates`.
 - `mcp/catalog.json` — intentionally shared MCP servers. `install.py` upserts
   each named server into Cursor, Antigravity and Claude configs without
   removing unrelated entries. Secrets stay in `${env:NAME}` placeholders.
@@ -258,9 +294,15 @@ Trust these claims to the extent they were actually exercised:
   `cwd`, project root in `workspace_roots`. `failClosed` is now `true`. The
   probe path stays listed in `~/.agent-guards.json` so the test remains safe
   to repeat.
+- **Cursor knowledge-loop adapters (2026-07-27).** `sessionStart`,
+  `beforeSubmitPrompt`, `stop`, and `preCompact` wired to
+  `scripts/cursor/*` over `context_nudge.py` / `candidate-reminders.py`.
+  Driven with sample payloads in this pass; live SessionStart reminder
+  depends on Cursor reloading `hooks.json`.
 - **Unverified, by inheritance.** `~/.copilot/hooks/wait-loop.json` assumes
   Copilot's `preToolUse` payload is shaped like Claude's. Test it for real the
   first time Copilot CLI is installed here.
-- **Not attempted.** Antigravity and Codex hook wiring. The event names and
-  paths in the tables above come from documentation, not from a firing hook on
-  this host.
+- **Not attempted.** Antigravity and Codex hook wiring, and Claude
+  SessionStart/Stop/PreCompact knowledge-loop wiring — see
+  `candidates/pending-verification/`. The event names and paths in the tables
+  above come from documentation, not from a firing hook on this host.

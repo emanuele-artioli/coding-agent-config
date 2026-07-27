@@ -1,0 +1,24 @@
+{
+  "projects": [
+    {
+      "name": "pointstream",
+      "path": "/home/itec/emanuele/pointstream",
+      "notes": "Research project with AGENTS.md and paper-sync Stop hook"
+    },
+    {
+      "name": "4DGStudy",
+      "path": "/home/itec/emanuele/4DGStudy",
+      "notes": "Research project with AGENTS.md"
+    },
+    {
+      "name": "TIGAS",
+      "path": "/home/itec/emanuele/TIGAS",
+      "notes": "Research project with AGENTS.md"
+    },
+    {
+      "name": "coding-agent-config",
+      "path": "/home/itec/emanuele",
+      "notes": "Host agent-rules SoT (.agent-rules/)"
+    }
+  ]
+}

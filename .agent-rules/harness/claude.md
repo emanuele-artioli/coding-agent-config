@@ -65,3 +65,14 @@ repeating.
   `PostToolUse`, `UserPromptSubmit`, `Stop`, `SessionStart`, …), invoking the
   Claude-dialect entry points in `../scripts/`. User- and project-level hooks
   both fire; the more specific level does not override.
+
+## Knowledge loop (Claude Code)
+
+- Shared queue and skills live under `../candidates/` and `../skills/`
+  (`end-of-session`, `evaluate-candidates`, `handoff`).
+- Wire SessionStart / Stop / UserPromptSubmit / PreCompact reminders from a
+  Claude session (see `../candidates/pending-verification/claude.md`) — not
+  claimed verified from Cursor. Fail-open for advisory scripts.
+- `end-of-session` commits on invoke and asks before push; handoff is a
+  conditional step or a standalone skill.
+- Prefer handoff before auto-compact; do not wait for full context.

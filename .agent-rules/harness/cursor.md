@@ -127,3 +127,17 @@ workflow should also auto-trigger from a description match.
   `workspace_roots`.
 - `~/.cursor/skills-cursor/` is Cursor's own managed directory. Never edit or
   vendor anything into it.
+
+## Knowledge loop (Cursor)
+
+- Host SoT: `../candidates/`, skills `end-of-session`, `evaluate-candidates`,
+  `handoff`. SessionStart runs `scripts/cursor/session-start.py` (pending-
+  verification + open candidates reminders).
+- Progressive nudges (never force mid-task handoff): `beforeSubmitPrompt`
+  (soft/log), `stop` (medium/stderr), `preCompact` (`user_message` strong).
+  Shared policy in `../scripts/context_nudge.py`. Prefer handoff before
+  auto-compact; context rot often starts ~50% fill.
+- `end-of-session`: invoke = commit consent; ask before push. Conditionally
+  runs handoff as a step.
+- Platform write-ownership: do not claim Claude/Antigravity hooks verified
+  from here; leave tickets under `../candidates/pending-verification/`.
