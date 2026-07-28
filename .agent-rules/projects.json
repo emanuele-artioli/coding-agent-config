@@ -13,7 +13,7 @@
     {
       "name": "TIGAS",
       "path": "/home/itec/emanuele/TIGAS",
-      "notes": "Research project with AGENTS.md"
+      "notes": "Paper-validated TIGAS (ex-GaussianAdaptiveStreamer); modular rewrite on archive/modular-scaffold; Overleaf nested"
     },
     {
       "name": "presley",
