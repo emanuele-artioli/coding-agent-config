@@ -13,6 +13,58 @@
             ]
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "/home/itec/emanuele/.agent-rules/scripts/guard-model-family.py"
+            ]
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/session-start.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/stop.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/user-prompt-submit.py"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/pre-compact.py"
+          }
+        ]
       }
     ]
   },

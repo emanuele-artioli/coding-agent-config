@@ -10,5 +10,6 @@ make the same rule drift apart across five tools.
 
 The entry points that *do* know a platform's dialect are the `guard-*.py`
 scripts in the parent directory (Claude Code, and Copilot CLI which reuses the
-same payload shape) and `cursor/before-shell.py`.
+same payload shape), `cursor/before-shell.py`, and `cursor/before-task.py`
+(model-family). Antigravity adapters live under `antigravity/`.
 """

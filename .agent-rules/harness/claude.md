@@ -52,6 +52,19 @@ this way (it requires a `prompt` unless `stop: true`), so the mistake
 surfaces immediately rather than silently wasting a turn — still worth not
 repeating.
 
+## Model family
+
+Prefer **omitting `model` on `Agent`** so the subagent inherits the parent
+session (Claude in-house). Do not pin versioned slugs — they go stale. If
+you must pass a model, use only the Claude family (including stable aliases
+like `sonnet` / `opus` / `haiku`).
+
+Do not pass Grok, GPT, Gemini, or other off-family models unless the user
+explicitly redirects the work. If Claude is clearly struggling on a task,
+ask the user; prefer another platform/session over silently crossing family.
+Live deny wiring: `../scripts/guard-model-family.py` (see
+`../candidates/pending-verification/claude.md`).
+
 ## Where Claude's own config lives
 
 - Prose: `~/.claude/CLAUDE.md` (this file's importer) and each project's
@@ -70,9 +83,25 @@ repeating.
 
 - Shared queue and skills live under `../candidates/` and `../skills/`
   (`end-of-session`, `evaluate-candidates`, `handoff`).
-- Wire SessionStart / Stop / UserPromptSubmit / PreCompact reminders from a
-  Claude session (see `../candidates/pending-verification/claude.md`) — not
-  claimed verified from Cursor. Fail-open for advisory scripts.
+- SessionStart / Stop / UserPromptSubmit / PreCompact wired in
+  `~/.claude/settings.json` → `../scripts/claude/{session-start,stop,
+  user-prompt-submit,pre-compact}.py`. All four are direct-executable
+  (chmod +x, no `python3` prefix) so a missing file fails open rather than
+  turning into an interpreter error; `stop.py` and `user-prompt-submit.py`
+  always exit 0 regardless of nudge content, since Stop's exit 2 blocks
+  Claude from stopping and would turn an advisory into a hang. Driven with
+  sample payloads (see `../candidates/pending-verification/claude.md`) —
+  true live-session firing still needs confirming from a fresh session.
+- UserPromptSubmit soft task-change nudge stays log-only
+  (`CONTEXT_NUDGE_BLOCK_SOFT` unset) per the locked decision in
+  `HANDOFF-claude.md`.
+- Model-family gate wired: `PreToolUse` matcher `Agent|Task` →
+  `../scripts/guard-model-family.py` (`python3 <path>`, fail-closed). Note:
+  the `Agent` tool's own schema already restricts `model` to the Claude
+  family (`sonnet|opus|haiku|fable`), so an off-family spawn attempt is
+  rejected before the hook even runs — the hook is defense-in-depth here,
+  not the primary gate, at least until a spawn path with a looser schema is
+  found.
 - `end-of-session` commits on invoke and asks before push; handoff is a
   conditional step or a standalone skill.
 - Prefer handoff before auto-compact; do not wait for full context.
