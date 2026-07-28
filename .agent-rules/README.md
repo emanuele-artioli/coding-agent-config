@@ -50,6 +50,7 @@ flowchart LR
   subgraph cursorHooks [Cursor adapters]
     ch_before_shell[before-shell]
     ch_before_submit_prompt[before-submit-prompt]
+    ch_before_task[before-task]
     ch_pre_compact[pre-compact]
     ch_session_start[session-start]
     ch_stop[stop]
@@ -103,9 +104,12 @@ flowchart TB
     ha_cursor[cursor]
   end
   subgraph scripts[scripts/ (top-level)]
+    sc_antigravity[antigravity]
     sc_candidate_reminders_py[candidate-reminders.py]
+    sc_claude[claude]
     sc_context_nudge_py[context_nudge.py]
     sc_guard_long_run_py[guard-long-run.py]
+    sc_guard_model_family_py[guard-model-family.py]
     sc_guard_rm_py[guard-rm.py]
     sc_guard_wait_loop_py[guard-wait-loop.py]
     sc_install_py[install.py]
@@ -115,7 +119,9 @@ flowchart TB
     sc_render_architecture_py[render_architecture.py]
     sc_session_status_py[session-status.py]
     sc_sync_agent_rules_py[sync_agent_rules.py]
+    sc_test_sync_agent_rules_py[test_sync_agent_rules.py]
     sc_vendor_sync_agent_rules_sh[vendor-sync-agent-rules.sh]
+    sc_verify_tiering_py[verify_tiering.py]
   end
   subgraph candidates[candidates/]
     ca_open_project[open/project]
@@ -159,9 +165,12 @@ flowchart TB
 - `mcp/catalog.json` — intentionally shared MCP servers. `install.py` upserts
   each named server into Cursor, Antigravity and Claude configs without
   removing unrelated entries. Secrets stay in `${env:NAME}` placeholders.
-- `scripts/guardlib/` — hook policy: pure functions that take a shell command
-  and return a verdict. No stdin, no stdout, no knowledge of any agent.
-- `scripts/guard-*.py`, `scripts/cursor/before-shell.py` — thin per-agent
+- `scripts/guardlib/` — hook policy: pure functions that return a verdict.
+  Shell policies take a command (`wait_loop`, `destructive_rm`, `long_run`);
+  `model_family` takes a requested model slug + platform. No stdin, no stdout,
+  no knowledge of any agent.
+- `scripts/guard-*.py`, `scripts/cursor/before-shell.py`,
+  `scripts/cursor/before-task.py`, `scripts/antigravity/` — thin per-agent
   adapters over `guardlib`, one per hook dialect.
 - `scripts/install.py` — creates and verifies the symlink farm, and upserts
   the MCP catalog.
@@ -222,7 +231,10 @@ is the hand-edited source; `CLAUDE.md` is the wrapper.
 | File | Status | Who reads it |
 |---|---|---|
 | `AGENTS.md` | hand-edited, except its `host-rules` block | Cursor, Antigravity, Codex, Copilot cloud agent and code review |
-| `CLAUDE.md` | thin: `@AGENTS.md` plus Claude-only notes | Claude Code (and Cursor, which also always applies it) |
+| `CLAUDE.md` | thin: `@.claude/project-core.md` plus Claude-only notes | Claude Code (and Cursor, which also always applies it) |
+| `.claude/project-core.md` | generated: `AGENTS.md` minus the host block, minus every `scope:`-marked section | Claude Code, via the import above |
+| `.claude/rules/<slug>.md` | generated: one per `scope:`-marked section, deferred by `paths:` | Claude Code, on demand |
+| `.github/instructions/<slug>.instructions.md` | generated: the same sections, deferred by `applyTo:` | Copilot Chat, on demand |
 | `.cursor/rules/cursor-harness.mdc` | generated from `harness/cursor.md` | Cursor |
 | `.github/copilot-instructions.md` | generated pointer at `AGENTS.md`, plus whatever the project marks `copilot-critical` | Copilot Chat |
 | `.agent-guards.json` | hand-edited | every agent's hook adapter |
@@ -235,9 +247,64 @@ is the hand-edited source; `CLAUDE.md` is the wrapper.
 
 Deleted by the migration, and removed automatically by `sync_agent_rules.py`
 if it finds them: `.agents/rules/<project>.md` (Antigravity reads the root
-`AGENTS.md` natively now), `.github/instructions/<project>.instructions.md`
-(superseded by the pointer plus native `AGENTS.md` support), and
-`tools/host_rules_snapshot.md` (see below).
+`AGENTS.md` natively now) and `tools/host_rules_snapshot.md` (see below).
+`.github/instructions/` used to be on that list; since 2026-07-28 it is back
+with a different job — see below — and is no longer swept.
+
+### Tiered delivery: `scope:` markers (2026-07-28)
+
+`AGENTS.md` files had grown to 220–520 lines, all of it loaded in every Claude
+session on top of the host rules, and the last 164 lines of every one of them
+were the `host-rules` block Claude had *already* loaded from
+`~/.claude/CLAUDE.md`. Claude Code's own guidance is under 200 lines per file,
+on the grounds that longer files measurably reduce adherence.
+
+The apparent conflict — one file for every agent, versus a short file — is
+resolved by separating **source** from **delivery**. `AGENTS.md` stays the
+single hand-edited source and stays complete. What changes is that the
+platforms which *can* defer part of it now do:
+
+| | Always-on | Deferred |
+|---|---|---|
+| Claude Code | `CLAUDE.md` → `@.claude/project-core.md` | `.claude/rules/*.md` with `paths:` |
+| Copilot Chat | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` with `applyTo:` |
+| Cursor, Codex, Antigravity, Copilot cloud | the whole `AGENTS.md` | — no mechanism; eager by design |
+
+Mark a section by putting `<!-- scope: src/**, tests/** -->` on its own line
+immediately above its `## ` heading. Unmarked sections are always-on for
+everyone. The marker is an HTML comment, so it is inert for every agent that
+reads `AGENTS.md` raw.
+
+Nothing is removed from `AGENTS.md`, so no agent can lose a rule — the eager
+platforms are byte-for-byte unaffected. `scripts/verify_tiering.py` proves
+that mechanically: every non-blank line of a project's `AGENTS.md`, outside
+the host block, must appear in the core or in exactly one rule file, and never
+in both. `scripts/test_sync_agent_rules.py` covers the split itself (an early
+version made adjacent scoped sections produce overlapping cut ranges, which
+silently ate an unrelated heading out of the core).
+
+Measured effect on Claude's startup context, in lines:
+
+| Project | Before | After | Deferred |
+|---|---|---|---|
+| pointstream | 806 | 506 | 213 |
+| presley | 802 | 432 | 252 |
+| moq3dgs | 601 | 385 | 100 |
+| TIGAS | 643 | 423 | 98 |
+| 4DGStudy | 507 | 340 | 46 |
+
+The host file `AGENTS.md` was trimmed 150 → 121 lines in the same pass, which
+shrinks both the home import and all five inlined `host-rules` blocks.
+
+**The cost to be honest about:** a deferred rule is not in context until Claude
+reads a matching file. A session that reasons *about* an area without opening
+its files — planning an experiment, answering a question about the test
+suite — will not have those rules unless it goes and reads them. The generated
+core ends with an index of what was deferred and the instruction to read it in
+exactly that case, but that is an instruction Claude has to follow, not a
+guarantee the way an eager load is. Scope a section only when it genuinely
+tracks a set of paths; leave anything that shapes judgment in every session
+unmarked.
 
 The project-level skills directory is real under `.claude/` and symlinked from
 `.agents/`, rather than the other way round. That is deliberate and worth not
@@ -276,11 +343,23 @@ bites — the payload and response contract:
 So a single script cannot serve them all: pointing Cursor's `hooks.json` at
 `guard-wait-loop.py` would produce a hook that runs, succeeds, and silently
 never blocks anything. Instead the policy lives once in `scripts/guardlib/`
-(`wait_loop`, `destructive_rm`, `long_run`) and each dialect gets a thin
-adapter that knows only how to read that platform's payload and phrase that
-platform's answer — including naming the right *alternative* in a denial
-message, since telling Cursor to use `run_in_background` would be useless
-advice.
+(`wait_loop`, `destructive_rm`, `long_run`, `model_family`) and each dialect
+gets a thin adapter that knows only how to read that platform's payload and
+phrase that platform's answer — including naming the right *alternative* in a
+denial message, since telling Cursor to use `run_in_background` would be
+useless advice.
+
+**Model family:** prefer omit/inherit so subagents stay on each platform's
+in-house models (Cursor → Grok/Composer, Claude → Claude, Antigravity →
+Gemini). Family-prefix allowlists only — no versioned slug lists (they go
+stale). Cursor live wiring: `preToolUse`/`Task` + `subagentStart` →
+`scripts/cursor/before-task.py` (`failClosed: true`). Claude
+(`guard-model-family.py`) and Antigravity
+(`antigravity/guard-model-family.py`) adapters are in SoT but were authored
+from a Cursor session — **live wire + deny tests are pending** under
+`candidates/pending-verification/{claude,antigravity}.md` (platform
+write-ownership). Multi-family plugin defaults (e.g. Cursor marketplace
+pstack) are untrusted here.
 
 Per-project values — which directories are unrecoverable, which entry points
 are long training runs — live in each project's `.agent-guards.json`, because
@@ -298,7 +377,8 @@ exit 2, which on some events — notably Claude's `Stop`, where exit 2 means
 "prevents Claude from stopping" — turns a missing advisory script into a hung
 session.
 
-Safety guards that can actually deny (`guard-rm.py`, `guard-wait-loop.py`) are
+Safety guards that can actually deny (`guard-rm.py`, `guard-wait-loop.py`,
+`guard-model-family.py`, `cursor/before-task.py`) are
 invoked *via* `python3 <path>` for exactly the opposite reason: a missing file
 then fails closed and blocks the call, rather than silently letting through the
 thing it exists to prevent. Cursor makes this explicit with `failClosed: true`
@@ -346,6 +426,19 @@ Notes:
 
 Trust these claims to the extent they were actually exercised:
 
+- **Tiered rule delivery (2026-07-28, from a Claude session).** Generator
+  extended and re-vendored to all five projects; `scope:` markers applied;
+  `sync_agent_rules.py --check` clean and idempotent in all five;
+  `verify_tiering.py` green 5/5 (no rule line lost, invented, or duplicated);
+  `test_sync_agent_rules.py` 13/13. **Not verified:** that Claude actually
+  loads `.claude/rules/*.md` lazily on a path match — that needs a fresh
+  Claude session running `/context` before and after touching a scoped file.
+  Cursor and Antigravity are expected to be unaffected (they read the
+  unchanged, complete `AGENTS.md`), but that is an expectation, not a probe:
+  tickets are filed under `candidates/pending-verification/{cursor,antigravity}.md`,
+  the real risk being that either platform *also* reads `.claude/rules/` and
+  therefore sees scoped sections twice.
+
 - **Verified by running it.** The `guardlib` refactor and both dialects: the
   Claude adapters and `cursor/before-shell.py` were driven with sample payloads
   and produce the right verdicts. `sync_agent_rules.py` was run in pointstream
@@ -376,11 +469,33 @@ Trust these claims to the extent they were actually exercised:
 - **Soft plan-wave linter (2026-07-27).** `enforceable-rules.md` +
   `scripts/lint_plan_waves.py`; Cursor `stop` prints advisories for recent
   non-compliant `.cursor/plans/*.plan.md`. Soft only (`--strict` reserved).
+- **Model-family gate (2026-07-27).** `guardlib/model_family.py` + Cursor
+  `before-task.py` wired on `preToolUse`/`Task` and `subagentStart`
+  (`failClosed: true`). Unit tests green; **live** deny of
+  `claude-sonnet-5-thinking-high` and allow of omit→inherit
+  (`cursor-grok-4.5-high` on `subagentStart`); see
+  `~/.cursor/model-family-hook.log`. Claude (`guard-model-family.py`) and
+  Antigravity (`antigravity/guard-model-family.py`) adapters are in SoT only —
+  live wire + verify pending (write-ownership).
+- **Claude Code knowledge-loop wiring (2026-07-28).** `SessionStart`, `Stop`,
+  `UserPromptSubmit`, `PreCompact` wired in `~/.claude/settings.json` →
+  `scripts/claude/*.py` (all direct-executable, fail-open) over
+  `context_nudge.py` / `candidate-reminders.py`. `PreToolUse`/`Agent|Task` →
+  `scripts/guard-model-family.py` (`python3 <path>`, fail-closed). All four
+  advisory adapters and the model-family gate were driven with realistic
+  sample payloads matching Anthropic's documented hook stdin/stdout contract
+  and produced correct output; skills farm (`end-of-session`,
+  `evaluate-candidates`, `handoff`, …) confirmed resolving via live symlinks.
+  **Not yet confirmed:** true live firing inside a running Claude session
+  (this session's hook config was plausibly loaded before the settings.json
+  edit landed) and a live hook-level model-family deny (the `Agent` tool's
+  own schema already restricts `model` to the Claude family, so an
+  off-family spawn never reaches the hook in this harness). See
+  `candidates/pending-verification/claude.md`.
 - **Unverified, by inheritance.** `~/.copilot/hooks/wait-loop.json` assumes
   Copilot's `preToolUse` payload is shaped like Claude's. Test it for real the
   first time Copilot CLI is installed here.
-- **Not attempted.** Antigravity and Codex hook wiring, and Claude
-  SessionStart/Stop/PreCompact knowledge-loop wiring — see
-  `candidates/pending-verification/` and `HANDOFF-claude.md` /
+- **Not attempted.** Antigravity and Codex hook wiring — see
+  `candidates/pending-verification/antigravity.md` and
   `HANDOFF-antigravity.md`. The event names and paths in the tables above
-  come from documentation, not from a firing hook on this host.
+  come from documentation, not from a firing hook on those platforms.

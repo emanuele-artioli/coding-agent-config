@@ -9,3 +9,17 @@ trigger a SessionStart reminder.
 - [x] Confirm live SessionStart fires after Cursor reloads `hooks.json` (2026-07-27 fresh chat `b90833db-…`: `~/.cursor/session-start.log` has real `session_id` + payload keys; `additional_context` also reached the agent via hooks_context)
 - [x] Confirm whether live `stop` / `beforeSubmitPrompt` payloads include undocumented `context_usage_percent` (2026-07-27: `stop-probe.log` shows `has_fill: false` — stop has token counts / `loop_count` but **not** fill %; keep stop-count proxy in `context_nudge.py`)
 - [x] Re-probe `beforeShellExecution` after hooks.json change (`rm -rf __guard_probe__` denied live 2026-07-27; probe log + failClosed deny)
+- [x] Model-family gate: `preToolUse`/`Task` + `subagentStart` → `before-task.py` (2026-07-27 live: `claude-sonnet-5-thinking-high` denied; omit inherit allowed and `subagentStart` saw `cursor-grok-4.5-high`; log `~/.cursor/model-family-hook.log`)
+- [ ] **Tiered rule delivery (added 2026-07-28 from a Claude session — not verified here).**
+  Each project's `AGENTS.md` now marks some sections `<!-- scope: <globs> -->`.
+  Those sections stay in `AGENTS.md` in full, so Cursor should be **unaffected**:
+  it reads the root `AGENTS.md` eagerly and gets everything, exactly as before.
+  What to confirm live, in any of pointstream / presley / moq3dgs / TIGAS / 4DGStudy:
+  - Cursor still picks up the root `AGENTS.md` and the scope comments are inert
+    (they are HTML comments, so they should render as nothing and change no rule).
+  - Cursor does **not** additionally load `.claude/rules/*.md`. It reads
+    `.claude/` skills, and if it also reads `.claude/rules/` then every scoped
+    section arrives twice — once from `AGENTS.md`, once from the rule file.
+    That is the one real regression risk on this platform. Ask the agent to
+    quote a scoped rule and see whether it cites one source or two.
+  - `.cursor/rules/cursor-harness.mdc` is unchanged and still applies.

@@ -33,8 +33,11 @@ for repo in "${PROJECTS[@]}"; do
     echo "skip (no tools/sync_agent_rules.py found): $repo" >&2
     continue
   fi
-  if ! grep -q '@AGENTS\.md' "$repo/CLAUDE.md" 2>/dev/null; then
-    echo "SKIP (not migrated: CLAUDE.md does not import AGENTS.md): $repo" >&2
+  # Either import counts: `@AGENTS.md` is the pre-tiering layout and still
+  # correct, `@.claude/project-core.md` is the tiered one. What must never
+  # happen is copying into a project laid out the *old* way round.
+  if ! grep -qE '@AGENTS\.md|@\.claude/project-core\.md' "$repo/CLAUDE.md" 2>/dev/null; then
+    echo "SKIP (not migrated: CLAUDE.md imports neither AGENTS.md nor the core slice): $repo" >&2
     continue
   fi
   if diff -q "$SRC" "$dst" >/dev/null 2>&1; then

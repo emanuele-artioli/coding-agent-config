@@ -31,6 +31,21 @@
         "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/pre-compact.py",
         "timeout": 10
       }
+    ],
+    "preToolUse": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-task.py",
+        "matcher": "Task",
+        "timeout": 15,
+        "failClosed": true
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-task.py",
+        "timeout": 15,
+        "failClosed": true
+      }
     ]
   }
 }

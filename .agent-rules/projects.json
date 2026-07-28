@@ -16,6 +16,16 @@
       "notes": "Research project with AGENTS.md"
     },
     {
+      "name": "presley",
+      "path": "/home/itec/emanuele/presley",
+      "notes": "Research project with AGENTS.md and paper-sync Stop hook"
+    },
+    {
+      "name": "moq3dgs",
+      "path": "/home/itec/emanuele/moq3dgs",
+      "notes": "Research project with AGENTS.md"
+    },
+    {
       "name": "coding-agent-config",
       "path": "/home/itec/emanuele",
       "notes": "Host agent-rules SoT (.agent-rules/)"

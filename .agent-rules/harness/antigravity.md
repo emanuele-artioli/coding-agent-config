@@ -35,6 +35,18 @@ history so the work aligns with branches that already exist.
   map at most 5–7 analytical steps, and cross-examine edge cases (memory
   overhead, latency penalties) before drafting code.
 
+## Model family
+
+Prefer **omitting an explicit model** on spawned work so it inherits the
+parent session (Gemini in-house). Do not pin versioned slugs — they go stale.
+If you must pass a model, use only the Gemini family.
+
+Do not follow multi-family skill defaults from other platforms. If Gemini is
+clearly struggling, ask the user; prefer switching platform/session over
+silently crossing family. Live deny wiring:
+`../scripts/antigravity/guard-model-family.py` (absolute path; see
+`../candidates/pending-verification/antigravity.md`).
+
 ## Where Antigravity's own config lives
 
 - Prose: `~/.gemini/GEMINI.md` (this file's importer) and `~/.gemini/AGENTS.md`
