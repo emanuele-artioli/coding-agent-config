@@ -88,6 +88,20 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertIn("low=sonnet", nudge)
         self.assertIn("high=opus", nudge)
 
+    def test_cursor_live_slug_matches_tier_table(self) -> None:
+        # Live Task/subagentStart passes cursor-grok-4.5-high; JSON keeps grok-4.5.
+        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.5-high", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("grok-4.5", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("composer-2.5", "cursor"))
+
+    def test_cursor_fast_variants_still_nudge(self) -> None:
+        for slug in ("grok-4.5-fast", "composer-2.5-fast", "cursor-grok-4.5-fast"):
+            with self.subTest(slug=slug):
+                nudge = model_family.tier_nudge(slug, "cursor")
+                self.assertIsNotNone(nudge)
+                assert nudge is not None
+                self.assertIn(slug, nudge)
+
     def test_allowed_models_reflects_effort_models_json(self) -> None:
         self.assertEqual(model_family.allowed_models("claude"), {"sonnet", "opus"})
         self.assertEqual(model_family.allowed_models("antigravity"), {"gemini-flash-3.6"})

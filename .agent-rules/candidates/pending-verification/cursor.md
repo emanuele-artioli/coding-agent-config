@@ -23,20 +23,18 @@ trigger a SessionStart reminder.
     That is the one real regression risk on this platform. Ask the agent to
     quote a scoped rule and see whether it cites one source or two.
   - `.cursor/rules/cursor-harness.mdc` is unchanged and still applies.
-- [ ] **Effort-tier nudge (added 2026-07-28 from a Claude session — not
-  verified here).** `scripts/cursor/before-task.py` now also logs (in
-  `~/.cursor/model-family-hook.log`, non-blocking) an effort-tier nudge from
-  `../effort-models.json` when an allowed model is in-family but off the
-  mapped low/medium/high tiers for cursor (script-level verified with a
-  synthetic `grok-4.5-fast` payload — logged `tier_nudge_non_blocking` and
-  still returned `{"permission": "allow"}`). What to confirm live: spawn a
-  `Task`/subagent with an in-family, off-tier model (e.g. plain `grok-4.5`
-  style pinned slug not matching `composer-2.5`/`grok-4.5` exactly) and
-  check the log line appears; and whether Cursor's hook contract supports an
-  `"ask"` permission value this could upgrade to (the contract in
-  `../harness/cursor.md` documents `allow`/`ask`/`deny` — confirm `"ask"`
-  actually surfaces a prompt for `preToolUse`/`subagentStart`, not just
-  `beforeShellExecution`).
+- [x] **Effort-tier nudge (added 2026-07-28 from a Claude session — verified
+  live 2026-07-28).** `scripts/cursor/before-task.py` logs an effort-tier
+  nudge from `../effort-models.json` when an allowed model is in-family but
+  off the mapped low/medium/high tiers for cursor, and also returns it as
+  `agent_message` while still `permission: allow`. Tier matching accepts
+  live Cursor slugs (`cursor-grok-4.5-high` ≡ `grok-4.5`); `-fast` variants
+  still nudge. Attempted upgrade to `{"permission": "ask"}` on a real
+  `Task` spawn with `composer-2.5-fast` — Cursor rejected it with
+  "The 'ask' permission for preToolUse hooks is not yet implemented. Use
+  'allow' or 'deny' instead." So ask is **not** available on this hook yet
+  (unlike `beforeShellExecution`); stay allow + log until Cursor implements
+  it. Do not reopen unless that error goes away.
 - [ ] **Effort-settability for subagents (added 2026-07-28 from a Claude
   session — not verified here).** `effort-models.json` carries an `effort`
   field on Cursor's medium/high (Grok 4.5) tiers, marked `verified: false`.

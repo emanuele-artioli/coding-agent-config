@@ -7,9 +7,14 @@ cross-family injections (parent-passed Claude/GPT, pstack multi-family
 defaults) with a clear agent_message — never rewrites `updated_input`. Also
 logs (never blocks) an effort-tier nudge from `../../effort-models.json` when
 an allowed model is in-family but off this host's mapped low/medium/high
-tiers for Cursor — no confirmed "ask" equivalent has been exercised for this
-hook yet (see `candidates/pending-verification/cursor.md`), so this stays
-advisory-only in the log until that's checked.
+tiers for Cursor.
+
+Live 2026-07-28: returning `{"permission": "ask"}` from this hook fails with
+"The 'ask' permission for preToolUse hooks is not yet implemented. Use
+'allow' or 'deny' instead." So effort-tier stays log-only here (unlike Claude
+Code's `permissionDecision: "ask"`). `ask` remains valid for
+`beforeShellExecution`; do not re-enable it on Task/subagentStart until
+Cursor implements it.
 
 Wired from `~/.cursor/hooks.json` on both `preToolUse` (matcher Task) and
 `subagentStart`, with `failClosed: true`.
@@ -101,7 +106,13 @@ def main() -> int:
 
     nudge = model_family.tier_nudge(requested, PLATFORM)
     _log(payload, requested, "allow", tier_nudge=nudge)
-    _respond("allow")
+    # Cannot use permission "ask" on preToolUse/subagentStart yet (Cursor
+    # rejects it). Keep allow + log; surface the nudge to the agent via
+    # agent_message when present so it is not log-only from the agent's POV.
+    if nudge:
+        _respond("allow", agent_message=nudge)
+    else:
+        _respond("allow")
     return 0
 
 

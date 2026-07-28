@@ -106,11 +106,16 @@ Never pass Claude / GPT (or other off-family) models because a skill table
 said so. The Cursor marketplace **pstack** plugin’s multi-family defaults
 (`/setup-pstack`, arena / interrogate panels) ignore which IDE you are on
 and are **untrusted** here — do not follow them. `before-task.py` on
-`preToolUse`/`Task` and `subagentStart` hard-denies off-family spawns; it
-also logs (never blocks) an effort-tier nudge to
-`~/.cursor/model-family-hook.log` when a model is in-family but off the
-tier table — no confirmed "ask"-style prompt has been exercised for this
-hook yet.
+`preToolUse`/`Task` and `subagentStart` hard-denies off-family spawns; when
+a model is in-family but off the tier table it still returns
+`{"permission": "allow"}` and logs the nudge to
+`~/.cursor/model-family-hook.log` (also echoed as `agent_message`). Live
+2026-07-28: `{"permission": "ask"}` on this hook is rejected by Cursor
+("ask … for preToolUse hooks is not yet implemented") — so do not use ask
+here until that lands. `ask` remains valid for `beforeShellExecution`.
+Tier matching accepts Cursor’s live slugs (`cursor-grok-4.5-high` ≡
+`grok-4.5`); product variants like `composer-2.5-fast` / `grok-4.5-fast`
+still nudge.
 
 If in-house models are clearly struggling, ask the user; prefer switching
 platform/session over silently crossing family. Settings hygiene: Explore
@@ -147,9 +152,11 @@ workflow should also auto-trigger from a description match.
   `{"permission": "allow" | "ask" | "deny", "user_message": …,
   "agent_message": …}` — which is a *different contract* from Claude's
   `hookSpecificOutput` block, so each platform needs its own thin adapter over
-  the shared guard logic in `../scripts/guardlib/`. Verified payload fields for
-  `beforeShellExecution`: top-level `command`, empty `cwd`, project root in
-  `workspace_roots`.
+  the shared guard logic in `../scripts/guardlib/`. Verified: `ask` works on
+  `beforeShellExecution`; live 2026-07-28 it is **not** implemented for
+  `preToolUse` / `subagentStart` (Cursor errors — use allow/deny only there).
+  Verified payload fields for `beforeShellExecution`: top-level `command`,
+  empty `cwd`, project root in `workspace_roots`.
 - `~/.cursor/skills-cursor/` is Cursor's own managed directory. Never edit or
   vendor anything into it.
 

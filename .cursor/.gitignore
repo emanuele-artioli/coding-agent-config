@@ -44,5 +44,21 @@ projects/*/*
 !rules/**
 # <<< CURSOR MANAGED BLOCK <<<
 
-# coding-agent-config: version the host-wide hooks file (outside Cursor's managed block)
+# coding-agent-config overrides (OUTSIDE the managed block — Cursor regenerates
+# only between the markers above). Root allowlist tracks hooks.json + this
+# file; everything else under .cursor/ must stay unstageable. The managed
+# block's !un-ignores would otherwise win over root `/.cursor/*` and let
+# `git add .cursor/` stage transcripts/uploads/terminals/plugin cache.
+# Last matching pattern in this file wins, so these re-ignores defeat the
+# managed !projects/ / !plugins/ / … lines. `.git/info/exclude` cannot do
+# this — it has lower precedence than a nested .gitignore.
 !hooks.json
+!.gitignore
+projects/
+plugins/
+skills-cursor/
+skills/
+commands/
+plans/
+subagents/
+rules/

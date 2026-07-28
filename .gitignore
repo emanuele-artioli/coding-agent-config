@@ -31,6 +31,12 @@
 !/.gemini/GEMINI.md
 
 # Cursor has no user-level rules file, but it does have user-level hooks.
+# Track hooks.json and .cursor/.gitignore only. The nested gitignore is
+# Cursor-managed between its markers and *un-ignores* session dirs
+# (projects/**, plugins/**, …); our post-marker overrides in that file
+# re-assert the allowlist. Do not rely on `.git/info/exclude` for this —
+# nested .gitignore outranks it.
 !/.cursor
 /.cursor/*
 !/.cursor/hooks.json
+!/.cursor/.gitignore

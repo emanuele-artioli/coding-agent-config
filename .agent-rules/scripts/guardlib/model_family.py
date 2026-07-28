@@ -123,6 +123,57 @@ def allowed_models(platform: str) -> set[str]:
     }
 
 
+# Effort/thinking qualifiers Cursor appends to a base tier model
+# (`cursor-grok-4.5-high`). `-fast` and other product variants are NOT in
+# this set — those stay off-tier so the nudge still fires.
+_TIER_EFFORT_SUFFIXES = frozenset(
+    {
+        "high",
+        "medium",
+        "low",
+        "max",
+        "xhigh",
+        "extra-high",
+        "thinking-high",
+        "thinking-medium",
+        "thinking-low",
+        "thinking-max",
+    }
+)
+
+
+def matches_tier_model(requested: str, tier_model: str) -> bool:
+    """Whether `requested` is the tier-mapped model, allowing Cursor naming.
+
+    `effort-models.json` keeps short names (`grok-4.5`, `composer-2.5`); live
+    Cursor Task spawns often pass `cursor-grok-4.5-high`. Accept optional
+    `cursor-` prefix and an effort/thinking suffix from
+    `_TIER_EFFORT_SUFFIXES`. Product variants like `grok-4.5-fast` /
+    `composer-2.5-fast` do not match.
+    """
+    req = _normalize(requested)
+    tier = _normalize(tier_model)
+    if req is None or tier is None:
+        return False
+    if req == tier:
+        return True
+    if req.startswith("cursor-"):
+        req = req[len("cursor-") :]
+        if req == tier:
+            return True
+    if req.startswith(tier + "-"):
+        return req[len(tier) + 1 :] in _TIER_EFFORT_SUFFIXES
+    return False
+
+
+def is_tier_mapped(requested_model: str | None, platform: str) -> bool:
+    """True if `requested_model` matches any tier-mapped model for `platform`."""
+    normalized = _normalize(requested_model)
+    if normalized is None:
+        return False
+    return any(matches_tier_model(normalized, model) for model in allowed_models(platform))
+
+
 def tier_table(platform: str) -> str:
     """Formatted low/medium/high -> model summary for nudge messages."""
     tiers = _load_effort_table().get(platform, {})
@@ -149,7 +200,7 @@ def tier_nudge(requested_model: str | None, platform: str) -> str | None:
         # Off-family (or unknown platform) — the hard family gate already
         # covers this; don't pile on a second message for the same model.
         return None
-    if normalized in allowed_models(platform):
+    if is_tier_mapped(normalized, platform):
         return None
     table = tier_table(platform)
     if not table:
