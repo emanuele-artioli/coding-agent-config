@@ -9,6 +9,7 @@
 
 /*
 !/.gitignore
+!/README.md
 
 !/.agent-rules
 !/.agent-rules/**

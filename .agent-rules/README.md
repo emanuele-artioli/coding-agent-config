@@ -1,11 +1,11 @@
 # Cross-agent shared rules and tools
 
 Single source of truth for the configuration shared by every coding agent on
-this host: Claude Code, Cursor, Google Antigravity, and — documented but not
-installed here yet — OpenAI Codex and GitHub Copilot CLI. Each agent's own
-native config is either a symlink into this repo, a thin wrapper importing it,
-or a generated file. **Edit content only in this directory, never in a
-per-agent copy.**
+this host: Claude Code, Cursor, Google Antigravity, and GitHub Copilot CLI
+(skills/agents farmed; hooks unverified). OpenAI Codex is documented but not
+installed here yet. Each agent's own native config is either a symlink into
+this repo, a thin wrapper importing it, or a generated file. **Edit content
+only in this directory, never in a per-agent copy.**
 
 All paths below were checked against each platform's current documentation and
 against what actually exists on disk here, in July 2026. `scripts/install.py`
@@ -492,10 +492,19 @@ Trust these claims to the extent they were actually exercised:
   own schema already restricts `model` to the Claude family, so an
   off-family spawn never reaches the hook in this harness). See
   `candidates/pending-verification/claude.md`.
-- **Unverified, by inheritance.** `~/.copilot/hooks/wait-loop.json` assumes
-  Copilot's `preToolUse` payload is shaped like Claude's. Test it for real the
-  first time Copilot CLI is installed here.
-- **Not attempted.** Antigravity and Codex hook wiring — see
-  `candidates/pending-verification/antigravity.md` and
-  `HANDOFF-antigravity.md`. The event names and paths in the tables above
-  come from documentation, not from a firing hook on those platforms.
+- **Effort-tier soft nudge (2026-07-28).** `effort-models.json` maps
+  low/medium/high → model (and optional `effort`) per platform for
+  **subagent spawns only**, never the user's interactive model. After the
+  family check passes, `model_family.tier_nudge()` advises when an in-family
+  slug is off the mapped tiers. Cursor: live allow + log + `agent_message`
+  (ask permission on `preToolUse`/`subagentStart` is not implemented yet).
+  Claude: `permissionDecision: "ask"` at the adapter. Antigravity: exit-code
+  dialect → log-only for the soft tier. The `effort` field itself remains
+  `verified: false` everywhere — see pending-verification tickets.
+- **Copilot CLI skills/agents.** Symlink farm is live under `~/.copilot/`.
+  **Unverified:** `~/.copilot/hooks/wait-loop.json` assumes Copilot's
+  `preToolUse` payload is shaped like Claude's — test before trusting a deny.
+- **Not attempted.** Antigravity live hook wiring and Codex entirely — see
+  `candidates/pending-verification/antigravity.md`. The event names and paths
+  in the tables above for those platforms come from documentation, not from a
+  firing hook here.
