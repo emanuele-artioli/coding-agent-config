@@ -56,3 +56,26 @@ from a Claude Code session after live verification.
   spawn path. See [[cursor]] for contrast: Cursor's `Task` tool does *not*
   restrict `model` by schema, so its hook-level deny is both necessary and
   was actually exercised live.
+- [x] **Effort-tier nudge (added 2026-07-28).** `guard-model-family.py` now
+  also emits `hookSpecificOutput.permissionDecision: "ask"` (not deny) when
+  an `Agent` spawn's `model` is in-family (`sonnet`/`opus`/`haiku`/`fable`)
+  but not one of the tier-mapped models in `../effort-models.json` for
+  claude (script-level verified with a synthetic `{"model": "haiku"}`
+  payload — correctly emitted `ask` with the tier table; `{"model":
+  "sonnet"}` correctly emitted nothing). 2026-07-28: closed live — spawned a
+  real `Agent` with `model: "haiku"` from a running session, and the user
+  confirmed a permission prompt actually appeared for that call. The `ask`
+  decision surfaces to the user on a genuine spawn, not just in the hook's
+  stdout.
+- [x] **Effort-settability for subagents (added 2026-07-28).** Confirmed via
+  this session's own `Agent` tool schema that `model` is a fixed enum
+  (`sonnet|opus|haiku|fable`) with no effort/thinking-level channel — so
+  `effort-models.json`'s `low` and `medium` tiers for claude both resolve to
+  `model: "sonnet"` today, and the `effort` field on every claude entry is
+  `verified: false`. 2026-07-28: re-checked this session's own `Agent` tool
+  schema again — still the same fixed enum, no effort/thinking-level field.
+  Closed as N/A-by-design, same footing as the live-deny-test line above:
+  there is currently no channel in Claude Code to set subagent effort
+  beyond model choice, so `effort` stays non-actionable for claude until a
+  harness change adds one. Do not reopen without a schema change (a new
+  field, a bracket-suffix model format actually landing).

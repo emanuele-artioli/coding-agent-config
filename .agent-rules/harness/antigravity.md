@@ -35,17 +35,24 @@ history so the work aligns with branches that already exist.
   map at most 5–7 analytical steps, and cross-examine edge cases (memory
   overhead, latency penalties) before drafting code.
 
-## Model family
+## Model family and effort tier (subagent spawns only)
 
-Prefer **omitting an explicit model** on spawned work so it inherits the
-parent session (Gemini in-house). Do not pin versioned slugs — they go stale.
-If you must pass a model, use only the Gemini family.
+Before spawning subagent work, assess the effort its task needs
+(low/medium/high) and check `../effort-models.json` for the mapped model —
+today all three Antigravity tiers map to the same Gemini Flash 3.6 model, so
+in practice this collapses to "prefer omitting an explicit model" so it
+inherits the parent session (Gemini in-house). Do not pin versioned slugs —
+they go stale. If you must pass a model, use only the Gemini family. This
+never applies to your own top-level session model, which the user picks
+freely.
 
 Do not follow multi-family skill defaults from other platforms. If Gemini is
 clearly struggling, ask the user; prefer switching platform/session over
-silently crossing family. Live deny wiring:
-`../scripts/antigravity/guard-model-family.py` (absolute path; see
-`../candidates/pending-verification/antigravity.md`).
+silently crossing family. Live deny wiring (hard, family mismatch only):
+`../scripts/antigravity/guard-model-family.py` (absolute path). The same
+script logs (never blocks) an effort-tier nudge to stderr when a model is
+in-family but off the tier table — no confirmed "ask"-style prompt exists on
+this platform yet. See `../candidates/pending-verification/antigravity.md`.
 
 ## Where Antigravity's own config lives
 

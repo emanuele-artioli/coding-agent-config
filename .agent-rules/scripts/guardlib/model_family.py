@@ -14,7 +14,9 @@ requested model (Cursor `updated_input` on Task has been unreliable).
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 
 # Explicit inherit / auto — same meaning as omitting the field.
 _INHERIT = frozenset({"inherit", "inherit-parent", "auto"})
@@ -85,3 +87,76 @@ def inspect(requested_model: str | None, platform: str) -> str | None:
     if pattern.search(normalized):
         return None
     return reason(platform, normalized)
+
+
+# --- Effort tier (low/medium/high -> model), for SUBAGENT spawns only ------
+#
+# Separate, softer concern from the family gate above: within an already
+# in-family model, is it one of the three models this host has mapped to an
+# effort tier for that platform? Never merged into inspect()/reason() —
+# family mismatch is a hard deny, tier mismatch is a nudge a caller can
+# override. See ../../effort-models.json for the data and its unverified
+# `effort` fields.
+
+_EFFORT_TABLE_PATH = Path(__file__).resolve().parents[2] / "effort-models.json"
+_EFFORT_TABLE_CACHE: dict | None = None
+
+
+def _load_effort_table() -> dict:
+    global _EFFORT_TABLE_CACHE
+    if _EFFORT_TABLE_CACHE is None:
+        try:
+            data = json.loads(_EFFORT_TABLE_PATH.read_text())
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        _EFFORT_TABLE_CACHE = data.get("platforms", {}) if isinstance(data, dict) else {}
+    return _EFFORT_TABLE_CACHE
+
+
+def allowed_models(platform: str) -> set[str]:
+    """Flattened set of tier-mapped `model` values for `platform`."""
+    tiers = _load_effort_table().get(platform, {})
+    return {
+        spec["model"]
+        for spec in tiers.values()
+        if isinstance(spec, dict) and isinstance(spec.get("model"), str)
+    }
+
+
+def tier_table(platform: str) -> str:
+    """Formatted low/medium/high -> model summary for nudge messages."""
+    tiers = _load_effort_table().get(platform, {})
+    parts = []
+    for tier in ("low", "medium", "high"):
+        spec = tiers.get(tier)
+        if isinstance(spec, dict) and isinstance(spec.get("model"), str):
+            parts.append(f"{tier}={spec['model']}")
+    return ", ".join(parts)
+
+
+def tier_nudge(requested_model: str | None, platform: str) -> str | None:
+    """Return a non-blocking nudge if `requested_model` is in-family but not
+    one of `platform`'s tier-mapped models, else None.
+
+    Never call this in place of `inspect()` — an off-family model must still
+    hard-deny via `inspect()`/`reason()`; this only fires once that check has
+    already passed, so it never masks the harder failure.
+    """
+    normalized = _normalize(requested_model)
+    if normalized is None or normalized in _INHERIT:
+        return None
+    if inspect(normalized, platform) is not None:
+        # Off-family (or unknown platform) — the hard family gate already
+        # covers this; don't pile on a second message for the same model.
+        return None
+    if normalized in allowed_models(platform):
+        return None
+    table = tier_table(platform)
+    if not table:
+        return None
+    return (
+        f"`{requested_model}` isn't one of this host's mapped effort tiers "
+        f"for {platform} ({table}). If this was a deliberate choice, carry "
+        f"on; otherwise pick the tier-mapped model for the effort this "
+        f"subagent's task needs from `effort-models.json`."
+    )

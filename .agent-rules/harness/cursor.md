@@ -91,18 +91,26 @@ real under `.claude/agents/` with `.cursor/agents` → symlink (same pattern as
 `.agents/agents`). Claude-oriented `tools:` frontmatter on those files is
 ignored here — Cursor uses its own tool set; keep the prompt body tool-agnostic.
 
-## Model family
+## Model family and effort tier (subagent spawns only)
 
-Prefer **omitting `model` on `Task`** so the subagent inherits the parent
-session (this host’s in-house Cursor models: Grok / Composer). Do not pin
-versioned slugs in prompts — they go stale. If you must pass a model, use
-only the Grok or Composer family.
+Before spawning a `Task` subagent, assess the effort its task needs
+(low/medium/high) and pass the `model` value mapped for that tier in
+`../effort-models.json` (today: low=Composer 2.5, medium/high=Grok 4.5).
+Omitting `model` so the subagent inherits the parent session (this host's
+in-house Cursor models: Grok / Composer) remains correct when the
+subagent's task is roughly the same effort as the parent's own. Do not pin
+versioned slugs in prompts — they go stale. This never applies to your own
+top-level session model, which the user picks freely.
 
 Never pass Claude / GPT (or other off-family) models because a skill table
 said so. The Cursor marketplace **pstack** plugin’s multi-family defaults
 (`/setup-pstack`, arena / interrogate panels) ignore which IDE you are on
 and are **untrusted** here — do not follow them. `before-task.py` on
-`preToolUse`/`Task` and `subagentStart` hard-denies off-family spawns.
+`preToolUse`/`Task` and `subagentStart` hard-denies off-family spawns; it
+also logs (never blocks) an effort-tier nudge to
+`~/.cursor/model-family-hook.log` when a model is in-family but off the
+tier table — no confirmed "ask"-style prompt has been exercised for this
+hook yet.
 
 If in-house models are clearly struggling, ask the user; prefer switching
 platform/session over silently crossing family. Settings hygiene: Explore

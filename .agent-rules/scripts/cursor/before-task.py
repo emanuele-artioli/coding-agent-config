@@ -4,7 +4,12 @@
 Thin adapter over `guardlib/model_family.py`. Keeps Task / subagent spawns on
 Cursor's in-house families (Grok / Composer) or inherit/omit. Denies
 cross-family injections (parent-passed Claude/GPT, pstack multi-family
-defaults) with a clear agent_message — never rewrites `updated_input`.
+defaults) with a clear agent_message — never rewrites `updated_input`. Also
+logs (never blocks) an effort-tier nudge from `../../effort-models.json` when
+an allowed model is in-family but off this host's mapped low/medium/high
+tiers for Cursor — no confirmed "ask" equivalent has been exercised for this
+hook yet (see `candidates/pending-verification/cursor.md`), so this stays
+advisory-only in the log until that's checked.
 
 Wired from `~/.cursor/hooks.json` on both `preToolUse` (matcher Task) and
 `subagentStart`, with `failClosed: true`.
@@ -40,23 +45,26 @@ def _model(payload: dict) -> str | None:
     return None
 
 
-def _log(payload: dict, requested: str | None, decision: str) -> None:
+def _log(
+    payload: dict,
+    requested: str | None,
+    decision: str,
+    tier_nudge: str | None = None,
+) -> None:
     try:
         PROBE_LOG.parent.mkdir(parents=True, exist_ok=True)
         with PROBE_LOG.open("a") as handle:
-            handle.write(
-                json.dumps(
-                    {
-                        "at": datetime.now().isoformat(timespec="seconds"),
-                        "decision": decision,
-                        "requested_model": requested,
-                        "payload_keys": sorted(payload.keys()),
-                        "hook_event_name": payload.get("hook_event_name")
-                        or payload.get("hookEventName"),
-                    }
-                )
-                + "\n"
-            )
+            entry = {
+                "at": datetime.now().isoformat(timespec="seconds"),
+                "decision": decision,
+                "requested_model": requested,
+                "payload_keys": sorted(payload.keys()),
+                "hook_event_name": payload.get("hook_event_name")
+                or payload.get("hookEventName"),
+            }
+            if tier_nudge:
+                entry["tier_nudge_non_blocking"] = tier_nudge
+            handle.write(json.dumps(entry) + "\n")
     except OSError:
         pass
 
@@ -91,7 +99,8 @@ def main() -> int:
         )
         return 0
 
-    _log(payload, requested, "allow")
+    nudge = model_family.tier_nudge(requested, PLATFORM)
+    _log(payload, requested, "allow", tier_nudge=nudge)
     _respond("allow")
     return 0
 

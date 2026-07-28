@@ -52,18 +52,27 @@ this way (it requires a `prompt` unless `stop: true`), so the mistake
 surfaces immediately rather than silently wasting a turn — still worth not
 repeating.
 
-## Model family
+## Model family and effort tier (subagent spawns only)
 
-Prefer **omitting `model` on `Agent`** so the subagent inherits the parent
-session (Claude in-house). Do not pin versioned slugs — they go stale. If
-you must pass a model, use only the Claude family (including stable aliases
-like `sonnet` / `opus` / `haiku`).
+Before spawning a subagent via `Agent`, assess the effort its task needs
+(simple/bounded lookup vs. substantial multi-step work vs.
+architecture-level judgment ≈ low/medium/high) and pass the `model` value
+mapped for that tier in `../effort-models.json`. Omitting `model` (which
+inherits the parent session) is still correct specifically when the
+subagent's task is roughly the same effort as the parent's own — that's the
+"no strong opinion" case, not the universal default. Do not pin versioned
+slugs — they go stale; the file uses stable aliases (`sonnet` / `opus`).
+None of this ever applies to your own top-level session model, which the
+user picks freely.
 
 Do not pass Grok, GPT, Gemini, or other off-family models unless the user
 explicitly redirects the work. If Claude is clearly struggling on a task,
 ask the user; prefer another platform/session over silently crossing family.
-Live deny wiring: `../scripts/guard-model-family.py` (see
-`../candidates/pending-verification/claude.md`).
+Live deny wiring (hard, family mismatch only): `../scripts/guard-model-family.py`.
+The same script also asks for confirmation (soft — never blocks) when a
+requested model is in-family but off the tier table, so a deliberate
+off-tier pick still goes through once you confirm. See
+`../candidates/pending-verification/claude.md`.
 
 ## Where Claude's own config lives
 

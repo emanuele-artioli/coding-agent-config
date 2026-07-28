@@ -29,3 +29,21 @@ from an Antigravity session after live verification. Hook commands must be
     those sections in context.
   - `~/.gemini/GEMINI.md` still imports the host `AGENTS.md`, which was trimmed
     from 150 to 121 lines on 2026-07-28 — confirm no rule reads as missing.
+- [ ] **Effort-tier nudge (added 2026-07-28 from a Claude session — not
+  verified here).** `scripts/antigravity/guard-model-family.py` now also
+  logs (stderr, non-blocking) an effort-tier nudge from
+  `../effort-models.json` when a spawned subagent's model is in-family but
+  off the mapped low/medium/high tiers for antigravity (script-level
+  verified with a synthetic `gemini-2.5-pro` payload — logged the nudge,
+  still exited 0). What to confirm live: the nudge actually appears
+  somewhere visible in an Antigravity session (not just the raw stderr this
+  script writes), and whether Antigravity's hook API has any "ask"-style
+  soft-confirm contract this could upgrade to instead of a log line.
+- [ ] **Effort-settability for subagents (added 2026-07-28 from a Claude
+  session — not verified here).** `effort-models.json` carries an `effort:
+  "high"` field on all three Antigravity tiers (all mapped to the same
+  `gemini-flash-3.6` model per the user's request), marked `verified:
+  false`. Confirm whether Gemini/Antigravity actually exposes an effort
+  parameter at all, and whether it's settable for a subagent session this
+  platform didn't create interactively — until confirmed, treat `effort`
+  here as forward-looking data only, not an instruction to act on.

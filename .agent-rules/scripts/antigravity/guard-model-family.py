@@ -2,7 +2,12 @@
 """PreToolUse guard (Antigravity dialect): model-family gate.
 
 Thin adapter over `guardlib/model_family.py`. Antigravity denies by non-zero
-exit status (not Cursor/Claude JSON). Message goes to stderr.
+exit status (not Cursor/Claude JSON). Message goes to stderr. Also logs (never
+blocks) an effort-tier nudge from `../../effort-models.json` when a spawned
+subagent's model is in-family but off this host's mapped low/medium/high
+tiers for Antigravity — no confirmed "ask" equivalent exists on this
+platform yet (see `candidates/pending-verification/antigravity.md`), so this
+stays advisory-only until that's checked.
 
 Wire from an Antigravity session only — see
 `candidates/pending-verification/antigravity.md`. Use an absolute path in
@@ -57,6 +62,10 @@ def main() -> int:
     if reason:
         print(reason, file=sys.stderr)
         return 2
+
+    nudge = model_family.tier_nudge(requested, "antigravity")
+    if nudge:
+        print(f"[effort-tier nudge, non-blocking] {nudge}", file=sys.stderr)
     return 0
 
 

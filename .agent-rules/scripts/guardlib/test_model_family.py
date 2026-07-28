@@ -61,5 +61,38 @@ class ModelFamilyInspect(unittest.TestCase):
         self.assertIsNotNone(reason)
 
 
+class ModelFamilyTierNudge(unittest.TestCase):
+    def test_tier_mapped_models_never_nudge(self) -> None:
+        for platform in ("claude", "antigravity", "cursor"):
+            for model in model_family.allowed_models(platform):
+                with self.subTest(platform=platform, model=model):
+                    self.assertIsNone(model_family.tier_nudge(model, platform))
+
+    def test_omit_and_inherit_never_nudge(self) -> None:
+        for platform in ("claude", "antigravity", "cursor"):
+            for value in (None, "", "  ", "inherit", "inherit-parent", "auto"):
+                with self.subTest(platform=platform, value=value):
+                    self.assertIsNone(model_family.tier_nudge(value, platform))
+
+    def test_off_family_model_does_not_double_up_with_nudge(self) -> None:
+        # The hard family deny already covers this; tier_nudge must stay
+        # quiet so callers don't emit two messages for one bad model.
+        self.assertIsNone(model_family.tier_nudge("grok-4.5", "claude"))
+        self.assertIsNone(model_family.tier_nudge("sonnet", "cursor"))
+
+    def test_in_family_off_tier_model_nudges(self) -> None:
+        nudge = model_family.tier_nudge("haiku", "claude")
+        self.assertIsNotNone(nudge)
+        assert nudge is not None
+        self.assertIn("haiku", nudge)
+        self.assertIn("low=sonnet", nudge)
+        self.assertIn("high=opus", nudge)
+
+    def test_allowed_models_reflects_effort_models_json(self) -> None:
+        self.assertEqual(model_family.allowed_models("claude"), {"sonnet", "opus"})
+        self.assertEqual(model_family.allowed_models("antigravity"), {"gemini-flash-3.6"})
+        self.assertEqual(model_family.allowed_models("cursor"), {"composer-2.5", "grok-4.5"})
+
+
 if __name__ == "__main__":
     unittest.main()
