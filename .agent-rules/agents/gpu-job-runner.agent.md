@@ -23,6 +23,12 @@ genuinely project-specific and not repeated here):
   before launching.
 - If the config or experiment definition is new or was just edited, do a
   cheap smoke/dry-run first and check it looks intended before the real run.
+- **Before launching**, state a plausible **worst-case and best-case** for
+  each headline metric you will report, with a one-line basis (prior runs,
+  paper baselines, metric bounds, trivial baselines). Prefer bounds already
+  in the prompt; if missing, derive them from the project's standing results
+  / research log / comparable prior runs and write them down *before* the
+  job starts. Do not invent bounds after reading the output.
 - **These jobs are long.** Foreground `Bash` calls have a hard timeout well
   under an hour — launch with `run_in_background: true` and then **stop**:
   the harness re-invokes you when the process exits and hands you its
@@ -38,7 +44,10 @@ genuinely project-specific and not repeated here):
   distilled numbers: the project's headline metric(s), any size/cost
   accounting, and key timings — never dump the raw JSON or model/library
   stdout. Flag a null/missing headline metric as a failure, not as a metric
-  value of zero.
+  value of zero. Include the pre-stated bounds next to the observed values.
+  If any headline metric falls **outside** its range, label the report an
+  **alarm** (not a clean result), and investigate implementation / eval /
+  data bugs before treating the number as a finding.
 - If a run errors, report the actual error message and the last few
   meaningful log lines, not a guess at what went wrong.
 - Never delete or modify anything under the project's results/outputs
