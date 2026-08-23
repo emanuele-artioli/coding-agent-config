@@ -76,8 +76,10 @@ off-tier pick still goes through once you confirm. See
 
 ## Where Claude's own config lives
 
-- Prose: `~/.claude/CLAUDE.md` (this file's importer) and each project's
-  `CLAUDE.md`, which is a thin wrapper importing that project's `AGENTS.md`.
+- Prose: `~/.claude/CLAUDE.md` is the **only** Claude user-level rules file
+  (there is no `~/CLAUDE.md`). It `@`-imports this file and `../AGENTS.md`.
+  Each project's `CLAUDE.md` is a thin wrapper importing that project's
+  `AGENTS.md` only — host rules are already loaded from the user-level file.
 - Skills: `~/.claude/skills/<name>/SKILL.md`, symlinked into
   `../skills/<name>/`. Claude Code follows symlinks out of the skills
   directory and reads the target's `SKILL.md`, which is what makes the
@@ -114,3 +116,7 @@ off-tier pick still goes through once you confirm. See
 - `end-of-session` commits on invoke and asks before push; handoff is a
   conditional step or a standalone skill.
 - Prefer handoff before auto-compact; do not wait for full context.
+  PreCompact writes a resume stub under `../var/precompact/` and names it in
+  the injected message; SessionStart re-surfaces a recent stub or project
+  `HANDOFF.md`. Always-on rule files stay session-stable — volatile reminders
+  go through hook stdout only (see README).

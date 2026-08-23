@@ -14,15 +14,11 @@
 !/.agent-rules
 !/.agent-rules/**
 
-# Host rules for a session opened on this directory. Relative symlinks to
-# .agent-rules/AGENTS.md, so they survive a clone. Cursor reads AGENTS.md;
-# Claude Code reads CLAUDE.md at the project root (it has no AGENTS.md
-# fallback). The absolute-path farm (~/.gemini/AGENTS.md, ~/.codex/AGENTS.md)
-# is the installer's job, not git's. Claude also loads ~/.claude/CLAUDE.md
-# in every session, so the root CLAUDE.md is belt-and-braces for a home
-# checkout, not the only path those rules take.
+# Host rules for a Cursor session opened on this directory. A relative symlink
+# to .agent-rules/AGENTS.md, so it survives a clone; the absolute-path farm
+# (~/.gemini/AGENTS.md, ~/.codex/AGENTS.md) is the installer's job, not git's.
+# Claude Code uses only ~/.claude/CLAUDE.md (tracked below) — no ~/CLAUDE.md.
 !/AGENTS.md
-!/CLAUDE.md
 
 # Guard values for sessions rooted here, read by every agent's hook adapter.
 !/.agent-guards.json

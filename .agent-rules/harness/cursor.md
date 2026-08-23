@@ -6,11 +6,14 @@ Cursor-specific mechanics, to sit alongside the tool-agnostic host rules in
 **How this file reaches Cursor.** Cursor has no user-level rules file — a
 `~/.cursor/rules/` directory is *not* read (confirmed against Cursor's docs
 and its own forum: global `.mdc` support does not exist), and User Rules live
-only in Settings → Rules as plain text synced to the account. So this file is
-delivered per project as a generated `.cursor/rules/cursor-harness.mdc` with
-`alwaysApply: true`. Host-wide prose arrives separately, through the
-`host-rules` block inside each project's `AGENTS.md`, which Cursor reads
-natively.
+only in Settings → Rules as plain text synced to the account. So each
+project that Cursor opens must *point* at this file: an `alwaysApply`
+`.cursor/rules/*.mdc` whose body is a Read/`@` pointer, not a copy. Host
+prose is the same idea — point at `../AGENTS.md`, do not inline it.
+Pointstream is on this layout; other projects may still have a generated
+`cursor-harness.mdc` until the TODO in
+`../candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md`
+lands.
 
 ## Shell calls on this host are expensive — prefer the file tools
 
@@ -174,6 +177,10 @@ workflow should also auto-trigger from a description match.
   **not** carry `context_usage_percent` (see `~/.cursor/stop-probe.log`);
   medium nudges use the stop-count proxy. `stop` still appends payload keys
   to the probe log in case that changes.
+- PreCompact also writes a resume stub under `../var/precompact/` (template
+  only — the hook has no transcript). SessionStart re-surfaces a recent stub
+  or project `HANDOFF.md`. Keep always-on rules session-stable; put volatile
+  reminders in hook `additional_context` only (see README).
 - Architecture diagrams: `../scripts/render_architecture.py` (`--check`
   freshness gate, standalone from `install.py`).
 - Enforceable rules register: `../enforceable-rules.md`. Soft plan-wave

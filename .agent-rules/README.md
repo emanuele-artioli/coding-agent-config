@@ -195,33 +195,42 @@ one for real before trusting it with anything that matters. Same for the
 
 Three different mechanisms, because no single one reaches everything:
 
-1. **Import** — `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md` are two-line
-   files that `@`-import `AGENTS.md` and `harness/<agent>.md`. Zero drift.
+1. **Import** — `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md` `@`-import
+   `AGENTS.md` and `harness/<agent>.md`. Zero drift. **`~/.claude/CLAUDE.md`
+   is the only Claude user-level rules file** — there is no `~/CLAUDE.md`.
 2. **Symlink** — `~/AGENTS.md` (Cursor, session opened on the home
-   directory), `~/CLAUDE.md` (Claude Code, same case — it has no AGENTS.md
-   fallback at the project root), `~/.gemini/AGENTS.md`, and
-   `~/.codex/AGENTS.md` once Codex exists here. Also zero drift; the same
-   bytes. **Neither Cursor nor Claude walks up from a project folder to
-   `~/AGENTS.md`.** A session opened on `pointstream/` does not see the home
-   file. That is why inlining exists, and why Cursor in particular is blind
-   to host rules unless they are in the project's own `AGENTS.md`.
-3. **Inlining** — the `host-rules` block that `sync_agent_rules.py` maintains
-   at the end of every project's `AGENTS.md`.
+   directory), `~/.gemini/AGENTS.md`, and `~/.codex/AGENTS.md` once Codex
+   exists here. Also zero drift; the same bytes.
+3. **Pointer** — a project `AGENTS.md` names/`@`-imports the host file, and
+   Cursor gets an `alwaysApply` `.mdc` that points at `AGENTS.md` plus
+   `harness/cursor.md`. No copy, no sync script. Pointstream is on this
+   layout. **Neither Cursor nor Claude walks up from a project folder to
+   `~/AGENTS.md`**, which is why the pointer has to live *in the project*.
 
-The third exists because of one hard constraint: **Copilot's cloud agent and
-Cursor's cloud agents run on machines that have never seen this home
-directory.** Anything they must obey has to be committed inside the project's
-own repo. That inlining is also why Claude sees the host rules twice — once
-from `~/.claude/CLAUDE.md`, once inside the project's `AGENTS.md`. The
-duplication is deliberate, not drift.
+**TODO:** stop inlining. `sync_agent_rules.py` still writes a `host-rules`
+block and a copied `cursor-harness.mdc` for the other projects. Retire
+that; do not bring it back for cloud agents without an explicit decision.
+Checklist:
+`candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md`.
+
+Deprecated inlining (still in presley / TIGAS / 4DGStudy until the TODO lands) —
+a generated copy of this file at the end of each project's `AGENTS.md`.
+It exists because cloud agents run on machines that have never seen this
+home directory. Local GPU-server work does not need it, and it is the
+thing that forced a sync script.
+
+The pointer layout is also why Claude no longer needs the host rules twice
+— `~/.claude/CLAUDE.md` loads them once.
 
 Cursor is the awkward case for harness rules specifically: it has no
 user-level rules file at all. `~/.cursor/rules/*.mdc` is not read (confirmed
 against Cursor's docs and its own forum), and User Rules live only in
 Settings → Rules as plain text synced to the account, so they cannot be
-version-controlled here. `harness/cursor.md` is therefore delivered per project
-as a generated `.cursor/rules/cursor-harness.mdc` with `alwaysApply: true`. If
-you want a global belt-and-braces, add this as a User Rule by hand:
+version-controlled here. Each project therefore ships an `alwaysApply`
+`.mdc` that **points at** `harness/cursor.md` rather than copying it
+(pointstream: `.cursor/rules/host.mdc`). Other projects may still have a
+generated copy until the TODO lands. If you want a global belt-and-braces,
+add this as a User Rule by hand:
 
     Before anything else in a session outside a project, read
     /home/itec/emanuele/.agent-rules/AGENTS.md and

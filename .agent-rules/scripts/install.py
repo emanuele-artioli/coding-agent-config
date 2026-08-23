@@ -82,13 +82,6 @@ def plan() -> list[Link]:
     )
     links.append(
         Link(
-            HOME / "CLAUDE.md",
-            HOST_RULES,
-            "Claude Code, for a session opened on the home directory",
-        )
-    )
-    links.append(
-        Link(
             HOME / ".gemini" / "AGENTS.md",
             HOST_RULES,
             "Antigravity native global AGENTS.md (v1.20.3+)",

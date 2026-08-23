@@ -9,11 +9,11 @@ AGENTS.md and adds whatever is Claude-only.
 
 This script maintains everything that cannot be hand-written:
 
-    AGENTS.md `host-rules` block   host-wide rules, inlined for the agents
-                                   that cannot import them
-    .cursor/rules/cursor-harness.mdc  Cursor's own harness rules (Cursor has
-                                   no user-level rules file, so they have to
-                                   be delivered per project)
+    AGENTS.md `host-rules` block   TODO: stop generating this. Pointers, not
+                                   copies — see candidates/open/platform/
+                                   2026-08-23-pointer-not-inline-host-rules.md
+    .cursor/rules/cursor-harness.mdc  TODO: same. Point at harness/cursor.md;
+                                   do not copy it.
     .github/copilot-instructions.md   a pointer, for the Copilot surfaces that
                                    read nothing but this path
     .claude/project-core.md        AGENTS.md minus the host block and minus
@@ -25,7 +25,8 @@ This script maintains everything that cannot be hand-written:
                                    the same sections for Copilot Chat,
                                    deferred by `applyTo:` frontmatter
 
-Why the host rules are inlined rather than imported: Claude Code and
+Why the host rules are inlined rather than imported (other projects, until
+the pointer layout lands): Claude Code and
 Antigravity load `~/.agent-rules/AGENTS.md` themselves, but Copilot's cloud
 agent and Cursor's cloud agents run on machines that have never seen this
 host's home directory. Anything they must obey has to be committed into the
@@ -146,7 +147,11 @@ def resolve_imports(text: str, _depth: int = 0) -> str:
 
 
 def host_block() -> str | None:
-    """The generated host-rules block, or None when the host file is absent."""
+    """The generated host-rules block, or None when the host file is absent.
+
+    TODO: stop generating this. Point at ~/.agent-rules/AGENTS.md instead.
+    See candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md.
+    """
     if not HOST_RULES.is_file():
         return None
     text = resolve_imports(HOST_RULES.read_text()).strip()

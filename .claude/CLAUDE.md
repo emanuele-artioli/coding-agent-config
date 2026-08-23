@@ -1,7 +1,8 @@
 # Global environment notes
 
-Host-wide rules for every project and session on this host. **This file holds
-no rules of its own** — it exists to import the two files that do, because
+Host-wide rules for every project and session on this host. **This is the
+only Claude user-level rules file** — there is no `~/CLAUDE.md`. It holds
+no rules of its own; it exists to import the two files that do, because
 Claude Code reads `CLAUDE.md` and nothing else at the user level.
 
 @/home/itec/emanuele/.agent-rules/AGENTS.md

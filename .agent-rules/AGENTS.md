@@ -7,9 +7,14 @@ bytes as-is. It is also **the register of things that have gone wrong more
 than once**: if a mistake happens twice it belongs here, phrased as the rule
 that prevents it rather than the story of the failure.
 
-Nothing copies this file. Local agents import or symlink it; cloud agents,
-which have never seen this home directory, get it inlined into each project's
-`AGENTS.md` by `scripts/sync_agent_rules.py`. Routing table in `README.md`.
+Nothing copies this file. Local agents import it (`~/.claude/CLAUDE.md`,
+a project's `@` import / Read pointer, Cursor `alwaysApply` rule) or
+symlink it (`~/AGENTS.md`). Do not inline it into project files — that
+needs a sync script and becomes a second source of truth. Cloud agents
+on other machines will not see it; that is accepted for work on this
+host. Rollout TODO:
+`.agent-rules/candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md`.
+Routing table in `README.md`.
 
 Keep it short. Every line here is loaded by every agent in every session, on
 every project — prose costs adherence, so compress rather than accumulate.
