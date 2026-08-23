@@ -197,9 +197,14 @@ Three different mechanisms, because no single one reaches everything:
 
 1. **Import** — `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md` are two-line
    files that `@`-import `AGENTS.md` and `harness/<agent>.md`. Zero drift.
-2. **Symlink** — `~/AGENTS.md` (for a Cursor session opened on the home
-   directory), `~/.gemini/AGENTS.md`, and `~/.codex/AGENTS.md` once Codex
-   exists here. Also zero drift; the same bytes.
+2. **Symlink** — `~/AGENTS.md` (Cursor, session opened on the home
+   directory), `~/CLAUDE.md` (Claude Code, same case — it has no AGENTS.md
+   fallback at the project root), `~/.gemini/AGENTS.md`, and
+   `~/.codex/AGENTS.md` once Codex exists here. Also zero drift; the same
+   bytes. **Neither Cursor nor Claude walks up from a project folder to
+   `~/AGENTS.md`.** A session opened on `pointstream/` does not see the home
+   file. That is why inlining exists, and why Cursor in particular is blind
+   to host rules unless they are in the project's own `AGENTS.md`.
 3. **Inlining** — the `host-rules` block that `sync_agent_rules.py` maintains
    at the end of every project's `AGENTS.md`.
 
