@@ -100,6 +100,34 @@ clean finding or cite it until the alarm is closed or the bounds are
 explicitly revised with a reason. Procedure lives in `results-report` /
 `gpu-job-runner`.
 
+## Control the instrument, then the result
+
+A measurement is not evidence until the thing that produced it has been checked
+on inputs whose answer is already known. Two metrics here passed
+"identical scores well, degraded scores badly" while measuring nothing usable —
+one could not tell a good reconstruction from an unrelated image, the other
+scored a blurred clip above a perfect match. Rankings were published on both.
+
+- **Calibrate a metric against known anchors before trusting any ranking from
+  it**: identical, mild, severe, unrelated — and check the *absolute* scale
+  against the published range, not just the ordering. A metric can be perfectly
+  ordered and still be uninterpretable.
+- **A control is part of a measurement, not a follow-up.** No "X beats Y"
+  without the null in the same session: unrelated input, no model, shuffled
+  condition. Run it *before* reporting, not after being asked.
+- **Quote the instrument's range with the number.** "0.067" means nothing;
+  "0.067, where an unrelated image scores 0.645" means something.
+- **Report n and the standard error with any comparison.** A difference under
+  ~2 standard errors is not a finding, and one measured on a handful of items is
+  not a direction.
+- **When a component underperforms, check it is being invoked the way its
+  architecture intends** before concluding anything about the component. A
+  temporal video model was evaluated one frame at a time here for three rounds.
+
+**The asymmetry to watch:** these checks get applied to disappointing results and
+skipped on exciting ones. **When the news is good, add a check rather than
+stopping.**
+
 ## Long jobs must checkpoint at least hourly
 
 SSH here drops a couple of times a day. Any job expected to run over an hour
