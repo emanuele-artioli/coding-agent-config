@@ -42,6 +42,15 @@ Manage packages through `pyproject.toml`, not ad-hoc `pip install`.
 `environment.yaml` is only for bootstrapping heavy CUDA/GPU binaries (drivers,
 PyTorch wheels, compiled packages). Never fall back to `requirements.txt`.
 
+**In a git worktree, a helper script run from outside it imports the MAIN
+checkout.** Python puts the *script's own directory* on `sys.path[0]`, not the
+cwd, so a scratchpad script plus an editable install resolves the package to the
+main tree — the worktree's own edits are invisible and new modules look missing.
+Measured: script in scratchpad → main; script inside the worktree, `python -c`
+from it, or `PYTHONPATH=<worktree>` → the worktree. Keep helper scripts inside
+the worktree, or set `PYTHONPATH`. Otherwise a stream silently tests code it did
+not write.
+
 ## GitHub CLI (gh)
 
 Installed at `~/emanuele/bin/gh`, on `PATH` in every shell, authenticated as
