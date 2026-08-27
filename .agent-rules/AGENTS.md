@@ -79,6 +79,11 @@ lost here: a complete HNeRV baseline once sat in a forgotten worktree.
   never got.
 - **A branch alone does not isolate a session.** Two agents in one checkout
   share one HEAD; isolation needs a worktree *and* a branch.
+- **A merge can silently keep the stale half of a status file.** Conflict
+  resolution picks one side per hunk and the older side usually still reads
+  plausibly. After any merge touching a plan or status doc, re-read the lines
+  that describe *current* state and check each against reality. One status line
+  here announced a finished workstream as still blocked — twice.
 
 ## Research code — tests are a failsafe, not a formality
 
@@ -158,6 +163,12 @@ from clobbering each other.
 largely independent pieces. Skip it for small or sequential work — one file,
 one clear order — where waves are pure coordination overhead. If you skip,
 say so explicitly in the plan (“skipped: sequential/small”).
+
+**Coordination docs land on the shared branch immediately.** A prompt, a wave
+plan, a brief, a status table — anything written *for another agent to read* —
+is invisible behind an unmerged PR, which is exactly the audience it exists for.
+Only code waits for review. Two waves here launched against docs the workers
+could not see.
 
 ## Knowledge loop — crossed axes
 
