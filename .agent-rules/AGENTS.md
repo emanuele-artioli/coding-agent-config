@@ -36,6 +36,28 @@ env: several forked third-party models are version-sensitive and a stray
 `pip install` silently breaks them. Headless means save media and plots to
 disk; `cv2.imshow()`/`plt.show()` never works here.
 
+## The home directory is NFS, and it is slow per file, not per byte
+
+Measured 2026-08-29 on an idle host: 174 MB/s reading one large file, 283 MB/s
+writing — and **~6 file opens per second**. Bulk throughput is healthy; metadata
+latency is not, and no amount of page cache helps (a warm Python import measured
+153.5 s against 159.5 s cold).
+
+- **Batch work into long-lived processes.** A conda env here is tens of
+  thousands of files, so every fresh Python process pays a two-to-three minute
+  import tax. Ten short scripts cost half an hour of nothing.
+- **Keep editors out of data directories.** A project's `assets/`/`outputs/` can
+  be 500k files against a few hundred of source. `.gitignore` does not help —
+  it stops git tracking them, not an editor walking them. Use
+  `files.watcherExclude` / `search.exclude`, set
+  `git.autoRepositoryDetection: false`, and open **one worktree** as the folder
+  rather than the parent that contains all of them.
+- **A `du`, `find` or `git status` that seems hung is usually neither.** Check
+  `wchan` for `nfs_wait_bit_killable` before debugging the tool.
+- Copying an env to local disk (`/`, not home) is a real fix and costs hours at
+  6 files/s, so it is worth it only for a run of many short processes. Measure
+  before paying it.
+
 ## Python dependency management
 
 Manage packages through `pyproject.toml`, not ad-hoc `pip install`.
