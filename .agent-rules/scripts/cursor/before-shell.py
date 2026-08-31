@@ -20,6 +20,8 @@ host -- so per-project values (protected dirs, training entry points) are read
 from the nearest `.agent-guards.json`, never passed as arguments.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import subprocess
@@ -71,14 +73,20 @@ def _command(payload: dict) -> str:
 
 
 def _current_branch(payload: dict) -> str | None:
-    """Best-effort branch name, for the advisory branch-discipline note only."""
+    """Best-effort branch name, for the advisory branch-discipline note only.
+
+    Must not run on every shell call. On this host a `git rev-parse` against
+    a workspace with no `.git` walks up into the home directory and can sit
+    in NFS D-state long enough that Cursor's 15s failClosed budget kills
+    the hook, and then *every* command is blocked, not just git.
+    """
     try:
         out = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=project_config.payload_cwd(payload) or None,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=1,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -168,8 +176,13 @@ def main() -> int:
     if notes:
         print("Long-run check: " + "; ".join(notes), file=sys.stderr)
 
-    for note in destructive_git.notes(command, _current_branch(payload)):
-        print("git branch check: " + note, file=sys.stderr)
+    # Advisory only — never failClosed a shell call because git was slow.
+    if "commit" in command or "push" in command:
+        try:
+            for note in destructive_git.notes(command, _current_branch(payload)):
+                print("git branch check: " + note, file=sys.stderr)
+        except Exception:
+            pass
 
     _respond("allow")
     return 0
