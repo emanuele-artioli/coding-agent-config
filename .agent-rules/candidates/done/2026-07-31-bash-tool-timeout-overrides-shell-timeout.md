@@ -4,7 +4,7 @@ created: 2026-07-31
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: platform
-status: open
+status: applied
 summary: Claude Code's Bash tool caps at its own 120s default regardless of a `timeout 900` inside the command — and a completed background job can report "stopped" with no completion record
 suggested_action: add both to harness/claude.md's waiting-for-long-commands section
 verify_platforms: [claude]
@@ -60,3 +60,22 @@ the finished work survived a process death at all is that the job wrote **one
 output directory per unit of work as it completed**, so the crash cost only the
 in-flight item. That is what makes "check the artifacts" a reliable recovery path
 rather than a guess.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied** to `harness/claude.md`, both traps, folded into the existing
+duration-picking list rather than added as a new section:
+
+- the `< 10 min` bullet now says the timeout means the **tool parameter**, that
+  a shell `timeout 900` still dies at the 120 000 ms default, and that a shell
+  timeout can only shorten;
+- the background bullet now says a "stopped" notification with no completion
+  record is not evidence the work failed, and to check artifacts before
+  relaunching.
+
+The `pgrep` self-match corollary was merged into the process-check rule from
+`2026-08-03-process-count-checks-match-their-own-command` rather than stated
+twice. The per-unit-of-work output-directory point was already covered by the
+existing hourly-checkpoint rule.

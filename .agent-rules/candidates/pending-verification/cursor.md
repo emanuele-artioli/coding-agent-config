@@ -42,3 +42,14 @@ trigger a SessionStart reminder.
   `Task` subagent (vs. only for the interactive chat model picker), and
   whether Composer 2.5 has any tier concept at all — until confirmed, treat
   `effort` here as forward-looking data only.
+- [ ] **Read-before-edit cost of large files (added 2026-08-31 from a Claude session — not verified here).**
+  On Claude Code, `Edit` refuses unless the file was read this conversation and a
+  plain `Read` pulls up to 2000 lines, so appending one line to a 67 KB doc cost
+  ~17k tokens per session, again after each compaction; past ~25k tokens `Read`
+  truncates. Recorded in `harness/claude.md`, deliberately **not** promoted to
+  `AGENTS.md` until this is checked elsewhere. What to confirm here: (a) does
+  this platform's edit tool require a prior read of the file, (b) does a default
+  read pull the whole file, (c) is there a per-call result cap that forces
+  pagination. If all three hold on every platform, promote the rule to
+  `AGENTS.md`; if it is Claude-only, it stays in `harness/claude.md`.
+  Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.

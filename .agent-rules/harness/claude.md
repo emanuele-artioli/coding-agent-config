@@ -18,15 +18,34 @@ Escaping tricks (`[p]attern`, `pgrep -P`) technically work but are still the
 wrong answer: the harness already reports completion, so there is nothing to
 poll for. `guard-wait-loop.py` blocks this pattern at the `PreToolUse` hook.
 
+**The same self-match ruins checks that are not loops.** Any `pgrep`/`ps`/`pkill`
+over the process table from a `Bash` call matches the call itself, because the
+harness runs the whole string through `bash -c`. A *count* comes back silently
+wrong — a "is a backfill already running?" check read 2 when the true answer was
+0 — and `pkill -f` is worse: one killed its own shell and took a queued heredoc
+edit with it, surfacing only as exit 144 with the file looking untouched.
+Inspect with `ps -eo pid,args | grep -F <pattern> | grep -v grep`, kill by PID
+or by the harness's own task-stop, sanity-check any count against a state you
+can see (a log mtime, a lock file, a results directory), and never chain other
+work behind a pattern kill in the same call.
+
 Pick by duration, not by habit:
 
 - **Finishes in < 10 min** → foreground `Bash` with an explicit `timeout`
-  (ms, max 600000). Output arrives in one piece and the harness kills it at
-  the deadline, so it cannot hang forever.
+  (ms, max 600000). This means the **tool parameter**, not the shell binary: a
+  `timeout 900 …` inside the command still dies at the tool's 120 000 ms
+  default, reporting `Command timed out after 2m 0s` as though the shell
+  timeout misfired. A shell `timeout` can only shorten, never extend. Output
+  arrives in one piece and the harness kills it at the deadline, so it cannot
+  hang forever.
 - **Longer than that** (GPU restoration, full evaluation passes, big
   backfills) → `Bash` with `run_in_background: true`. It detaches, survives
   across turns, and **re-invokes Claude on exit** with the path to its
-  output file. Read that file; do not poll for it.
+  output file. Read that file; do not poll for it. **A "stopped" notification
+  with no completion record does not mean the work failed** — check the
+  artifacts (output dirs, log mtimes) before relaunching anything. One such
+  notification described a ~6-hour GPU campaign that had finished all of its
+  work and died during a later step.
 - **Need progress while it runs** → `Monitor`, with a filter that matches
   failure signatures too (`Traceback|Error|FAILED|Killed|OOM`), not just the
   success marker — a success-only filter stays silent through a crash, and
@@ -51,6 +70,19 @@ the moment it finishes — there is nothing to poll for. Don't call
 this way (it requires a `prompt` unless `stop: true`), so the mistake
 surfaces immediately rather than silently wasting a turn — still worth not
 repeating.
+
+## Reading a file is a precondition for editing it — so size matters
+
+`Edit` refuses unless the file was read in this conversation, and a plain `Read`
+pulls up to 2000 lines, so **appending one line to a big doc pays for the whole
+doc, again after every compaction** (a 1008-line / 67 KB markdown file cost ~17k
+tokens per session that touched it). Past ~25k tokens `Read` truncates and makes
+you paginate. A partial read satisfies the precondition fine, but nobody
+paginates a monolith because there is no way to know the right offset — so the
+fix is structural: an index carrying entry *titles* plus per-section body files,
+and pointers that name the specific body file. Unverified whether other
+platforms couple read-before-edit the same way; see the pending-verification
+checklists.
 
 ## Model family and effort tier (subagent spawns only)
 

@@ -4,7 +4,7 @@ created: 2026-07-29
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: platform
-status: open
+status: needs_verification
 summary: In Claude Code, editing a file requires having read it, and a plain Read pulls up to 2000 lines — so a large doc costs its full token weight on every write, and past ~25k tokens cannot be read in one call at all.
 suggested_action: check whether other platforms (cursor, antigravity, codex, copilot) have the same read-before-edit coupling and per-call caps; if they do, the shared rules can carry a file-size guidance line instead of a Claude-only note
 verify_platforms: [cursor, antigravity, codex, copilot]
@@ -49,3 +49,20 @@ codex / copilot should check whether their edit tools require a prior full read
 and whether they cap per-call reads. If the answer is yes across the board, this
 can be promoted into `AGENTS.md` as a general "keep agent-read files under N
 lines" rule; if it is Claude-only, it stays in `harness/claude.md`.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied for Claude; still open for the other platforms.**
+
+The Claude-specific half is now a section in `harness/claude.md` ("Reading a
+file is a precondition for editing it — so size matters"), carrying the three
+composing behaviours, the 67 KB / ~17k-token figure, and the structural fix
+(index of entry titles + per-section bodies + pointers that name the body file).
+
+It was *not* promoted into `AGENTS.md`, because the candidate's own condition
+for promotion — that cursor / antigravity / codex / copilot share the
+read-before-edit coupling and a per-call cap — is unverified, and a Claude-shaped
+cost must not be asserted as universal. Rows added to
+`pending-verification/cursor.md` and `pending-verification/antigravity.md`.

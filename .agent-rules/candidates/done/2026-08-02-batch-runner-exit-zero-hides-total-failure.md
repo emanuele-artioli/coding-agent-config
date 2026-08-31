@@ -4,7 +4,7 @@ created: 2026-08-02
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: project
-status: open
+status: applied
 summary: A batch runner that catches per-entry errors exits 0 even when every entry failed — verify result count against entry count, never the exit code
 suggested_action: lift into AGENTS.md near the long-jobs/checkpoint rule; applies to any project with a queue-driven runner (presley-run, training sweeps, backfills)
 verify_platforms: []
@@ -46,3 +46,13 @@ a config-shape error (an argument valid for one component passed to another),
 so it hit every entry of one kind and none of the other. A clean 50/50 split in
 what succeeded is a strong hint of a config bug rather than resource flakiness
 — worth checking the split before blaming the GPU.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied** to `AGENTS.md`, appended to "Long jobs must checkpoint at least
+hourly" — the nearest existing home, since both rules are about a long job whose
+failure is invisible from outside. Kept the reason the check cannot live in the
+runner, and the 50/50-split corollary, which is the part that turns a one-off
+into a diagnostic.

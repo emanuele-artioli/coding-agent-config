@@ -4,7 +4,7 @@ created: 2026-08-02
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: project
-status: open
+status: applied
 summary: Pre-registered bounds must be two-sided on the quantity under test, and the cheapest way to close a fired alarm is to reproduce a landed number with the new analysis path
 suggested_action: amend the existing "Experiment results — bound before believing" rule in AGENTS.md with both points; they are refinements of a rule that already exists and already paid off
 verify_platforms: []
@@ -61,3 +61,13 @@ the gap mixes the effect under test with whatever the treatment did to the rate
 axis. Checked wrongly it read 0.88–1.20 (apparent alarm); checked correctly,
 0.57–0.86 (inside the alarm threshold). Read the bound's own wording for the
 operating point, and compute *that*.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied** to `AGENTS.md` as a second paragraph under "Experiment results —
+bound before believing", carrying all three points: two-sided bands when the
+bound is on the quantity the experiment exists to generalize past; reproduce a
+landed number with the new analysis path as the cheap way to close a fired
+alarm; and check a bound at the operating point its own wording names.

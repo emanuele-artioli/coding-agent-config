@@ -4,7 +4,7 @@ created: 2026-07-31
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: project
-status: open
+status: applied
 summary: On this host `import torch` before `import sqlite3` breaks sqlite3 (CXXABI_1.3.15) — any project mixing torch with a SQLite store will hit it, at runtime
 suggested_action: add to host-wide AGENTS.md environment notes; check pointstream/other torch projects that use sqlite3 or any lib pulling conda's libicu
 verify_platforms: []
@@ -67,3 +67,15 @@ plus `tests/test_import_order.py`, which asserts (i) sqlite3 is safe after torch
 torch not dragged in, (iii) every db-reaching module imports cleanly, and (iv) a
 deferred in-function db import resolves. Those tests were confirmed to fail on
 the unpatched tree.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied** to `AGENTS.md`, "The host", compressed to the symptom, the cause,
+the two properties that make it nasty (fails at runtime through a deferred
+import; CI stays green), and the fix that generalises (`import sqlite3` at the
+top of the package `__init__.py`).
+
+Not verified beyond PRESLEY. Any torch project here that reaches sqlite3 —
+directly or through a library — is exposed; PointStream has not been checked.

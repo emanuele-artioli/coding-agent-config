@@ -36,27 +36,54 @@ env: several forked third-party models are version-sensitive and a stray
 `pip install` silently breaks them. Headless means save media and plots to
 disk; `cv2.imshow()`/`plt.show()` never works here.
 
-## The home directory is NFS, and it is slow per file, not per byte
+**`import sqlite3` before `import torch`.** conda's `libicui18n` needs
+`CXXABI_1.3.15`, which the system `libstdc++` that torch pins does not export,
+so torch-first breaks `sqlite3`. It bites at *runtime* when the sqlite3 import
+is deferred inside a function, and CI will not reproduce it. Put `import
+sqlite3` at the top of the package's `__init__.py` so no submodule can
+reintroduce it.
 
-Measured 2026-08-29 on an idle host: 174 MB/s reading one large file, 283 MB/s
-writing — and **~6 file opens per second**. Bulk throughput is healthy; metadata
-latency is not, and no amount of page cache helps (a warm Python import measured
-153.5 s against 159.5 s cold).
+## The home directory is NFS, and `open()` is what costs
 
+Every home here is an export of one server, `data3`. Measured 2026-08-31:
+**`open()` runs at 2.4–4.3 calls/second, while `stat()` on the same files runs
+at ~13,000/s and local `/tmp` (ext4) does 15,774 opens/s.** Bulk throughput is
+fine (174 MB/s). Retransmissions are 4 in 1.64 billion RPCs, so this is
+server-side latency on the NFSv4 OPEN, not the network, and page cache barely
+helps.
+
+- **The cost is per file opened, and identical for every project.** Tree size is
+  the multiplier, not the cause: ~0.3 s × however many files something opens.
+  1,400 files is 7 minutes; 17,000 is 1.4 hours. A project that "works" here is
+  not on a faster path, only a shorter one.
+- **Walking is cheap; opening is not.** `find`, `du`, `git status` and an
+  editor's file watcher do `readdir`+`stat` and run at thousands per second.
+  Indexers, language servers, `grep -r` and `mypy` open every file and do not.
+  So `search.exclude` earns its keep and `files.watcherExclude` mostly does not.
 - **Batch work into long-lived processes.** A conda env here is tens of
   thousands of files, so every fresh Python process pays a two-to-three minute
   import tax. Ten short scripts cost half an hour of nothing.
-- **Keep editors out of data directories.** A project's `assets/`/`outputs/` can
-  be 500k files against a few hundred of source. `.gitignore` does not help —
-  it stops git tracking them, not an editor walking them. Use
-  `files.watcherExclude` / `search.exclude`, set
-  `git.autoRepositoryDetection: false`, and open **one worktree** as the folder
-  rather than the parent that contains all of them.
+- **Keep regenerable caches on local disk**, not in an NFS checkout:
+  `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `__pycache__`, coverage, tool
+  downloads. Reading one worktree's 8,311-file mypy cache is ~40 min, which is
+  the whole gap between a 15–25 min local `mypy` run and 3m30s on CI.
+  `.gitignore` does not help — it stops git tracking them, not a tool reading
+  them. Namespace per checkout (`MYPY_CACHE_DIR=/tmp/mypy-$(basename "$PWD")`):
+  worktrees sharing one cache dir collide on module-name keys.
+- **The editor's own server is usually the biggest tree in the path.**
+  `.cursor-server` measured 58,495 files — 3.4× a whole project checkout — so a
+  cold connect spends hours before touching any project. Keep it off NFS
+  (`/var/tmp` here is local and not age-cleaned; `/local/users/<you>` if an
+  admin grants one). Same reasoning for a conda env, which is worth copying only
+  for a run of many short processes — measure before paying it.
+- **Keep editors out of data directories**, and open **one worktree** as the
+  folder rather than the parent that contains all of them: the parent pulls in
+  every sibling worktree plus `.conda` (3M inodes) and every dataset.
 - **A `du`, `find` or `git status` that seems hung is usually neither.** Check
-  `wchan` for `nfs_wait_bit_killable` before debugging the tool.
-- Copying an env to local disk (`/`, not home) is a real fix and costs hours at
-  6 files/s, so it is worth it only for a run of many short processes. Measure
-  before paying it.
+  `wchan` for `nfs_wait_bit_killable` before debugging the tool. Contention is
+  often not yours — a co-tenant's editor `grep` has sat in `D` state for 13
+  hours on this mount, and a measurement taken during that is not a measurement
+  of your project.
 
 ## Python dependency management
 
@@ -141,6 +168,16 @@ clean finding or cite it until the alarm is closed or the bounds are
 explicitly revised with a reason. Procedure lives in `results-report` /
 `gpu-job-runner`.
 
+Make the band **two-sided** whenever the bound is on the very quantity the
+experiment exists to generalize past — a one-sided band derived from the
+incumbent cases encodes the assumption under test as if it were a bound, and
+points the alarm text at the wrong thing. Check a bound at the operating point
+its own wording names ("at matched rate" is not "at fixed QP"). **To close a
+fired alarm cheaply, run the new analysis path over old data and see whether it
+reproduces an already-published number**; if it does, the tool is not the
+explanation and the alarm is a finding. That beats auditing the new code, and
+validates the tool at the same time.
+
 ## Control the instrument, then the result
 
 A measurement is not evidence until the thing that produced it has been checked
@@ -156,6 +193,12 @@ scored a blurred clip above a perfect match. Rankings were published on both.
 - **A control is part of a measurement, not a follow-up.** No "X beats Y"
   without the null in the same session: unrelated input, no model, shuffled
   condition. Run it *before* reporting, not after being asked.
+- **A "fraction of the oracle/ceiling/headroom" metric has a floor well above
+  zero.** Random selection already captured 0.402 of an oracle here, so 0.833 is
+  not "83% of the way there" — the earned credit is `0.833 − 0.402`. Compute the
+  null (a Monte Carlo over values you already have, milliseconds) and report it
+  beside the number. Pre-registered bounds do not catch this: a band around a
+  mis-scaled quantity is still mis-scaled.
 - **Quote the instrument's range with the number.** "0.067" means nothing;
   "0.067, where an unrelated image scores 0.645" means something.
 - **Report n and the standard error with any comparison.** A difference under
@@ -177,6 +220,13 @@ epoch/step cadence — and its resume path is verified *before* it is relied on.
 Long scripts also append a progress line at least every 10 minutes, so a
 silent hang is visible in minutes rather than hours. Launch detached; never
 attached to a shell an SSH drop takes with it.
+
+**A batch runner that tolerates per-entry failures exits 0 when every entry
+failed.** The per-entry handling is right — one bad config should not abandon a
+multi-hour wave — so the check belongs with the caller: compare results produced
+against entries submitted, and never read exit 0 as "the wave completed". A
+clean 50/50 split in what succeeded points at a config-shape bug, not GPU
+flakiness.
 
 ## Plan mode: split complex plans into parallel-agent waves
 
@@ -200,6 +250,21 @@ plan, a brief, a status table — anything written *for another agent to read* �
 is invisible behind an unmerged PR, which is exactly the audience it exists for.
 Only code waits for review. Two waves here launched against docs the workers
 could not see.
+
+**A wave is finished when its worktrees are gone, not when its PRs merge.** A
+worktree that outlives its branch is a silent-revert hazard: a resumed session
+re-applies its own version of a file a later session already changed, and
+nothing about the output looks wrong. Removal follows the git rules above — but
+compare against **`origin/main`**, not a local `main` that may be dozens of
+commits stale and will make every merged branch look unmerged — and **ask the
+user before removing**, because a session may be paused in one.
+
+## One PR per independently revertible change
+
+Over-splitting burns the Copilot review budget — measured here: it stops
+analysing PRs after a few days of heavy splitting. Under-splitting keeps `main`
+stale and leaves parallel sessions rebasing onto old code. The unit is what you
+would want to revert on its own.
 
 ## Knowledge loop — crossed axes
 

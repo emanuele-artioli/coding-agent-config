@@ -4,7 +4,7 @@ created: 2026-08-31
 source_platform: claude
 source_project: /home/itec/emanuele/pointstream
 axis: project
-status: open
+status: applied
 summary: Parallel-wave worktrees left behind after their branches merge become both a stale-edit hazard and the bulk of the NFS walk
 suggested_action: add a cleanup step to the AGENTS.md parallel-agent-waves section
 verify_platforms: []
@@ -39,3 +39,30 @@ branch first (`git log main..<branch>`), tag anything unmerged, never
 `--force` away a worktree with uncommitted changes — and **ask the user before
 removing**, because a session may be paused in one, which is exactly the state
 found here.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied on the first harm only. The second harm is disproved** — which is why
+this candidate was held until the NFS investigation finished.
+
+Harm 1, the stale-worktree silent revert, stands entirely on its own and is the
+whole basis of the rule now in `AGENTS.md` under the parallel-agent-waves
+section. A worktree that outlives its branch lets a resumed session re-apply its
+version of a file a later session already changed, with nothing about the output
+looking wrong.
+
+Harm 2 — "it is most of the NFS walk" — does not survive measurement
+(`FINDINGS-nfs-editor-slowness.md`). Walking is cheap here (~13,000 stats/s);
+only `open()` is slow. And no PointStream worktree has ever been opened as an
+editor folder, so leftover worktrees were never in any editor's scope. Removing
+them is tidiness, not a performance fix, and the rule is worded that way.
+
+One correction folded into the applied rule that the candidate did not have:
+**compare against `origin/main`, not a local `main`.** Local `main` in the
+PointStream checkout was 52 commits behind origin (last fetch 08-29), which made
+every one of the six merged wave-8 branches read as 32–35 commits *ahead*. A
+cleanup driven by the local comparison would have concluded that nothing was
+safe to remove; one driven by a stale local `main` in the other direction could
+have deleted unmerged work.

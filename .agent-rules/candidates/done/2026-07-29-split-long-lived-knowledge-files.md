@@ -4,7 +4,7 @@ created: 2026-07-29
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: project
-status: open
+status: applied
 summary: An append-only research log becomes a per-session token tax; split into an index carrying entry TITLES plus per-section bodies, and drain landed entries.
 suggested_action: offer the pattern to any project with a long-lived append-only knowledge file (RESEARCH_LOG, DECISIONS, TECHNICAL_REPORT); consider a line-count ceiling convention in the shared rules
 verify_platforms: []
@@ -66,3 +66,21 @@ useful, and nothing in the normal workflow ever shrinks it.
 Related: this is the same mechanism as `[[trust-data-over-docs]]` in the sense
 that the file's *stated* purpose (be the secondary store) stayed right while its
 *shape* quietly became the problem.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied** as the structural half of the paired platform candidate
+`2026-07-29-claude-read-edit-cost-of-big-files`: `harness/claude.md` now carries
+the pattern (index of entry *titles*, per-section body files, pointers that name
+the specific body file) as the fix for the read-before-edit cost.
+
+Deliberately **not** added to `AGENTS.md` as a line-count ceiling. A numeric
+ceiling on every long-lived knowledge file across every project is a convention
+worth adopting per project, not a host rule, and the caveats that make the
+pattern work — budget the pointer sweep, verify each drained entry against a
+live `CLAIM`, state that byte-exactness was a check on the move and not a
+standing invariant — do not compress into a rule line without losing the part
+that matters. The full write-up stays here in `done/` as the reference for any
+project that takes it on.

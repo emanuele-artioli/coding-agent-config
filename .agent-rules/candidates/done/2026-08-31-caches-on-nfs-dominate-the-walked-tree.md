@@ -4,7 +4,7 @@ created: 2026-08-31
 source_platform: claude
 source_project: /home/itec/emanuele/pointstream
 axis: platform
-status: open
+status: applied
 summary: Tool caches, not source, are ~85% of what an editor walks per worktree on this NFS home — and they belong on local disk
 suggested_action: lift into the AGENTS.md NFS section; applies to every project and every agent on this host
 verify_platforms: []
@@ -46,3 +46,32 @@ across trees. Namespace per checkout.
 VS Code server (`ayman`) had a `find` plus recursive `grep -RIn` running for
 11 h 52 m on the same mount. Contention on this host is not always yours, and a
 measurement taken during it is not a measurement of your project.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied, with its reasoning corrected.** The conclusion survives; the argument
+behind it does not.
+
+This candidate argued from the *walk*: 85% of the inodes an editor walks are
+duplicated mypy cache, and at ~6 opens/second a walk of 79,738 inodes is ~3.7
+hours. Measurement the same day (`FINDINGS-nfs-editor-slowness.md`) shows that
+reasoning is wrong in two places:
+
+- **Walking is not the expensive operation.** `readdir`+`stat` runs at ~13,000
+  files/second on this mount. Only `open()` is slow (2.4–4.3/s). A file watcher
+  never opens anything, so cache inodes cost it almost nothing.
+- **The 79,738 figure was never one editor's scope.** No PointStream worktree
+  has ever been opened as an editor folder; the parent directory has been, and
+  that is millions of inodes, not 79,738.
+
+The recommendation is right for a different reason: caches are expensive because
+**tools read them**. `mypy` opening its own 8,311-file cache at 3.5 opens/s is
+~40 minutes, which fully accounts for the 15–25 min local run against 3m30s on
+CI. That is the form now in `AGENTS.md`, together with the per-checkout
+namespacing trap, which the candidate got right and which still applies.
+
+The co-tenant-contention note was also lifted, updated: `ayman`'s editor `grep`
+is now at 13 h 01 m in `D` state, so it is a standing condition rather than one
+long job.
