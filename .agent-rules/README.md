@@ -156,9 +156,9 @@ flowchart TB
 - `AGENTS.md` — host-wide prose rules, strictly tool-agnostic, and the register
   of things that have gone wrong more than once. Reached by `@`-import from
   `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md`, by symlink from
-  `~/AGENTS.md` and `~/.gemini/AGENTS.md`, and by inlining into each project's
-  own `AGENTS.md` (see below). **An edit here is live everywhere at once with
-  no sync step**, except for the inlined copies, which a script maintains.
+  `~/AGENTS.md` and `~/.gemini/AGENTS.md`, and by a generated *pointer* in each
+  project's own `AGENTS.md` (see below). **An edit here is live everywhere at
+  once, with no sync step and no copies to go stale.**
 - `harness/<agent>.md` — the mechanics that only make sense for one agent: its
   tool names, its way of backgrounding a job, where it keeps its own config.
   This split is what stops `~/.claude/CLAUDE.md`'s "use `Monitor` and
@@ -230,17 +230,23 @@ Three different mechanisms, because no single one reaches everything:
    layout. **Neither Cursor nor Claude walks up from a project folder to
    `~/AGENTS.md`**, which is why the pointer has to live *in the project*.
 
-**TODO:** stop inlining. `sync_agent_rules.py` still writes a `host-rules`
-block and a copied `cursor-harness.mdc` for the other projects. Retire
-that; do not bring it back for cloud agents without an explicit decision.
-Checklist:
-`candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md`.
+**Inlining is retired** (2026-08-31). `sync_agent_rules.py` used to write a
+full copy of this file into every project's `AGENTS.md`, plus a copied
+`cursor-harness.mdc`. It now writes a pointer to both. Every project on this
+host is on the pointer layout.
 
-Deprecated inlining (still in presley / TIGAS / 4DGStudy until the TODO lands) —
-a generated copy of this file at the end of each project's `AGENTS.md`.
-It exists because cloud agents run on machines that have never seen this
-home directory. Local GPU-server work does not need it, and it is the
-thing that forced a sync script.
+Why it was retired: the copy was a second source of truth pretending not to be
+one. An edit here was stale in every project until somebody re-ran the script,
+and nothing said so. On 2026-08-31 presley, TIGAS and 4DGStudy were found five
+weeks and one rewrite behind — still telling their agents "never destroy work
+you have not read" after the host had replaced that with a policy giving agents
+autonomy over anything revertible. The block read perfectly plausibly.
+
+**The cost, accepted deliberately:** Copilot's and Cursor's cloud agents, and CI
+runners, never see this home directory, so they no longer see the host rules at
+all. `AGENTS.md` states that acceptance in as many words. Do not bring a copy
+back "just for cloud" without changing that decision in the host file first —
+that is the exact door this failure came through.
 
 The pointer layout is also why Claude no longer needs the host rules twice
 — `~/.claude/CLAUDE.md` loads them once.
@@ -331,7 +337,7 @@ Measured effect on Claude's startup context, in lines:
 | 4DGStudy | 507 | 340 | 46 |
 
 The host file `AGENTS.md` was trimmed 150 → 121 lines in the same pass, which
-shrinks both the home import and all five inlined `host-rules` blocks.
+shrinks the home import; the projects carry a pointer, so nothing else moves.
 
 **The cost to be honest about:** a deferred rule is not in context until Claude
 reads a matching file. A session that reasons *about* an area without opening
