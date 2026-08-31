@@ -134,3 +134,31 @@ def test_branch_note_is_advisory_only():
     assert g.notes("git status", branch="main") == []
     # a note is never a denial
     assert g.inspect("git commit -m x") is None
+
+
+def test_branch_resolver_is_not_called_for_ordinary_commands():
+    """The advisory note must not spawn `git rev-parse` on every shell call.
+
+    This is the Cursor incident of 2026-08-31: `_current_branch` ran on every
+    command, and in a directory with no `.git` the walk up into the home
+    checkout sat in NFS D-state past the hook's failClosed budget — so a note
+    about branch hygiene blocked every command, git or not.
+    """
+    calls = []
+
+    def resolver():
+        calls.append(1)
+        return "main"
+
+    for command in ("ls -la", "git status", "python train.py", "rm -rf build"):
+        assert g.notes(command, resolver) == [], command
+    assert calls == [], "resolver must not run for a non-commit/push command"
+
+    assert g.notes("git commit -m x", resolver)
+    assert len(calls) == 1
+
+
+def test_branch_resolver_accepts_a_plain_string_too():
+    assert g.notes("git commit -m x", "main")
+    assert g.notes("git commit -m x", "feature/y") == []
+    assert g.notes("git commit -m x", None) == []

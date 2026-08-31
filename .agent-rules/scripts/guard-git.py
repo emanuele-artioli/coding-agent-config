@@ -52,7 +52,7 @@ def _current_branch(cwd: str | None) -> str | None:
             cwd=cwd or None,
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=1,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -77,7 +77,10 @@ def main() -> int:
 
     # Advisory only. Branch discipline is a preference, not a safety boundary,
     # and a guard that blocks reversible things trains people to route around it.
-    for note in destructive_git.notes(command, _current_branch(data.get("cwd"))):
+    # The resolver is passed *uncalled*: `notes` runs it only for a commit or a
+    # push, so an ordinary shell call never spawns git. See the note in
+    # `guardlib/destructive_git.notes`.
+    for note in destructive_git.notes(command, lambda: _current_branch(data.get("cwd"))):
         print("git branch check: " + note, file=sys.stderr)
     return 0
 

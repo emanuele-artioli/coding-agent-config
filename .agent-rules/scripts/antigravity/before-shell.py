@@ -90,7 +90,7 @@ def _current_branch(payload: dict) -> str | None:
             cwd=_payload_cwd(payload),
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=1,
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -131,7 +131,7 @@ def main() -> int:
     notes = long_run.notes(command, config.entry_points, dialect=DIALECT)
     if notes:
         print("Long-run check: " + "; ".join(notes), file=sys.stderr)
-    for note in destructive_git.notes(command, _current_branch(payload)):
+    for note in destructive_git.notes(command, lambda: _current_branch(payload)):
         print("git branch check: " + note, file=sys.stderr)
 
     json.dump({"decision": "allow"}, sys.stdout)
