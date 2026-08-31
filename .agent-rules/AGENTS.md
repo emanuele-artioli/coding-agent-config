@@ -63,11 +63,24 @@ latency on the NFSv4 OPEN, not the network and not server saturation.
   tool reading them. Namespace per checkout
   (`MYPY_CACHE_DIR=/tmp/mypy-$(basename "$PWD")`) or worktrees collide on
   module-name keys.
+- **Home is shared across hosts; local disk is not.** `gpu5` and `gpu6` mount
+  the same home, so a symlink written there resolves on every host — while
+  `/var/tmp` is a different disk on each, and *missing* on any host where
+  nobody created it. Pointing `~/.cursor-server` at `/var/tmp` fixed gpu5 and
+  silently broke gpu6: the editor could not install its server and refused the
+  connection, with nothing in any log to say why. Anything you put on local
+  disk needs creating on every host — `scripts/bootstrap-hostlocal.sh`, run
+  from `~/.bashrc` and `~/.profile`, does that and is the place to add more.
 - **Keep the editor's own server off NFS too** — `.cursor-server` measured
   58,495 files, 3.4× a whole checkout, so a cold connect spends hours before
   touching any project. `/var/tmp` here is local and not age-cleaned;
   `/local/users/<you>` if an admin grants one. Same for a conda env, worth
   copying only for a run of many short processes.
+- **Keep Python bytecode off NFS.** The agent shell guards are Python and run
+  on every command an agent issues; importing `guardlib` from NFS measured
+  4.43 s, which Cursor saw as a ~5 s delay before *every* call and which can
+  exhaust a hook's failClosed budget. `PYTHONPYCACHEPREFIX` pointing at local
+  disk takes the same import to 0.83 s and copies no source anywhere.
 - **Batch work into long-lived processes**, and open **one worktree** as the
   editor folder, never the parent — that pulls in every sibling worktree plus
   `.conda` (3M inodes) and every dataset.

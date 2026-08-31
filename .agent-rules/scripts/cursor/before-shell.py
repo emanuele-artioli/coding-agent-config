@@ -176,13 +176,11 @@ def main() -> int:
     if notes:
         print("Long-run check: " + "; ".join(notes), file=sys.stderr)
 
-    # Advisory only — never failClosed a shell call because git was slow.
-    if "commit" in command or "push" in command:
-        try:
-            for note in destructive_git.notes(command, _current_branch(payload)):
-                print("git branch check: " + note, file=sys.stderr)
-        except Exception:
-            pass
+    # Advisory only, and never a reason to failClosed a shell call. `notes`
+    # resolves the branch itself, and only for a commit or a push, so the
+    # `git rev-parse` that used to run on every command now runs almost never.
+    for note in destructive_git.notes(command, lambda: _current_branch(payload)):
+        print("git branch check: " + note, file=sys.stderr)
 
     _respond("allow")
     return 0

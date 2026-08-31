@@ -179,20 +179,44 @@ def inspect(command: str) -> str | None:
     return None
 
 
-def notes(command: str, branch: str | None = None) -> list[str]:
-    """Advisory, non-blocking observations. Never a reason to stop."""
-    out: list[str] = []
-    if not command or not branch or branch not in ("main", "master"):
-        return out
+def _branch_note_subcommand(command: str) -> str | None:
+    """`commit` or `push` if this command is one, else None. No subprocesses."""
     for tokens in _simple_commands(command):
         if not _is_git(tokens):
             continue
         sub, _args = _subcommand(tokens)
         if sub in ("commit", "push"):
-            out.append(
-                f"'{sub}' on '{branch}': the host rules ask for a branch, so "
-                "intermediate work can be dropped without touching the "
-                "default branch and parallel sessions do not collide."
-            )
-            break
+            return sub
+    return None
+
+
+def notes(command: str, branch=None) -> list[str]:
+    """Advisory, non-blocking observations. Never a reason to stop.
+
+    `branch` may be a string **or a zero-argument callable**, and the callable
+    is invoked only when the command is actually a commit or a push.
+
+    That laziness is the whole point, and it is load-bearing rather than
+    tidy. Every adapter resolves the branch with `git rev-parse`, and on this
+    host a `rev-parse` in a directory with no `.git` walks up into the home
+    checkout and can sit in NFS `D` state for longer than a hook's failClosed
+    budget. Cursor hit exactly that on 2026-08-31: an advisory note about
+    branch hygiene was blocking *every* shell command, including the ones with
+    no git in them. Deciding here, before anything is spawned, is what stops
+    each adapter having to remember.
+    """
+    out: list[str] = []
+    if not command:
+        return out
+    sub = _branch_note_subcommand(command)
+    if sub is None:
+        return out
+    resolved = branch() if callable(branch) else branch
+    if resolved not in ("main", "master"):
+        return out
+    out.append(
+        f"'{sub}' on '{resolved}': the host rules ask for a branch, so "
+        "intermediate work can be dropped without touching the default branch "
+        "and parallel sessions do not collide."
+    )
     return out
