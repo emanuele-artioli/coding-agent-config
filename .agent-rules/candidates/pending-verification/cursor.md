@@ -53,3 +53,16 @@ trigger a SessionStart reminder.
   pagination. If all three hold on every platform, promote the rule to
   `AGENTS.md`; if it is Claude-only, it stays in `harness/claude.md`.
   Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.
+- [ ] **Irreversible-git guard added to `cursor/before-shell.py` (2026-08-31,
+  from a Claude session — script-level verified, not verified live in Cursor).**
+  `destructive_git.inspect` now runs before the project-config lookup, denying
+  force pushes, remote ref deletion, `push --mirror/--prune`, `reflog expire`,
+  `gc --prune=now` and `git clean -f`; `destructive_git.notes` adds an advisory
+  stderr line when committing straight to `main`. Driven with sample payloads
+  here — `{"command":"git push --force origin main"}` returned
+  `{"permission":"deny"}`, `git push -u origin feature/x` returned `allow`.
+  Confirm live from a Cursor session that the deny surfaces in the UI, that
+  ordinary pushes are unaffected, and that Cursor's own git UI actions (which
+  may not route through `beforeShellExecution`) are not silently exempt — that
+  last one is the real gap to check, since a guard the built-in git panel
+  bypasses is not a boundary.

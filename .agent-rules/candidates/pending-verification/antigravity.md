@@ -45,3 +45,15 @@ from an Antigravity session after live verification. Hook commands must be
   pagination. If all three hold on every platform, promote the rule to
   `AGENTS.md`; if it is Claude-only, it stays in `harness/claude.md`.
   Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.
+- [ ] **Shell guard `antigravity/before-shell.py` (added 2026-08-31 from a Claude
+  session — not verified here).** New adapter applying the shared `guardlib`
+  shell policies in Antigravity's dialect: denies irreversible git
+  (`destructive_git`), `rm` against protected trees (`destructive_rm`) and
+  hand-rolled wait loops (`wait_loop`); advises on long runs and on committing
+  straight to `main`. Its payload keys and the exit-status contract were
+  inferred from `antigravity/guard-model-family.py`, not observed. Wire with an
+  **absolute** path in `~/.gemini/config/hooks.json` (`python3 <abs-path>`), then
+  confirm live: (a) `git push --force` is denied and the stderr reason is
+  visible, (b) `git push -u origin <branch>` is allowed, (c) `git commit -m "do
+  not push --force"` is allowed — the string must not trigger the guard. Until
+  wired, this hook denies nothing.

@@ -22,13 +22,20 @@ from the nearest `.agent-guards.json`, never passed as arguments.
 
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from guardlib import destructive_rm, long_run, project_config, wait_loop  # noqa: E402
+from guardlib import (  # noqa: E402
+    destructive_git,
+    destructive_rm,
+    long_run,
+    project_config,
+    wait_loop,
+)
 
 DIALECT = "cursor"
 
@@ -61,6 +68,21 @@ def _command(payload: dict) -> str:
         if isinstance(value, str):
             return value
     return ""
+
+
+def _current_branch(payload: dict) -> str | None:
+    """Best-effort branch name, for the advisory branch-discipline note only."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=project_config.payload_cwd(payload) or None,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
 
 
 def _log_probe(payload: dict) -> None:
@@ -121,6 +143,15 @@ def main() -> int:
         )
         return 0
 
+    reason = destructive_git.inspect(command)
+    if reason:
+        _respond(
+            "deny",
+            user_message="Blocked a git operation that cannot be undone.",
+            agent_message=reason,
+        )
+        return 0
+
     config = project_config.load(project_config.payload_cwd(payload))
 
     if config.protected:
@@ -136,6 +167,9 @@ def main() -> int:
     notes = long_run.notes(command, config.entry_points, dialect=DIALECT)
     if notes:
         print("Long-run check: " + "; ".join(notes), file=sys.stderr)
+
+    for note in destructive_git.notes(command, _current_branch(payload)):
+        print("git branch check: " + note, file=sys.stderr)
 
     _respond("allow")
     return 0
