@@ -26,17 +26,31 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from guardlib import model_family  # noqa: E402
 
 # Tools that may carry a model when spawning work. Expand when verifying live.
-_SPAWN_HINTS = frozenset({"run_command", "Agent", "Task", "task", "agent"})
+_SPAWN_HINTS = frozenset({"run_command", "invoke_subagent", "Agent", "Task", "task", "agent"})
 
 
 def _requested_model(payload: dict) -> str | None:
-    for key in ("model", "subagent_model"):
+    tool_call = payload.get("toolCall") or payload.get("tool_call")
+    if isinstance(tool_call, dict):
+        args = tool_call.get("args")
+        if isinstance(args, dict):
+            subagents = args.get("Subagents") or args.get("subagents")
+            if isinstance(subagents, list) and subagents:
+                for s in subagents:
+                    if isinstance(s, dict) and s.get("Model"):
+                        return s.get("Model")
+            for key in ("model", "Model", "subagent_model"):
+                val = args.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val
+
+    for key in ("model", "Model", "subagent_model"):
         value = payload.get(key)
         if isinstance(value, str) and value.strip():
             return value
-    nested = payload.get("tool_input")
+    nested = payload.get("tool_input") or payload.get("args")
     if isinstance(nested, dict):
-        for key in ("model", "subagent_model"):
+        for key in ("model", "Model", "subagent_model"):
             value = nested.get(key)
             if isinstance(value, str) and value.strip():
                 return value
@@ -47,11 +61,10 @@ def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
-        return 0
+        payload = {}
     if not isinstance(payload, dict):
-        return 0
+        payload = {}
 
-    tool = payload.get("tool_name") or payload.get("toolName") or ""
     # If the matcher already narrowed to the spawn tool, still inspect.
     # Unknown tool names with an explicit model are also checked.
     requested = _requested_model(payload)

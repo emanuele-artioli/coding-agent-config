@@ -1,4 +1,4 @@
 {
-  "_comment": "Intentionally shared MCP servers for every agent on this host. Secrets never live here — use ${env:NAME} placeholders. install.py upserts each named server into ~/.cursor/mcp.json, ~/.gemini/config/mcp_config.json and ~/.claude.json (mcpServers) without removing unrelated entries (Cursor marketplace plugins, personal servers). Add a server here only when it should reach Claude, Cursor and Antigravity alike.",
+  "_comment": "DEPRECATED as SoT. Shared MCP servers now live in the Agent Plugins portable file ../mcp.json (schema https://agent-plugins.org/schemas/1.0.0/mcp.schema.json). install.py reads mcp.json first; this file is only a fallback if mcp.json is missing. Secrets: use ${env:NAME} placeholders, never plaintext.",
   "servers": {}
 }

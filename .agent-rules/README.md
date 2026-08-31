@@ -7,6 +7,13 @@ installed here yet. Each agent's own native config is either a symlink into
 this repo, a thin wrapper importing it, or a generated file. **Edit content
 only in this directory, never in a per-agent copy.**
 
+This repo is also an **[Agent Plugins](https://agent-plugins.org) v1**
+package for its portable slice (`plugin.json` + `skills/` + `mcp.json`).
+Clients that load Agent Plugins can discover those components; the symlink
+farm remains the host wiring until every platform does. Non-portable host
+pieces (AGENTS.md, harness, hooks, subagents, candidates, …) stay in-tree
+but are *not* part of the portable core — see `plugin.json` → `extensions`.
+
 All paths below were checked against each platform's current documentation and
 against what actually exists on disk here, in July 2026. `scripts/install.py`
 prints the farm's real state, which is the only way to check it that does not
@@ -78,6 +85,20 @@ from that single asymmetry:
 | Codex | `~/.codex/AGENTS.md` plus every `AGENTS.md` from git root down to cwd, 32 KiB cap | `~/.codex/AGENTS.md` |
 
 ## Layout
+
+### Agent Plugins portable core vs host-only
+
+| Path | Role |
+|---|---|
+| `plugin.json` | Agent Plugins v1 manifest (closed schema) |
+| `skills/<name>/SKILL.md` | Portable Agent Skills (also farmed by `install.py`) |
+| `mcp.json` | Portable shared MCP servers (Agent Plugins schema). Prefer this over the legacy catalog. |
+| `AGENTS.md`, `harness/`, `agents/`, `workflows/`, `scripts/`, `candidates/`, `CONCEPTS.md`, … | **Host-only** — outside Agent Plugins v1. Documented under `extensions.com.emanuele.coding-agent-config` so the split stays explicit. |
+
+Additive rule: when adding a **shared** skill or MCP server, keep the portable
+layout valid (`install.py --check` validates the core). When adding a hook,
+subagent, or AGENTS rule, do **not** invent top-level `plugin.json` fields —
+those belong in host paths or a future client extension namespace.
 
 <!-- arch:tree:start -->
 ```mermaid
@@ -162,9 +183,11 @@ flowchart TB
   linter first; see `scripts/lint_plan_waves.py`).
 - `projects.json` — host index of project roots for cross-project lifts during
   `evaluate-candidates`.
-- `mcp/catalog.json` — intentionally shared MCP servers. `install.py` upserts
-  each named server into Cursor, Antigravity and Claude configs without
-  removing unrelated entries. Secrets stay in `${env:NAME}` placeholders.
+- `mcp.json` — Agent Plugins portable MCP config (`mcpServers`). `install.py`
+  upserts each named server into Cursor, Antigravity and Claude configs
+  without removing unrelated entries. Secrets stay in `${env:NAME}`
+  placeholders. Legacy `mcp/catalog.json` is a fallback only if `mcp.json` is
+  absent.
 - `scripts/guardlib/` — hook policy: pure functions that return a verdict.
   Shell policies take a command (`wait_loop`, `destructive_rm`, `long_run`);
   `model_family` takes a requested model slug + platform. No stdin, no stdout,
@@ -172,8 +195,8 @@ flowchart TB
 - `scripts/guard-*.py`, `scripts/cursor/before-shell.py`,
   `scripts/cursor/before-task.py`, `scripts/antigravity/` — thin per-agent
   adapters over `guardlib`, one per hook dialect.
-- `scripts/install.py` — creates and verifies the symlink farm, and upserts
-  the MCP catalog.
+- `scripts/install.py` — validates the Agent Plugins portable core, creates
+  and verifies the symlink farm, and upserts shared MCP from `mcp.json`.
 - `scripts/sync_agent_rules.py` — maintains each project's generated rule
   files. Vendored, not referenced centrally (see below).
 
@@ -320,6 +343,29 @@ guarantee the way an eager load is. Scope a section only when it genuinely
 tracks a set of paths; leave anything that shapes judgment in every session
 unmarked.
 
+### Session-stable always-on rules vs volatile hook context
+
+Provider prompt caches (and any local reuse of a system/rules prefix) need
+**exact** matches. Always-on bytes must stay **session-stable**:
+
+- **Stable (do not rewrite mid-session):** host `AGENTS.md`, project
+  `AGENTS.md` / generated `project-core`, `cursor-harness.mdc`, Claude/Gemini
+  `@`-imports. Hooks must never splice into these files.
+- **Volatile (side-channel only):** SessionStart candidate counts, context
+  nudges, pre-compact resume pointers. Inject via `additional_context` /
+  stdout / `user_message` — never by mutating rule files.
+- **Host block placement:** `sync_agent_rules` **appends** the generated
+  host-rules block after project-local prose on purpose (cloud/eager readers
+  see project rules first; Claude still gets host rules early via
+  `~/.claude/CLAUDE.md`). Do not reorder that block for a cargo-culted
+  “static KV prefix.”
+- **`scope:` deferral** shrinks always-on *delivery* for Claude/Copilot Chat;
+  it is not a substitute for keeping the remaining always-on bytes stable.
+
+Audit (2026-07-31): lifecycle hooks under `scripts/{cursor,claude,antigravity}/`
+write only under `var/` (nudge state, precompact stubs) and probe logs — not
+`AGENTS.md` or harness files.
+
 The project-level skills directory is real under `.claude/` and symlinked from
 `.agents/`, rather than the other way round. That is deliberate and worth not
 "fixing": Claude Code is the only consumer whose symlink-following behaviour is
@@ -351,8 +397,9 @@ bites — the payload and response contract:
 | Global config | `~/.claude/settings.json` | `~/.cursor/hooks.json` | `~/.gemini/config/hooks.json` | `~/.codex/hooks.json` or `[hooks]` in `config.toml` | `~/.copilot/hooks/*.json` |
 | Project config | `.claude/settings.json` | `.cursor/hooks.json` | `.agents/hooks.json` | `.codex/hooks.json` | `.github/hooks/*.json` |
 | Shell event | `PreToolUse` + `Bash` matcher | `beforeShellExecution` | `PreToolUse` + `run_command` matcher | `PreToolUse` + regex matcher | `preToolUse` |
-| Command in | `tool_input.command` | top-level `command` | payload `command` | `tool_input.command` | assumed Claude-shaped |
-| Denial out | `hookSpecificOutput.permissionDecision` | `{"permission": "deny"}` | script exit status | hook JSON verdict | unverified |
+| Command in | `tool_input.command` | top-level `command` | `toolCall.args.CommandLine` | `tool_input.command` | assumed Claude-shaped |
+| Denial out | `hookSpecificOutput.permissionDecision` | `{"permission": "deny"}` | `{"decision": "deny"}` JSON | hook JSON verdict | unverified |
+
 
 So a single script cannot serve them all: pointing Cursor's `hooks.json` at
 `guard-wait-loop.py` would produce a hook that runs, succeeds, and silently
@@ -424,13 +471,15 @@ Notes:
   `<n>.agent.md`). Since these are plain files, a symlink farm works, and
   Claude Code's documentation explicitly guarantees it follows symlinks out of
   the skills directory.
-- **MCP catalog vs marketplace.** `mcp/catalog.json` is only for servers that
+- **MCP `mcp.json` vs marketplace.** Root `mcp.json` is only for servers that
   should reach Claude, Cursor and Antigravity alike. Cursor marketplace plugin
   MCPs (Slack, Roboflow, Hugging Face, …) stay Cursor-local and are never
-  imported into the catalog. `install.py` upserts catalog names only.
-- **Plugins** (Cursor, Claude, Copilot, Antigravity) are a packaging layer over
-  the same skills/agents/hooks/MCP files. Out of scope as content SoT: the
-  farm already gets the reuse a plugin would.
+  imported into `mcp.json`. `install.py` upserts those names only.
+- **Agent Plugins.** This repo’s portable core is a conformant v1 plugin
+  (`plugin.json` + `skills/` + `mcp.json`). Hooks, subagents, workflows, and
+  AGENTS.md remain host SoT / client extensions — not portable components.
+  The symlink farm still distributes skills until platforms load the package
+  directory natively.
 - **Auto-memory and statusline** are Claude/Cursor UI chrome, not shared files.
 - **Codex is not installed here.** `~/.codex/` and `~/.agents/` do not exist,
   so `install.py` reports its links as skipped. Install Codex, re-run
@@ -517,8 +566,3 @@ Trust these claims to the extent they were actually exercised:
   `verified: false` everywhere — see pending-verification tickets.
 - **Copilot CLI skills/agents.** Symlink farm is live under `~/.copilot/`.
   **Unverified:** `~/.copilot/hooks/wait-loop.json` assumes Copilot's
-  `preToolUse` payload is shaped like Claude's — test before trusting a deny.
-- **Not attempted.** Antigravity live hook wiring and Codex entirely — see
-  `candidates/pending-verification/antigravity.md`. The event names and paths
-  in the tables above for those platforms come from documentation, not from a
-  firing hook here.

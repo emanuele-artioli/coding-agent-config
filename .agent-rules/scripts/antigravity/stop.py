@@ -46,7 +46,6 @@ def main() -> int:
                 json.dumps(
                     {
                         "keys": sorted(payload.keys()),
-                        "session_id": payload.get("session_id") or payload.get("conversation_id"),
                         "context_usage_percent": payload.get("context_usage_percent")
                         or payload.get("contextUsagePercent"),
                     }

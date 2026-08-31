@@ -39,6 +39,13 @@ genuinely project-specific and not repeated here):
   truncated stdout as if it were the final result, and do not declare
   success off the first progress line — wait for the actual completion
   notification.
+- **Keep the parent chat slim.** If the entry point does not already write a
+  job log, redirect stdout/stderr to a file under the project's usual
+  logs/results location (`… > logs/job_<id>.log 2>&1`). Prefer harness
+  progress hooks (`notify_on_output` / Monitor) or reading the **tail** of
+  that log — never paste multi-MB training stdout into the conversation.
+  The harness output-file path after background completion is enough for a
+  distilled read; do not re-dump the whole stream into the parent session.
 - After completion, read the run's own output record (`run_summary.json`,
   `result.json`, or whatever this project calls it) and report only
   distilled numbers: the project's headline metric(s), any size/cost

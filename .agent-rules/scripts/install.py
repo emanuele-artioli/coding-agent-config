@@ -6,8 +6,13 @@ its own path, under its own filename. The content is authored once in
 `~/.agent-rules/` and each agent's directory gets a symlink into it, so there
 are no copies to drift apart.
 
+This directory is also an Agent Plugins v1 package: portable core is
+`plugin.json` + `skills/` + `mcp.json`. Hooks, AGENTS.md, subagents, and the
+symlink farm are host-only (see `plugin.json` → `extensions`).
+
     python3 install.py            # create anything missing; upsert MCP configs
     python3 install.py --check    # report only, exit 1 if anything is missing
+                                  # (also validates the Agent Plugins core)
 
 Deliberately conservative about which agents it touches:
 
@@ -19,10 +24,11 @@ Deliberately conservative about which agents it touches:
   * A real file (not a symlink) sitting where a link belongs is reported as a
     conflict and left alone.
 
-MCP configs are different: they are JSON/TOML files that may already hold
-marketplace or personal servers. The catalog at `mcp/catalog.json` is upserted
-by name only — unrelated entries are never removed. Secrets are never stored
-in the catalog; use `${env:NAME}` placeholders.
+MCP configs are different: they are JSON files that may already hold
+marketplace or personal servers. Shared servers are authored in portable
+`mcp.json` (Agent Plugins schema) and upserted by name only — unrelated
+entries are never removed. Secrets: `${env:NAME}` placeholders, never
+plaintext. Legacy `mcp/catalog.json` is a fallback if `mcp.json` is absent.
 """
 
 from __future__ import annotations
@@ -30,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,8 +47,189 @@ HOME = Path.home()
 SKILLS = HOST / "skills"
 AGENTS = HOST / "agents"
 WORKFLOWS = HOST / "workflows"
+PLUGIN_JSON = HOST / "plugin.json"
+MCP_JSON = HOST / "mcp.json"
 MCP_CATALOG = HOST / "mcp" / "catalog.json"
 HOST_RULES = HOST / "AGENTS.md"
+
+PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+PLUGIN_NAME_RE = re.compile(
+    r"^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+)
+PLUGIN_TOP_LEVEL = {
+    "$schema",
+    "name",
+    "version",
+    "description",
+    "author",
+    "homepage",
+    "repository",
+    "license",
+    "keywords",
+    "extensions",
+}
+
+
+# ---------------------------------------------------------------------------
+# Agent Plugins v1 portable core
+# ---------------------------------------------------------------------------
+
+
+def _frontmatter(path: Path) -> dict[str, str]:
+    """Minimal YAML-ish frontmatter: `key: value` lines between --- fences."""
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end < 0:
+        return {}
+    block = text[3:end].strip()
+    out: dict[str, str] = {}
+    for line in block.splitlines():
+        if not line.strip() or line.lstrip().startswith("#") or ":" not in line:
+            continue
+        key, _, val = line.partition(":")
+        out[key.strip()] = val.strip().strip("\"'")
+    return out
+
+
+def validate_plugin() -> list[tuple[str, str]]:
+    """Return (label, status) rows. Statuses other than ok/empty are problems."""
+    rows: list[tuple[str, str]] = []
+
+    if not PLUGIN_JSON.is_file():
+        rows.append(("plugin.json", "missing"))
+        return rows
+
+    try:
+        manifest = json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        rows.append(("plugin.json", f"invalid JSON: {exc}"))
+        return rows
+
+    if not isinstance(manifest, dict):
+        rows.append(("plugin.json", "not an object"))
+        return rows
+
+    unknown = sorted(set(manifest) - PLUGIN_TOP_LEVEL)
+    if unknown:
+        rows.append(("plugin.json", f"unknown top-level fields: {', '.join(unknown)}"))
+    if manifest.get("$schema") != PLUGIN_SCHEMA:
+        rows.append(("plugin.json $schema", "wrong or missing"))
+    else:
+        rows.append(("plugin.json $schema", "ok"))
+
+    name = manifest.get("name")
+    if not isinstance(name, str) or not PLUGIN_NAME_RE.match(name):
+        rows.append(("plugin.json name", "invalid"))
+    else:
+        rows.append(("plugin.json name", "ok"))
+
+    if MCP_JSON.is_file():
+        try:
+            mcp = json.loads(MCP_JSON.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            rows.append(("mcp.json", f"invalid JSON: {exc}"))
+            mcp = None
+        if isinstance(mcp, dict):
+            if mcp.get("$schema") != MCP_SCHEMA:
+                rows.append(("mcp.json $schema", "wrong or missing"))
+            else:
+                rows.append(("mcp.json $schema", "ok"))
+            servers = mcp.get("mcpServers")
+            if not isinstance(servers, dict):
+                rows.append(("mcp.json mcpServers", "missing or not an object"))
+            else:
+                rows.append(
+                    (
+                        "mcp.json mcpServers",
+                        "ok" if servers else "empty (no shared servers)",
+                    )
+                )
+                for sname, spec in servers.items():
+                    if not isinstance(spec, dict) or "type" not in spec:
+                        rows.append((f"mcp.json:{sname}", "missing type"))
+                    elif spec["type"] not in {"stdio", "streamable-http", "sse"}:
+                        rows.append((f"mcp.json:{sname}", f"bad type {spec['type']!r}"))
+                    else:
+                        rows.append((f"mcp.json:{sname}", "ok"))
+    else:
+        rows.append(("mcp.json", "absent (ok until shared MCP is added)"))
+
+    if not SKILLS.is_dir():
+        rows.append(("skills/", "missing"))
+        return rows
+
+    skill_dirs = sorted(p for p in SKILLS.iterdir() if p.is_dir() and not p.name.startswith("."))
+    if not skill_dirs:
+        rows.append(("skills/", "empty"))
+    for skill in skill_dirs:
+        skill_md = skill / "SKILL.md"
+        if not skill_md.is_file():
+            rows.append((f"skills/{skill.name}", "missing SKILL.md"))
+            continue
+        fm = _frontmatter(skill_md)
+        issues = []
+        if not fm.get("name"):
+            issues.append("no name")
+        elif fm["name"] != skill.name:
+            issues.append(f"name {fm['name']!r} != dir")
+        if not fm.get("description"):
+            issues.append("no description")
+        rows.append(
+            (
+                f"skills/{skill.name}",
+                "ok" if not issues else ", ".join(issues),
+            )
+        )
+    return rows
+
+
+def _ap_server_to_catalog(spec: dict) -> dict:
+    """Map Agent Plugins mcpServers entry → host upsert shape."""
+    stype = spec.get("type")
+    if stype == "stdio":
+        entry: dict = {"command": spec["command"]}
+        if "args" in spec:
+            entry["args"] = spec["args"]
+        if "env" in spec:
+            entry["env"] = spec["env"]
+        return entry
+    if stype in {"streamable-http", "sse"}:
+        entry = {"url": spec["url"]}
+        if "headers" in spec:
+            entry["headers"] = spec["headers"]
+        return entry
+    raise ValueError(f"unsupported MCP server type: {stype!r}")
+
+
+def load_catalog() -> dict[str, dict]:
+    """Shared MCP servers: prefer portable mcp.json, else legacy catalog.json."""
+    if MCP_JSON.is_file():
+        data = json.loads(MCP_JSON.read_text(encoding="utf-8"))
+        servers = data.get("mcpServers") or {}
+        if not isinstance(servers, dict):
+            raise ValueError(f"{MCP_JSON}: 'mcpServers' must be an object")
+        out: dict[str, dict] = {}
+        for name, spec in servers.items():
+            if not isinstance(spec, dict):
+                raise ValueError(f"{MCP_JSON}: server {name!r} must be an object")
+            out[str(name)] = _ap_server_to_catalog(spec)
+        return out
+
+    if not MCP_CATALOG.is_file():
+        return {}
+    data = json.loads(MCP_CATALOG.read_text(encoding="utf-8"))
+    servers = data.get("servers") or {}
+    if not isinstance(servers, dict):
+        raise ValueError(f"{MCP_CATALOG}: 'servers' must be an object")
+    return {str(k): v for k, v in servers.items() if isinstance(v, dict)}
+
+
+# ---------------------------------------------------------------------------
+# Symlink farm
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -219,16 +407,6 @@ def apply(item: Link) -> None:
 # ---------------------------------------------------------------------------
 
 
-def load_catalog() -> dict[str, dict]:
-    if not MCP_CATALOG.is_file():
-        return {}
-    data = json.loads(MCP_CATALOG.read_text())
-    servers = data.get("servers") or {}
-    if not isinstance(servers, dict):
-        raise ValueError(f"{MCP_CATALOG}: 'servers' must be an object")
-    return {str(k): v for k, v in servers.items() if isinstance(v, dict)}
-
-
 def _cursor_entry(spec: dict) -> dict:
     """Cursor mcp.json entry from a catalog server spec."""
     if "url" in spec or "serverUrl" in spec:
@@ -343,7 +521,7 @@ def apply_mcp(*, check: bool) -> list[tuple[str, str]]:
     catalog = load_catalog()
     results: list[tuple[str, str]] = []
     if not catalog:
-        results.append(("mcp catalog", "empty (no shared servers to upsert)"))
+        results.append(("mcp.json shared servers", "empty (nothing to upsert)"))
         return results
     for label, path, key, render in mcp_targets(catalog):
         # Only touch Claude's ~/.claude.json when it already exists — never
@@ -364,6 +542,14 @@ def apply_mcp(*, check: bool) -> list[tuple[str, str]]:
     return results
 
 
+def _plugin_row_is_problem(status: str) -> bool:
+    if status in {"ok", "absent (ok until shared MCP is added)"}:
+        return False
+    if status.startswith("empty"):
+        return False
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -373,9 +559,17 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    problems = 0
+
+    print("Agent Plugins portable core:")
+    for label, status in validate_plugin():
+        print(f"{status:9} {label}")
+        if _plugin_row_is_problem(status):
+            problems += 1
+    print()
+
     items = plan()
     width = max((len(str(i.link)) for i in items), default=40)
-    problems = 0
 
     for item in items:
         state = item.status()
@@ -405,6 +599,12 @@ def main() -> int:
             print(
                 f"\n{len(conflicts)} path(s) hold a real file where a symlink belongs; "
                 "left untouched, resolve by hand.",
+                file=sys.stderr,
+            )
+            return 1
+        if problems:
+            print(
+                f"\n{problems} Agent Plugins core problem(s); farm links may still be ok.",
                 file=sys.stderr,
             )
             return 1
