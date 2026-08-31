@@ -156,3 +156,95 @@ removed.
 There is also a ninth worktree nested *inside* the main checkout at
 `pointstream/.claude/worktrees/competent-rubin-96925a`, so opening `pointstream`
 as a folder walks a worktree too.
+
+## What was changed, 2026-08-31
+
+**Editor servers moved to local disk** (approved in session). `/local/users/<user>`
+is the host's per-user local scratch convention, but only root can create one and
+there is no `emanuele` entry — worth asking an admin for, since `ayman` had one
+created today. `/var/tmp` was used instead: it is the same local ext4, and its
+age-based cleanup is commented out in `/usr/lib/tmpfiles.d/tmp.conf`, so it
+survives reboots.
+
+```
+~/.cursor-server  -> /var/tmp/emanuele-editor-servers/cursor-server
+~/.vscode-server  -> /var/tmp/emanuele-editor-servers/vscode-server
+```
+
+The old trees were **renamed, not deleted** — `~/.cursor-server.nfs-old` and
+`~/.vscode-server.nfs-old`. A rename inside one filesystem is a single metadata
+operation and was instant; copying 87,000 files off this mount at 3.5 opens/s
+would have taken about seven hours, which is why the `bin/` and `extensions/`
+trees were left behind to be re-downloaded rather than copied. Only `data/`
+(file history, workspace storage, settings — ~9,400 files) was copied across.
+
+Expect the first connect after this to re-download the server and extensions.
+That is a network fetch plus a local extract, which is fast; it is the NFS
+round-trips that were slow, not the bytes.
+
+Deleting the two `.nfs-old` trees is 87,000 unlinks on the slow mount and was
+left for you rather than done here:
+
+```bash
+nohup rm -rf ~/.cursor-server.nfs-old ~/.vscode-server.nfs-old >/dev/null 2>&1 &
+```
+
+**Not done, and worth doing:**
+
+- `MYPY_CACHE_DIR=/tmp/mypy-$(basename "$PWD")` per worktree. Not set in
+  `pyproject.toml` — one `cache_dir` there gives every worktree the same path
+  and they collide on module-name keys.
+- `.ruff_cache` is not in PointStream's `.gitignore` (`.mypy_cache/` and
+  `.pytest_cache/` are, at lines 58 and 50).
+- Ask an admin for `/local/users/emanuele`, and move the conda envs there. At
+  3,089,369 inodes, `.conda` is the largest tree in the home directory by an
+  order of magnitude and is the reason a fresh Python process costs two to
+  three minutes.
+
+**Worktrees:** the six merged, clean ones were tagged `archive/wave8/*` (tags
+pushed to origin) and removed. `pointstream-w8-e` and `pointstream-w5-b` were
+kept. `chore/mypy-experiments-gate`, which held the only copy of the brief,
+is now pushed and on PR #43.
+
+
+## Correction, later the same day: it is round-trip latency, and parallelism beats it
+
+The figures above are all **serial** — one `open()` at a time. That turns out to
+matter more than the absolute rate does.
+
+| how | rate |
+|---|---:|
+| serial `open()`, 40 files | 1.7/s |
+| the same copy at `xargs -P 24` | **23.3/s** |
+
+A **14× speedup** from parallelism alone. So the mount is not saturated and the
+server is not slow in aggregate — each request pays a fixed round-trip and the
+client was only ever keeping one in flight. Restoring the 10,578-file Cursor
+extensions tree took **6.4 minutes at `-P 32`**, against the ~90 minutes the
+serial `cp` was on course for; the tail of the VS Code state copy, which serial
+`cp` had spent 45 minutes on, finished in 33 seconds.
+
+This does not change the diagnosis — an editor's indexer, `mypy`, and a plain
+`cp` are all single-threaded, so they pay the serial rate and the symptom is
+exactly as described. It changes what to *do* about bulk work: anything reading
+many small files here should fan out. `AGENTS.md` now leads the NFS section with
+this.
+
+## Outcome — Cursor connects
+
+First connect after the move, 13:05:42:
+
+- extension host agent started in **0.5 s**, connection established at 1.3 s
+- eager extensions activated by 13:05:46, all extensions up by 13:06:02
+- workspace `b651823f…` = `TIGAS`, indexing client created, no errors
+
+Total ~20 seconds to a usable state, against the hours it had been. The server
+reinstalled itself into `/var/tmp` automatically.
+
+**What was still broken on that first connect:** the `extensions/` tree had been
+left behind in `.cursor-server.nfs-old`, so Cursor came up with none of the six
+installed — `ms-python.python`, `anysphere.cursorpyright`, `ms-python.debugpy`,
+`anthropic.claude-code`, `github.vscode-github-actions`,
+`iamhyc.overleaf-workshop`. A connected editor with no Python language server
+reads as "still does not work". Restored by parallel copy; both editors now have
+their full state on local disk.
