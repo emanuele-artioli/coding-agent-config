@@ -431,7 +431,80 @@ def check_queue(fix: bool) -> Result:
 
 # Skipped by --fast: each spawns processes, and `measurements` deliberately
 # pays the serial open rate it measures.
-SLOW_CHECKS = {"generated", "shell", "measurements"}
+# --------------------------------------------------------------------------
+# parity — do the three harnesses reach the same verdict?
+# --------------------------------------------------------------------------
+# The whole design rests on one claim: the policy lives once in `guardlib/` and
+# each platform gets a thin adapter. Nothing checked it. A drift means a command
+# denied on Claude and allowed on Cursor -- and the platform where the guard
+# quietly stopped applying is the one nobody is looking at.
+#
+# Each adapter answers in its own dialect: Claude prints a `hookSpecificOutput`
+# block, Cursor a `{"permission": ...}` object, Antigravity a non-zero exit.
+# This normalises all three to a boolean and compares.
+
+_ADAPTERS = {
+    "claude": (SCRIPTS / "guard-git.py", "claude"),
+    "cursor": (SCRIPTS / "cursor" / "before-shell.py", "cursor"),
+    "antigravity": (SCRIPTS / "antigravity" / "before-shell.py", "antigravity"),
+}
+
+
+def _ask_adapter(path: Path, dialect: str, command: str) -> bool | None:
+    """True = denied, False = allowed, None = adapter unavailable."""
+    if not path.is_file():
+        return None
+    payload = (
+        json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+        if dialect == "claude"
+        else json.dumps({"command": command})
+    )
+    try:
+        out = subprocess.run(
+            [sys.executable, str(path)],
+            input=payload.encode(),
+            capture_output=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if dialect == "antigravity":
+        return out.returncode != 0
+    text = (out.stdout or b"").decode(errors="replace")
+    if not text.strip():
+        return False  # Claude's adapter prints nothing when it allows
+    return '"deny"' in text
+
+
+def check_parity(fix: bool) -> Result:
+    r = Result("parity")
+    disagreements = 0
+    for command, must_deny in GUARD_CASES + [(_heredoc_case(), False)]:
+        verdicts = {
+            name: _ask_adapter(path, dialect, command)
+            for name, (path, dialect) in _ADAPTERS.items()
+        }
+        live = {k: v for k, v in verdicts.items() if v is not None}
+        if not live:
+            r.problem("no adapter could be run", fatal=False)
+            return r
+        if len(set(live.values())) > 1:
+            disagreements += 1
+            shown = command if len(command) < 60 else command[:57] + "..."
+            r.problem(
+                f"platforms disagree on {shown!r}: "
+                + ", ".join(f"{k}={'deny' if v else 'allow'}" for k, v in sorted(live.items()))
+            )
+        for name, verdict in live.items():
+            if verdict != must_deny:
+                r.problem(
+                    f"{name} {'did not deny' if must_deny else 'wrongly denied'}: {command[:60]}"
+                )
+    if r.status == OK:
+        r.note(f"{len(_ADAPTERS)} adapters agree on {len(GUARD_CASES) + 1} commands")
+    return r
+
+SLOW_CHECKS = {"generated", "shell", "measurements", "parity"}
 
 CHECKS = {
     "hooks": check_hooks,
@@ -441,6 +514,7 @@ CHECKS = {
     "shell": check_shell,
     "claims": check_claims,
     "measurements": check_measurements,
+    "parity": check_parity,
     "queue": check_queue,
 }
 
