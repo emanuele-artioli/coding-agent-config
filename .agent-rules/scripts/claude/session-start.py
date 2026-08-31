@@ -58,6 +58,29 @@ def _log(payload: dict, lines: list[str]) -> None:
         pass
 
 
+def _verify_lines() -> list[str]:
+    """Report only what is actually broken, and only if checking is cheap.
+
+    `--fast --quiet` drops the checks that spawn processes and prints nothing
+    when everything passes, so a healthy session sees no noise. Failures are
+    surfaced because the two kinds this catches -- a guard wired nowhere, a
+    symlink pointing at a directory this host does not have -- are invisible
+    until the moment they matter, and by then the session has already acted.
+    """
+    try:
+        out = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent.parent / "verify.py"),
+             "--fast", "--quiet"],
+            capture_output=True, text=True, timeout=25,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []  # never let a self-check stop a session starting
+    text = (out.stdout or "").strip()
+    if not text:
+        return []
+    return ["Config check found problems (python3 .agent-rules/scripts/verify.py):", text]
+
+
 def _refresh_host_rules() -> None:
     """Regenerate Claude's split copy of AGENTS.md before the session reads it.
 
@@ -86,11 +109,13 @@ def main() -> int:
         payload = {}
 
     _refresh_host_rules()
+    lines_from_verify = _verify_lines()
 
     cwd = payload.get("cwd")
     cwd_path = Path(cwd) if isinstance(cwd, str) and cwd else None
     lines = messages("claude", cwd=cwd_path)
     lines.extend(resume_messages(cwd_path))
+    lines.extend(lines_from_verify)
     _log(payload, lines)
 
     for line in lines:

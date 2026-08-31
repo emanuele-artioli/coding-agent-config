@@ -195,7 +195,7 @@ blurred clip above a perfect match. Rankings were published on both.
   without the null in the same session: unrelated input, no model, shuffled
   condition.
 - **A "fraction of the oracle/ceiling/headroom" metric has a floor well above
-  zero.** Random selection already captured 0.402 of an oracle here, so 0.833 is
+  zero.** Random selection already captured 0.402 of an oracle here (measured 2026-07-31), so 0.833 is
   not "83% of the way there" — the earned credit is the difference. Compute the
   null (milliseconds, over values you already have) and report it beside the
   number. Pre-registered bounds do not catch this: a band around a mis-scaled
@@ -250,7 +250,7 @@ first** — a session may be paused in one.
 
 ## One PR per independently revertible change
 
-Over-splitting burns the Copilot review budget — measured: it stops analysing
+Over-splitting burns the Copilot review budget — measured 2026-08-31: it stops analysing
 PRs after a few days of heavy splitting. Under-splitting keeps `main` stale and
 leaves parallel sessions rebasing onto old code.
 
