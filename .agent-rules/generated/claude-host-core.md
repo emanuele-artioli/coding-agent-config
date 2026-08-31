@@ -68,36 +68,46 @@ latency on the NFSv4 OPEN, not the network and not server saturation.
   tool reading them. Namespace per checkout
   (`MYPY_CACHE_DIR=/tmp/mypy-$(basename "$PWD")`) or worktrees collide on
   module-name keys.
-- **Home is shared across hosts; local disk is not.** `gpu5` and `gpu6` mount
-  the same home, so a symlink written there resolves on every host — while
-  `/var/tmp` is a different disk on each, and *missing* on any host where
-  nobody created it. Pointing `~/.cursor-server` at `/var/tmp` fixed gpu5 and
-  silently broke gpu6: the editor could not install its server and refused the
-  connection, with nothing in any log to say why. Anything you put on local
-  disk needs creating on every host — `scripts/bootstrap-hostlocal.sh`, run
-  from `~/.bashrc` and `~/.profile`, does that and is the place to add more.
+- **Anything you put on local disk must be created on every host.** Home is one
+  export shared by gpu5, gpu6 and the rest, but `/var/tmp` is local to each
+  machine — so a symlink written into the shared home resolves to a *missing*
+  directory on any host nobody set up. `~/.cursor-server` pointing at
+  `/var/tmp` fixed gpu5 and silently broke gpu6: the editor could not install
+  its server and the connection was refused, with nothing in any log saying why.
+  `scripts/bootstrap-hostlocal.sh` creates them, sourced from **both**
+  `~/.profile` and `~/.bashrc` — login and interactive shells take different
+  paths through those files and an editor's remote install uses the login one.
+- **A login shell runs before every agent shell call, so rc files are hot
+  code.** Sourcing `~/.bashrc` measured **4.6–5.7 s**, nearly all of it two
+  lines: `conda shell.bash hook` spawns a subprocess against an NFS conda
+  (3.2–4.6 s) where sourcing `conda.sh` does the same job in 0.00 s, and
+  `nvm.sh` costs 1.2–1.5 s in shells that never use node. After fixing both,
+  0.7–1.4 s. Also `export PYTHONNOUSERSITE=1`: Python scans
+  `~/.local/lib/python3.*/site-packages` at every start, 1.08 s against 0.01 s.
 - **Keep the editor's own server off NFS too** — `.cursor-server` measured
   58,495 files, 3.4× a whole checkout, so a cold connect spends hours before
   touching any project. `/var/tmp` here is local and not age-cleaned;
   `/local/users/<you>` if an admin grants one. Same for a conda env, worth
   copying only for a run of many short processes.
-- **Keep Python bytecode off NFS.** The agent shell guards are Python and run
-  on every command an agent issues; importing `guardlib` from NFS measured
-  4.43 s, which Cursor saw as a ~5 s delay before *every* call and which can
-  exhaust a hook's failClosed budget. `PYTHONPYCACHEPREFIX` pointing at local
-  disk takes the same import to 0.83 s and copies no source anywhere.
 - **Batch work into long-lived processes**, and open **one worktree** as the
   editor folder, never the parent — that pulls in every sibling worktree plus
   `.conda` (3M inodes) and every dataset.
+- **A path on local disk must be created on every host you use.** `$HOME` is
+  one NFS export shared by gpu5, gpu6 and the rest, but `/var/tmp` is local to
+  each machine — so a symlink written into the shared home resolves somewhere
+  different on every host, and to *nothing* on a host where nobody created the
+  target. Moving `~/.cursor-server` to `/var/tmp` fixed gpu5 and silently broke
+  gpu6, where the editor simply could not install its server and the connection
+  was refused with nothing in any log. `scripts/bootstrap-hostlocal.sh`, sourced
+  from `~/.profile`, creates them on whatever host you land on.
 - **Every agent shell call is a login shell, so `~/.profile` is charged per
-  command.** Anything it sources from NFS taxes every command an agent runs.
-  Measured and fixed here: `conda shell.bash hook` spawns a Python interpreter
-  (1.7–2.0 s) where sourcing `conda.sh` is 0.00 s; `.cargo/env` costs
-  0.34–0.60 s to perform one PATH export; eager `nvm` is ~1 s for a toolchain
-  most sessions never touch. A login shell went from 1.0–4.3 s to 0.34–0.98 s.
-  A login shell reads `~/.profile` and **not** `~/.bashrc` — optimising the
-  wrong one changes nothing, and a ~5 s per-command delay first blamed on the
-  shell guard was mostly the shell.
+  command.** Anything it sources from NFS is a tax on every command an agent
+  runs: `conda shell.bash hook` spawns a Python interpreter (1.7–2.0 s, where
+  sourcing `conda.sh` is 0.00 s), `.cargo/env` is 0.34–0.60 s to do one PATH
+  export, and eager `nvm` is ~1 s for a toolchain most sessions never touch.
+  Fixing those took a login shell from 1.0–4.3 s to 0.34–0.98 s. Note that a
+  login shell reads `~/.profile` and **not** `~/.bashrc`, so optimising the
+  wrong file changes nothing.
 - **A `du`, `find` or `git status` that seems hung is usually neither.** Check
   `wchan` for `nfs_wait_bit_killable`. Contention is often not yours: a
   co-tenant's editor `grep` has sat in `D` state for 13 hours on this mount, and
