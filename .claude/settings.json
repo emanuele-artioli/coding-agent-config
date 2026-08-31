@@ -11,6 +11,20 @@
             "args": [
               "/home/itec/emanuele/.agent-rules/scripts/guard-wait-loop.py"
             ]
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "/home/itec/emanuele/.agent-rules/scripts/guard-git.py"
+            ]
+          },
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "/home/itec/emanuele/.agent-rules/scripts/guard-rm.py"
+            ]
           }
         ]
       },
@@ -70,5 +84,31 @@
   },
   "effortLevel": "medium",
   "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git branch:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git revert:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git reset:*)",
+      "Bash(git stash:*)",
+      "Bash(git tag:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git worktree:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run:*)",
+      "Bash(gh issue:*)"
+    ]
+  }
 }
