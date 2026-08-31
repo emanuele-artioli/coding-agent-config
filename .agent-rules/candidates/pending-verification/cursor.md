@@ -42,3 +42,27 @@ trigger a SessionStart reminder.
   `Task` subagent (vs. only for the interactive chat model picker), and
   whether Composer 2.5 has any tier concept at all — until confirmed, treat
   `effort` here as forward-looking data only.
+- [ ] **Read-before-edit cost of large files (added 2026-08-31 from a Claude session — not verified here).**
+  On Claude Code, `Edit` refuses unless the file was read this conversation and a
+  plain `Read` pulls up to 2000 lines, so appending one line to a 67 KB doc cost
+  ~17k tokens per session, again after each compaction; past ~25k tokens `Read`
+  truncates. Recorded in `harness/claude.md`, deliberately **not** promoted to
+  `AGENTS.md` until this is checked elsewhere. What to confirm here: (a) does
+  this platform's edit tool require a prior read of the file, (b) does a default
+  read pull the whole file, (c) is there a per-call result cap that forces
+  pagination. If all three hold on every platform, promote the rule to
+  `AGENTS.md`; if it is Claude-only, it stays in `harness/claude.md`.
+  Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.
+- [ ] **Irreversible-git guard added to `cursor/before-shell.py` (2026-08-31,
+  from a Claude session — script-level verified, not verified live in Cursor).**
+  `destructive_git.inspect` now runs before the project-config lookup, denying
+  force pushes, remote ref deletion, `push --mirror/--prune`, `reflog expire`,
+  `gc --prune=now` and `git clean -f`; `destructive_git.notes` adds an advisory
+  stderr line when committing straight to `main`. Driven with sample payloads
+  here — `{"command":"git push --force origin main"}` returned
+  `{"permission":"deny"}`, `git push -u origin feature/x` returned `allow`.
+  Confirm live from a Cursor session that the deny surfaces in the UI, that
+  ordinary pushes are unaffected, and that Cursor's own git UI actions (which
+  may not route through `beforeShellExecution`) are not silently exempt — that
+  last one is the real gap to check, since a guard the built-in git panel
+  bypasses is not a boundary.

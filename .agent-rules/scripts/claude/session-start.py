@@ -16,16 +16,22 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
-_SCRIPT = Path(__file__).resolve().parent.parent / "candidate-reminders.py"
+_SCRIPTS = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_SCRIPTS))
+
+_SCRIPT = _SCRIPTS / "candidate-reminders.py"
 _SPEC = importlib.util.spec_from_file_location("candidate_reminders", _SCRIPT)
 _mod = importlib.util.module_from_spec(_SPEC)
 assert _SPEC and _SPEC.loader
 _SPEC.loader.exec_module(_mod)
 messages = _mod.messages
+
+from precompact_stub import resume_messages  # noqa: E402
 
 PROBE_LOG = Path.home() / ".claude" / "session-start.log"
 
@@ -52,6 +58,25 @@ def _log(payload: dict, lines: list[str]) -> None:
         pass
 
 
+def _refresh_host_rules() -> None:
+    """Regenerate Claude's split copy of AGENTS.md before the session reads it.
+
+    `~/.claude/CLAUDE.md` imports a *generated* core, which is the one way this
+    layout could bite: edit AGENTS.md, forget to sync, and every later session
+    quietly reads yesterday's rules. Regenerating here bounds that to a single
+    session. Failures are swallowed on purpose — a rules-formatting problem
+    must never be the reason a session cannot start.
+    """
+    try:
+        subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent.parent / "sync_host_rules.py")],
+            capture_output=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -60,9 +85,12 @@ def main() -> int:
     if not isinstance(payload, dict):
         payload = {}
 
+    _refresh_host_rules()
+
     cwd = payload.get("cwd")
     cwd_path = Path(cwd) if isinstance(cwd, str) and cwd else None
     lines = messages("claude", cwd=cwd_path)
+    lines.extend(resume_messages(cwd_path))
     _log(payload, lines)
 
     for line in lines:

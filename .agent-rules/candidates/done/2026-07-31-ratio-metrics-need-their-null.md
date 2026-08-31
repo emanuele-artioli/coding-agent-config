@@ -4,7 +4,7 @@ created: 2026-07-31
 source_platform: claude
 source_project: /home/itec/emanuele/presley
 axis: project
-status: open
+status: applied
 summary: A "fraction of oracle/ceiling captured" metric has a floor well above zero — quoting it without its random-selection null overstates the method, and pre-registered bounds can miss this
 suggested_action: add to the host-wide experiment-results rule (bound-before-believing section) as a companion to the plausible-range rule
 verify_platforms: []
@@ -56,3 +56,13 @@ headroom captured", where the same question applies.
 Implementation for reference: `tools/analyze_f1_oracle.py` in PRESLEY prints the
 null and the margin per item, and flags any item whose margin is under 0.15 as
 near-chance so it cannot be quoted as a success.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied** to `AGENTS.md`, "Control the instrument, then the result", as a
+bullet before the instrument-range one: a fraction-of-oracle metric has a floor
+well above zero, the 0.402 random-selection null is quoted, the earned credit is
+stated as the difference, and the point that pre-registered bounds do not catch
+this is kept — that is the part that made the mistake repeatable.

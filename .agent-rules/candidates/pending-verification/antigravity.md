@@ -34,3 +34,26 @@ from an Antigravity session after live verification. Hook commands must be
   tools do not expose an `effort` parameter. Effort level is controlled at the
   harness/session level, so `effort` in `effort-models.json` is confirmed as
   informational metadata rather than an invocable tool parameter.
+- [ ] **Read-before-edit cost of large files (added 2026-08-31 from a Claude session — not verified here).**
+  On Claude Code, `Edit` refuses unless the file was read this conversation and a
+  plain `Read` pulls up to 2000 lines, so appending one line to a 67 KB doc cost
+  ~17k tokens per session, again after each compaction; past ~25k tokens `Read`
+  truncates. Recorded in `harness/claude.md`, deliberately **not** promoted to
+  `AGENTS.md` until this is checked elsewhere. What to confirm here: (a) does
+  this platform's edit tool require a prior read of the file, (b) does a default
+  read pull the whole file, (c) is there a per-call result cap that forces
+  pagination. If all three hold on every platform, promote the rule to
+  `AGENTS.md`; if it is Claude-only, it stays in `harness/claude.md`.
+  Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.
+- [ ] **Shell guard `antigravity/before-shell.py` (added 2026-08-31 from a Claude
+  session — not verified here).** New adapter applying the shared `guardlib`
+  shell policies in Antigravity's dialect: denies irreversible git
+  (`destructive_git`), `rm` against protected trees (`destructive_rm`) and
+  hand-rolled wait loops (`wait_loop`); advises on long runs and on committing
+  straight to `main`. Its payload keys and the exit-status contract were
+  inferred from `antigravity/guard-model-family.py`, not observed. Wire with an
+  **absolute** path in `~/.gemini/config/hooks.json` (`python3 <abs-path>`), then
+  confirm live: (a) `git push --force` is denied and the stderr reason is
+  visible, (b) `git push -u origin <branch>` is allowed, (c) `git commit -m "do
+  not push --force"` is allowed — the string must not trigger the guard. Until
+  wired, this hook denies nothing.
