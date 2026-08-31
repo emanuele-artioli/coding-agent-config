@@ -23,7 +23,10 @@
 # Sourced from ~/.bashrc so it runs before an editor tries to install its
 # server. Also runnable directly.
 
-set -u
+# Deliberately no `set -u`/`set -e`: this file is *sourced* from ~/.bashrc, so
+# any shell option it sets leaks into the caller's interactive shell and turns
+# every later unset-variable reference into a fatal error. A bootstrap must
+# not change the shell it is bootstrapping.
 
 HOSTLOCAL_SERVERS="/var/tmp/emanuele-editor-servers"
 HOSTLOCAL_PYCACHE="/var/tmp/emanuele-pycache"
@@ -45,6 +48,11 @@ chmod 700 "$HOSTLOCAL_SERVERS" "$HOSTLOCAL_PYCACHE" 2>/dev/null || true
 # import is 0.83 s. This writes no source anywhere — the scripts stay the single
 # copy in `.agent-rules/`, only their compiled form is local.
 export PYTHONPYCACHEPREFIX="$HOSTLOCAL_PYCACHE"
+
+# Python scans ~/.local/lib/python3.*/site-packages at every start -- 5,068
+# files on NFS, measured 1.08 s against 0.01 s without it. Nothing on this host
+# installs into user site; conda envs and system packages are unaffected.
+export PYTHONNOUSERSITE=1
 
 # Warm it, so the first guarded command of a session is not the one that pays.
 # Backgrounded and silenced: this must never delay or fail a login.
