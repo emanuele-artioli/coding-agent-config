@@ -113,7 +113,8 @@ included — it protects someone else's commits, not the ones it drops), deletin
 a remote branch or tag, `push --mirror/--prune`, `reflog expire`, `gc
 --prune=now`, and `git clean -f` (untracked files were never in git). Those are
 a human's to run. Enforced by `guardlib/destructive_git.py` through each
-harness's shell hook, so the boundary is the same wherever you are working.
+harness's agent shell hook. An editor's git panel talks to git itself and
+is not that hook.
 
 Several agents work these repos at once, and unmerged work has genuinely been
 lost here: a complete HNeRV baseline once sat in a forgotten worktree.
