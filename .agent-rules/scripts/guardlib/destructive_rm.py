@@ -15,6 +15,8 @@ from __future__ import annotations
 import re
 import shlex
 
+from . import shell
+
 SEGMENT_SPLIT = re.compile(r"&&|\|\||[;&|\n]")
 _ENV_ASSIGNMENT = re.compile(r"^\w+=")
 
@@ -50,7 +52,7 @@ def offending_dir(command: str, protected: set[str]) -> str | None:
     if not command or not protected:
         return None
 
-    for segment in SEGMENT_SPLIT.split(command):
+    for segment in SEGMENT_SPLIT.split(shell.strip_heredocs(command)):
         tokens = _command_words(segment)
         # Skip leading env-assignments and sudo to find the real command word.
         i = 0

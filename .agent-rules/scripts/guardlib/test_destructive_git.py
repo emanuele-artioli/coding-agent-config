@@ -83,6 +83,35 @@ def test_recoverable_is_allowed(command):
     assert g.inspect(command) is None, command
 
 
+HEREDOC_BODY = "\n".join([
+    "cat > doc.md <<'EOF'",
+    "git push " + "--force origin main",
+    "git clean -fd",
+    "EOF",
+])
+
+
+def test_heredoc_body_is_data_not_commands():
+    """Writing documentation about a forbidden operation must not trip the guard.
+
+    This is the regression that motivated `guardlib/shell.py`: the prompt files
+    describing this very policy could not be written, because their heredoc
+    bodies quote the commands they warn about.
+    """
+    assert g.inspect(HEREDOC_BODY) is None
+
+
+def test_a_real_command_after_a_heredoc_is_still_caught():
+    tail = HEREDOC_BODY + "\ngit push " + "--force origin main"
+    assert g.inspect(tail) is not None
+
+
+def test_unterminated_heredoc_is_still_inspected():
+    """A heredoc that never closes must not become a way to hide a command."""
+    opened = "cat > doc.md <<'EOF'\ngit push " + "--force origin main"
+    assert g.inspect(opened) is not None
+
+
 def test_reason_names_the_operation_and_the_way_out():
     reason = g.inspect("git push --force origin main")
     assert "force push" in reason
