@@ -14,6 +14,14 @@
 !/.agent-rules
 !/.agent-rules/**
 
+# CI. This .gitignore is an allowlist -- `/*` ignores everything at the repo
+# root -- so a new tracked directory has to be named here or it silently does
+# not commit, which is exactly what happened the first time this workflow was
+# added: `git add` reported it ignored, the commit succeeded without it, and CI
+# would have looked simply absent rather than broken.
+!/.github
+!/.github/**
+
 # Host rules for a Cursor session opened on this directory. A relative symlink
 # to .agent-rules/AGENTS.md, so it survives a clone; the absolute-path farm
 # (~/.gemini/AGENTS.md, ~/.codex/AGENTS.md) is the installer's job, not git's.

@@ -1,0 +1,48 @@
+name: verify
+
+# The repo had no CI, which is part of why "written but not wired" kept
+# happening: nothing outside a session ever re-ran anything.
+#
+# What can and cannot run here matters. CI is not this host: there is no NFS
+# mount, no ~/.cursor, no ~/.gemini, no /var/tmp/emanuele-*. So the checks that
+# assert *this host's* live state (hooks, hostlocal, shell, measurements) are
+# meaningless on a runner and would fail for the wrong reason. What CI can do
+# is guard the parts that are pure logic — the guard policies, their agreement
+# across the three harness adapters, and whether generated files still match
+# the AGENTS.md they derive from. Those are exactly the parts a pull request
+# can break, and the host-state checks are covered at SessionStart instead.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Guard policies decide correctly
+        run: python3 .agent-rules/scripts/verify.py --only guards
+
+      - name: All three harness adapters agree
+        # The design claim is one policy, three thin adapters. A drift means a
+        # command denied on one platform and allowed on another, and the
+        # platform where the guard quietly stopped applying is the one nobody
+        # is looking at.
+        run: python3 .agent-rules/scripts/verify.py --only parity
+
+      - name: Generated rule files match AGENTS.md
+        run: python3 .agent-rules/scripts/sync_host_rules.py --check
+
+      - name: Measured claims carry a date
+        run: python3 .agent-rules/scripts/verify.py --only claims
+
+      - name: Guard unit tests
+        run: |
+          python3 -m pip install --quiet pytest
+          python3 -m pytest .agent-rules/scripts/guardlib -q
