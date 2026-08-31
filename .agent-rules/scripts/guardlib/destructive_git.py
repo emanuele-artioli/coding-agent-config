@@ -33,6 +33,8 @@ from __future__ import annotations
 import re
 import shlex
 
+from . import shell
+
 SEGMENT_SPLIT = re.compile(r"&&|\|\||[;&|\n]")
 _ENV_ASSIGNMENT = re.compile(r"^\w+=")
 
@@ -58,7 +60,7 @@ def _simple_commands(command: str) -> list[list[str]]:
     not mistaken for the operation it names.
     """
     out: list[list[str]] = []
-    for segment in SEGMENT_SPLIT.split(command):
+    for segment in SEGMENT_SPLIT.split(shell.strip_heredocs(command)):
         try:
             tokens = shlex.split(segment)
         except ValueError:
