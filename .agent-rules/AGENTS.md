@@ -84,6 +84,15 @@ latency on the NFSv4 OPEN, not the network and not server saturation.
 - **Batch work into long-lived processes**, and open **one worktree** as the
   editor folder, never the parent — that pulls in every sibling worktree plus
   `.conda` (3M inodes) and every dataset.
+- **Every agent shell call is a login shell, so `~/.profile` is charged per
+  command.** Anything it sources from NFS taxes every command an agent runs.
+  Measured and fixed here: `conda shell.bash hook` spawns a Python interpreter
+  (1.7–2.0 s) where sourcing `conda.sh` is 0.00 s; `.cargo/env` costs
+  0.34–0.60 s to perform one PATH export; eager `nvm` is ~1 s for a toolchain
+  most sessions never touch. A login shell went from 1.0–4.3 s to 0.34–0.98 s.
+  A login shell reads `~/.profile` and **not** `~/.bashrc` — optimising the
+  wrong one changes nothing, and a ~5 s per-command delay first blamed on the
+  shell guard was mostly the shell.
 - **A `du`, `find` or `git status` that seems hung is usually neither.** Check
   `wchan` for `nfs_wait_bit_killable`. Contention is often not yours: a
   co-tenant's editor `grep` has sat in `D` state for 13 hours on this mount, and
