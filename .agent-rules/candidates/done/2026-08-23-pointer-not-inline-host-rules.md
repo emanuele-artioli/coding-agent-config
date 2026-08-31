@@ -4,7 +4,7 @@ created: 2026-08-23
 source_platform: cursor
 source_project: /home/itec/emanuele/pointstream
 axis: platform
-status: open
+status: applied
 summary: Stop inlining host AGENTS.md into projects; point at the host file instead
 suggested_action: change sync_agent_rules.py to stop writing the host-rules block; replace generated cursor-harness.mdc with a pointer; drop ~/CLAUDE.md from the farm; migrate remaining projects
 verify_platforms: [cursor, claude]
@@ -83,3 +83,40 @@ docstring gives a real reason for the inlining — Copilot's and Cursor's cloud
 agents run on machines that never see this home directory. `AGENTS.md` accepts
 that gap for local GPU-server work, so the migration is consistent with the host
 rules; it should just be an explicit decision in the commit, not a silent one.
+
+---
+
+## Resolution — 2026-08-31
+
+**Applied.** Every box is closed.
+
+- `scripts/sync_agent_rules.py` now emits a **pointer** in place of both copies:
+  the `host-rules` block names and `@`-imports `~/.agent-rules/AGENTS.md`, and
+  `cursor-harness.mdc` names the host rules plus `harness/cursor.md`. The block
+  went from 154 lines of duplicated prose to 20 lines of pointer.
+- `~/CLAUDE.md` does not exist and `install.py` does not create one.
+- README: the inlining section is rewritten as retired, with the reason and the
+  accepted cost stated where someone tempted to undo it will read them.
+- presley, TIGAS and 4DGStudy migrated and merged. moq3dgs has no `AGENTS.md`,
+  so there was nothing to migrate; pointstream was already on this layout.
+- `vendor-sync-agent-rules.sh` needed no change: its guard checks that a
+  project's `CLAUDE.md` imports `AGENTS.md` — the direction of the layout, not
+  the presence of a host block — and that remains correct.
+
+**What finally forced it.** The candidate argued from cleanliness: a copy is a
+second source of truth pretending not to be one. That was right but easy to
+defer for five weeks. What settled it was the copy failing in the way the
+argument predicted — on 2026-08-31 a host `AGENTS.md` rewrite left presley,
+TIGAS and 4DGStudy telling their agents *"never destroy work you have not
+read"* while the host had replaced that with a policy giving agents autonomy
+over anything revertible. Three projects were instructing their agents to
+contradict the host, and the stale block read perfectly plausibly.
+
+**The tradeoff was decided, not drifted into.** The copy existed for readers
+that cannot see this home directory — Copilot's and Cursor's cloud agents, and
+CI runners. They now get a path they cannot follow, which is a real loss.
+`AGENTS.md` already accepts it ("Cloud agents on other machines will not see
+it; accepted"), because these rules describe a shared GPU server that cloud
+agents are not working on. Both the generator's docstring and the README now
+say: do not bring a copy back "just for cloud" without changing that decision
+in the host file first. That is the door this whole failure came through.
