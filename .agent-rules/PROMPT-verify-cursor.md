@@ -132,3 +132,77 @@ rule that every session loads costs more than a missing one.
 
 Work on a branch and commit and push without asking; the git rule above says
 what is off-limits.
+
+# Response from Cursor
+
+The Cursor half of the 2026-08-31 host changes is closed for the rows this session actually ran. PR: https://github.com/emanuele-artioli/coding-agent-config/pull/4
+
+This folder is `.agent-rules`, not PointStream or TIGAS. Numbers below are from that.
+
+## Part 1 — is the host fast now?
+
+**Connect.** Newest log dir is `20260831T153647`. For the extension host that opened this folder: agent started 15:37:53.947, eager extensions at 15:37:57.406 (3.5 s), last activation (`anysphere.cursor-agent-exec`) at 15:38:02.179. **8.2 s**, not minutes. The earlier ~20 s figure from 13:05 still looks right for a cold connect.
+
+**Extensions.** Disk and `extensions.json` agree, all six present. That is the bug from this morning (empty manifest, full directory) closed:
+
+| id | on disk | activated this session |
+|---|---|---|
+| `ms-python.python` | yes | 15:48:54, 379 ms (`onLanguage:python`) |
+| `anysphere.cursorpyright` | yes | 15:48:54, 69 ms |
+| `ms-python.debugpy` | yes | 15:48:56, 52 ms |
+| `anthropic.claude-code` | yes | 15:38:00, 2.8 s |
+| `github.vscode-github-actions` | yes | not activated (no workflow files here) |
+| `iamhyc.overleaf-workshop` | yes | not activated (no tex here) |
+
+I cannot open the Extensions panel from this agent. What I have is the manifest, the directories, and successful activations in `remoteexthost.log`.
+
+**Indexing.** Finished immediately: `Not creating an indexing watcher: this workspace does not require one.` Cursor also logged no `.git` under `.agent-rules` (the git root is the home directory). I did not open PointStream, so I have no 7-minute measurement for that tree.
+
+**NFS remeasure** (TIGAS, 100 files). Ayman’s 13-hour `grep` is gone. Load now is ayman’s `pt_data_worker` threads, mitraba’s `MainThread`, and our own `npm`, all briefly in `D`. Did not kill any of them.
+
+| how | this session | 2026-08-31 morning |
+|---|---|---|
+| serial `open()` | **2.0/s** (50.4 s) | 1.7–4.3/s |
+| `xargs -P 24` | **51.4/s** (1.9 s) | 23.3/s |
+| local `/tmp` | 42,539/s | 15,774/s |
+
+Parallel is still much faster (about 26× here). The `AGENTS.md` parallelism rule stays.
+
+Every Shell call still costs ~5 s before the command runs: `before-shell.py` lives on NFS (5.1 s to start, 2.4 s of that is importing `guardlib`). That is the hook, not the editor server.
+
+## Part 2 — git guard, live
+
+`beforeShellExecution` is loaded and firing. Denies showed in the UI as `Blocked a git operation that cannot be undone.` The adapter JSON names the operation.
+
+**Denied:** `git push --force`, `git push --force-with-lease`, `git push --delete origin leftover-branch`, `git clean -fd`.
+
+**Allowed**, in a `/tmp` repo, no prompt: `git commit`, `git push -u origin feature-x`, `git merge --ff-only`, `git reset --hard HEAD~1`, `git branch -D`.
+
+**The three trouble cases:**
+- Commit message that names a force push: allowed.
+- Heredoc whose body quotes `git push --force` / `git clean -fd`: allowed. The `guardlib/shell.py` fix holds here.
+- Same heredoc, then a real `git push --force` on the next line: denied. The fix did not go too far.
+
+**Source Control panel.** I cannot click Force Push in the UI. `vscode.git` in this session called `/usr/bin/git` itself (`Git.log`: `git rev-parse --show-toplevel`). That path is not `beforeShellExecution`. The guard is a boundary for agent shell commands only. `AGENTS.md` said the boundary was the same wherever you are working; that overstated it, and is corrected.
+
+**Advisory.** `git commit` on `main` in the `/tmp` repo succeeded. Driving the adapter with that checkout printed `git branch check: 'commit' on 'main': …` on stderr and still returned `allow`. I cannot see Cursor’s Hooks output channel from here.
+
+**Fix landed because it had to.** `_current_branch` was spawning `git rev-parse` on every shell call. This workspace has no `.git`, so that walk goes into the home repo and can sit in NFS `D` state long enough that Cursor’s 15 s `failClosed` budget kills the hook, and then every command is blocked. It now runs only for commit/push, times out in 1 s, and cannot failClosed the hook.
+
+## Part 3 — rules delivery
+
+The research-code-tests rule I am following is this, from `AGENTS.md` only:
+
+> Cover envisioned behavior and plausible misuse of code we own. Skip unreachable branches, third-party behavior, and errors a caller cannot produce — this is research code and boilerplate slows the iteration that matters. **A test that exists only to raise a coverage number is a defect**: it makes the gate lie.
+
+One source, not two. Always-applied rules were host `AGENTS.md` twice (workspace file + `~/AGENTS.md`, same bytes). I did not receive `~/.claude/rules/host-research-code-tests-are-a-failsafe-not-a-formality.md`. The `<!-- scope: … -->` comments are HTML comments; they did not change the rule.
+
+This workspace has no `.cursor/rules/cursor-harness.mdc`. TIGAS still has the generated copy (`alwaysApply: true`). Pointstream uses `host.mdc` pointers.
+
+## Pending-verification
+
+Ticked, with how: **tiered rule delivery**, **irreversible-git guard**.
+
+Left unticked, with why: **effort-settability** (no `Task` spawn with an `effort` parameter), **read-before-edit cost** (a 573-line `Read` returned the whole file and `StrReplace` worked after it; did not test edit-without-read or a token cap).
+
+No CI on `coding-agent-config`. Branch is `verify/cursor-host-2026-08-31` from a worktree at `/var/tmp/coding-agent-config-cursor` so the Antigravity session on the home checkout keeps its HEAD. That session will still see these four files as dirty in the live tree, because the hook has to load them from `~/.agent-rules`.

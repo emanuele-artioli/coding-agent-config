@@ -12,6 +12,9 @@ import time
 from pathlib import Path
 from typing import Any
 
+STATE_DIR = Path(__file__).resolve().parent.parent / "var"
+STATE_PATH = STATE_DIR / "context-nudge-state.json"
+
 # Soft / medium thresholds on agent stop count (proxy for context fill).
 SOFT_STOPS = 12
 MEDIUM_STOPS = 20
@@ -23,9 +26,6 @@ TASK_CHANGE = re.compile(
     r"different (?:task|topic)|instead\b|forget (?:that|the previous)"
     r")\b"
 )
-
-STATE_DIR = Path(__file__).resolve().parent.parent / "var"
-STATE_PATH = STATE_DIR / "context-nudge-state.json"
 
 MSG_SOFT = (
     "Warm session + possible new task — context may already be stale. "
@@ -152,8 +152,22 @@ def medium_aging_message(payload: dict) -> str | None:
 
 
 def strong_precompact_message(payload: dict) -> str:
+    """Strong nudge plus a resume-stub path the agent can fill before compact."""
+    from precompact_stub import write_stub  # local import: avoid cycle with tests
+
     _mark_nudge(payload, "strong")
     fill = fill_percent(payload)
+    base = MSG_STRONG
     if fill is not None:
-        return f"{MSG_STRONG} (context_usage_percent={fill:.0f})"
-    return MSG_STRONG
+        base = f"{MSG_STRONG} (context_usage_percent={fill:.0f})"
+
+    stub = write_stub(conversation_id(payload))
+    if stub is None:
+        return (
+            f"{base} Fill a `HANDOFF.md` now if you can; after compact, resume "
+            "from that file rather than auto-summary alone."
+        )
+    return (
+        f"{base} Resume stub (empty template — fill it, or write `HANDOFF.md`): "
+        f"{stub}. After compact, read that file first before re-exploring."
+    )

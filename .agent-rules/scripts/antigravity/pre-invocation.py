@@ -59,7 +59,6 @@ def main() -> int:
 
     for line in lines:
         print(line, file=sys.stderr)
-        print(line)
     return 0
 
 

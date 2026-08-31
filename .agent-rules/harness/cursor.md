@@ -15,13 +15,14 @@ Pointstream is on this layout; other projects may still have a generated
 `../candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md`
 lands.
 
-## Shell calls on this host are expensive — prefer the file tools
+## Shell calls still pay a per-call tax — prefer the file tools
 
-Observed 2026-07-25: three unrelated `Shell` calls (`ls -la` on five
-directories, `git ls-files`, a `mv` plus two `ln -s`) each took 480–500 s.
-The near-identical timings point at fixed per-call overhead rather than the
-work itself, but the cause has **not** been diagnosed — treat the cost as
-real and unexplained rather than assuming a slow command.
+Observed 2026-07-25: three unrelated `Shell` calls each took 480–500 s.
+That was the editor server on NFS. After moving it to `/var/tmp`, a
+no-op `echo` from this session (2026-08-31) returned in ~5 s, of which
+5.1 s was `before-shell.py` starting on NFS (guardlib import 2.4 s).
+Ten one-liners are about a minute of hook overhead, not an hour. File
+tools still win for anything that is just a read or an edit.
 
 Consequences worth internalising:
 
@@ -29,11 +30,10 @@ Consequences worth internalising:
   `find`, and `rg`. They are fast here and are the documented preference
   anyway.
 - Use `StrReplace`/`Write` instead of `sed`/`awk`/heredocs.
-- When shell is genuinely required (git, conda, running a job), **batch every
-  command into a single call** chained with `&&`. Ten one-liners is over an
-  hour of wall clock.
-- Budget `block_until_ms` accordingly: a call that "should" take two seconds
-  can still need minutes before it returns.
+- When shell is genuinely required (git, conda, running a job), **batch
+  every command into a single call** chained with `&&`.
+- Budget `block_until_ms` accordingly: a call that "should" take two
+  seconds still needs ~5 s of hook tax plus the work itself.
 
 ## Waiting for long-running commands — never hand-roll a waiter
 
@@ -159,7 +159,10 @@ workflow should also auto-trigger from a description match.
   `beforeShellExecution`; live 2026-07-28 it is **not** implemented for
   `preToolUse` / `subagentStart` (Cursor errors — use allow/deny only there).
   Verified payload fields for `beforeShellExecution`: top-level `command`,
-  empty `cwd`, project root in `workspace_roots`.
+  empty `cwd`, project root in `workspace_roots`. Live 2026-08-31: this hook
+  is the agent Shell tool only. `vscode.git` called `/usr/bin/git` itself
+  (Git.log); a force push from the Source Control panel would not hit it.
+  The irreversible-git guard is a boundary for agent shell commands.
 - `~/.cursor/skills-cursor/` is Cursor's own managed directory. Never edit or
   vendor anything into it.
 
