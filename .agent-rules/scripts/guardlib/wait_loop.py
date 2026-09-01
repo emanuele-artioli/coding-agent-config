@@ -15,11 +15,21 @@ Narrow by construction — a denial needs all three of a loop keyword, a
 process-liveness check, and a sleep in the body. A bare `pgrep`, a bare
 `sleep`, or a polling loop over something other than process liveness (a file,
 an HTTP endpoint, a CI run) passes.
+
+Heredoc bodies are stripped first, as in `destructive_git` and
+`destructive_rm`: a loop written *about* rather than run — in a PR body, a
+rule file, this docstring — is prose, not a command. Missing that call is
+what blocked a `gh pr create` whose `--body` text quoted the pattern
+(2026-09-01). The accepted cost is the one the other two policies already
+take: a real waiter piped into `bash <<EOF` is not caught. Deliberate —
+see `shell.strip_heredocs`.
 """
 
 from __future__ import annotations
 
 import re
+
+from . import shell
 
 LOOP = re.compile(r"\b(until|while)\b")
 SLEEP = re.compile(r"\bsleep\s+[\d.]+")
@@ -76,6 +86,7 @@ def inspect(command: str, dialect: str = "claude") -> str | None:
     """Return a deny reason if `command` is a hand-rolled waiter, else None."""
     if not command:
         return None
-    if LOOP.search(command) and PROBE.search(command) and SLEEP.search(command):
+    code = shell.strip_heredocs(command)
+    if LOOP.search(code) and PROBE.search(code) and SLEEP.search(code):
         return reason(dialect)
     return None
