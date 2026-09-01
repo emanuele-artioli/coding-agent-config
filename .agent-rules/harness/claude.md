@@ -150,8 +150,12 @@ off-tier pick still goes through once you confirm. See
   `"command": "/usr/bin/env"` plus `args` therefore runs bare `env` inside
   Cursor, dumps the environment to stdout, and Cursor fail-closes every
   Shell call (`Hook "/usr/bin/env" returned invalid JSON`, live 2026-09-01).
-  Keep `command` as one string: `/usr/bin/python3 /path/script.py`. Set
-  `PYTHONPYCACHEPREFIX` inside the script, not via `env`+`args`.
+  Keep `command` as one string: `/usr/bin/python3 /path/script.py`. To keep
+  bytecode off NFS from inside the script, assign `sys.pycache_prefix` before
+  the first project import — writing `os.environ["PYTHONPYCACHEPREFIX"]` there
+  is a no-op, because the interpreter reads that variable at startup, before
+  any line of the script runs (measured 2026-09-01: the `.pyc` still landed
+  next to the source).
 - `end-of-session` commits on invoke and asks before push; handoff is a
   conditional step or a standalone skill.
 - Prefer handoff before auto-compact; do not wait for full context.

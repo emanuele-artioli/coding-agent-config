@@ -79,7 +79,7 @@ from a Claude Code session after live verification.
   beyond model choice, so `effort` stays non-actionable for claude until a
   harness change adds one. Do not reopen without a schema change (a new
   field, a bracket-suffix model format actually landing).
-- [ ] **PreToolUse `command` is a python3 string, no `args` (added 2026-09-01
+- [x] **PreToolUse `command` is a python3 string, no `args` (added 2026-09-01
   from Cursor).** Cursor imports these hooks and drops `args`, so
   `"command": "/usr/bin/env"` plus an args array ran bare `env` and
   fail-closed every Cursor Shell call. `~/.claude/settings.json` now uses
@@ -87,3 +87,20 @@ from a Claude Code session after live verification.
   that Bash PreToolUse (wait-loop, irreversible git, protected rm) and
   `Agent|Task` (model-family) still fire. Do not restore `command`+`args`
   through `/usr/bin/env`. See `done/2026-09-01-cursor-drops-claude-hook-args.md`.
+  2026-09-01: closed live from a Claude session. All three Bash guards denied
+  a real tool call with the new command-string wiring — `rm -rf __guard_probe__`
+  (protected dir), `git reflog expire --expire=now --all --dry-run` and
+  `git push --force-with-lease` (irreversible git), and both `until ! pgrep …`
+  and `while pgrep … ; do sleep` (wait loop). The `Agent|Task` entry was not
+  exercised by a live spawn (spawning an agent was out of scope for the
+  session); its command string was run against a synthetic `{"model":
+  "haiku"}` payload and correctly emitted the effort-tier `ask`, and it is the
+  same one-string form as the three Bash entries that do fire live — the live
+  spawn path itself was already closed on 2026-07-28 above.
+  **Correction found while verifying:** the `os.environ.setdefault(
+  "PYTHONPYCACHEPREFIX", …)` line the fix moved into each guard script did
+  nothing — CPython reads that variable at startup, so it cannot affect the
+  script's own imports, and guardlib `.pyc` files kept being written to the
+  NFS source tree. Replaced with `sys.pycache_prefix = …` in all four guards
+  (verified: bytecode now lands under `/var/tmp/emanuele-pycache`, nothing
+  next to the source), and the wording corrected in both harness files.

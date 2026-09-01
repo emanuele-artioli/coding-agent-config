@@ -24,7 +24,12 @@ Not claimed verified on Claude.
   shape.
 - `scripts/guard-{wait-loop,git,rm,model-family}.py`:
   `os.environ.setdefault("PYTHONPYCACHEPREFIX", "/var/tmp/emanuele-pycache")`
-  before importing guardlib.
+  before importing guardlib. **Corrected 2026-09-01 from Claude:** that line
+  was a no-op — CPython reads `PYTHONPYCACHEPREFIX` at interpreter startup,
+  so setting it from inside the script cannot affect that script's own
+  imports, and guardlib bytecode kept being written to the NFS source tree.
+  Replaced with a direct `sys.pycache_prefix = ...` assignment, which does
+  apply to later imports (verified both ways with a throwaway package).
 - Live Cursor: `echo ping` returned, `/tmp` commit allowed, standalone
   `git push --force` denied. Did **not** put this in `AGENTS.md`; it is a
   Cursor-import quirk, not a host-wide rule.

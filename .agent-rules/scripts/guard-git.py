@@ -27,7 +27,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-os.environ.setdefault("PYTHONPYCACHEPREFIX", "/var/tmp/emanuele-pycache")
+# Keep bytecode off NFS. Setting the env var here would be a no-op -- the
+# interpreter reads PYTHONPYCACHEPREFIX at startup, before this line runs --
+# so assign sys.pycache_prefix directly, which does apply to imports below.
+sys.pycache_prefix = os.environ.get("PYTHONPYCACHEPREFIX") or "/var/tmp/emanuele-pycache"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
