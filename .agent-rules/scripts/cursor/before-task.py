@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """preToolUse (Task) / subagentStart hook (Cursor dialect): model-family gate.
 
 Thin adapter over `guardlib/model_family.py`. Keeps Task / subagent spawns on

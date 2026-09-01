@@ -161,8 +161,31 @@ workflow should also auto-trigger from a description match.
   Verified payload fields for `beforeShellExecution`: top-level `command`,
   empty `cwd`, project root in `workspace_roots`. Live 2026-08-31: this hook
   is the agent Shell tool only. `vscode.git` called `/usr/bin/git` itself
-  (Git.log); a force push from the Source Control panel would not hit it.
+  (Git.log); `git.pushForce` is that extension's command, not this hook.
+  Default `git.allowForcePush` is false, so Force Push is hidden until a
+  human enables it. Opening this folder, vscode.git finds a **parent**
+  repo at `/home/itec/emanuele`; `git status` there over NFS is why the
+  Source Control panel hangs. Workspace setting
+  `git.openRepositoryInParentFolders: never` (`.vscode/settings.json`)
+  stops that. `Read` of a file over 100,000 characters is refused and
+  must be paginated with `offset`/`limit`; there is no must-read-before-edit
+  rule and no 2000-line default page (unlike Claude Code).
   The irreversible-git guard is a boundary for agent shell commands.
+  Commit, push, merge, rebase, `reset --hard` are allowed by that guard
+  (live 2026-08-31 and again 2026-09-01). A standalone `git push --force`
+  is denied with "Blocked a git operation that cannot be undone."
+  Cursor also loads Claude Code hooks from `~/.claude/settings.json` when
+  third-party skills are on. Claude's PreToolUse entries used
+  `"command": "/usr/bin/env"` plus an `args` array. Cursor takes `command`
+  and drops `args`, so it ran bare `env`, which dumps the environment to
+  stdout. That is not JSON, and Cursor fail-closes the action as
+  `Hook "/usr/bin/env" returned invalid JSON`. That blocked every Shell
+  call, including `echo` and `git commit`, and it is not the git guard.
+  Claude's `command` must be a single string Cursor can exec
+  (`/usr/bin/python3 /path/script.py`). Do not use `command`+`args` with
+  `/usr/bin/env` to set `PYTHONPYCACHEPREFIX`; set that inside the script.
+  `beforeShellExecution` timeout is 45s for NFS. Scripts use
+  `#!/usr/bin/python3`. The Source Control panel bypasses this hook.
 - `~/.cursor/skills-cursor/` is Cursor's own managed directory. Never edit or
   vendor anything into it.
 

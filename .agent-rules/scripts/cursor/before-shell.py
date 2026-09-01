@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """beforeShellExecution hook (Cursor dialect): the host's shell guards.
 
 Thin adapter. Every rule it enforces lives in `../guardlib/`, shared with the
@@ -187,4 +187,15 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as exc:
+        # Never failClosed a Shell call because the adapter crashed.
+        # The git policy is recoverability of the *command*; a sick
+        # checker must not block commit/push/merge.
+        print(
+            f"cursor/before-shell.py: uncaught {exc!r} -- allowing",
+            file=sys.stderr,
+        )
+        _respond("allow")
+        sys.exit(0)

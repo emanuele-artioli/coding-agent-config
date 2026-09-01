@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Cursor preCompact adapter — strong handoff / end-of-session nudge."""
 
 from __future__ import annotations

@@ -31,28 +31,29 @@ trigger a SessionStart reminder.
   'allow' or 'deny' instead." So ask is **not** available on this hook yet
   (unlike `beforeShellExecution`); stay allow + log until Cursor implements
   it. Do not reopen unless that error goes away.
-- [ ] **Effort-settability for subagents (added 2026-07-28 from a Claude
-  session — not verified here).** Skipped 2026-08-31: this session did not
-  spawn a `Task` with an `effort` parameter. `effort-models.json` carries an
-  `effort` field on Cursor's medium/high (Grok 4.5) tiers, marked
-  `verified: false`. Confirm whether Cursor/Grok exposes an effort parameter
-  for a spawned `Task` subagent (vs. only for the interactive chat model
-  picker), and whether Composer 2.5 has any tier concept at all — until
-  confirmed, treat `effort` here as forward-looking data only.
-- [ ] **Read-before-edit cost of large files (added 2026-08-31 from a Claude session — not verified here).**
-  Skipped 2026-08-31 as a close: a default `Read` of a 573-line file returned
-  the whole file, and `StrReplace` worked after that read. Did not test
-  `StrReplace` without a prior read, and did not hit a per-call token cap.
-  Not enough to promote or dismiss. On Claude Code, `Edit` refuses unless
-  the file was read this conversation and a plain `Read` pulls up to 2000
-  lines, so appending one line to a 67 KB doc cost ~17k tokens per session,
-  again after each compaction; past ~25k tokens `Read` truncates. Recorded
-  in `harness/claude.md`, deliberately **not** promoted to `AGENTS.md` until
-  this is checked elsewhere. What to confirm here: (a) does this platform's
-  edit tool require a prior read of the file, (b) does a default read pull
-  the whole file, (c) is there a per-call result cap that forces pagination.
-  If all three hold on every platform, promote the rule to `AGENTS.md`; if
-  it is Claude-only, it stays in `harness/claude.md`.
+- [x] **Effort-settability for subagents (added 2026-07-28, closed 2026-09-01).**
+  Cursor's `Task` tool schema in this session has `model` and no `effort`
+  field. Live `subagentStart` payloads (2026-08-26 log and this session)
+  have keys `model` / `subagent_model` and never `effort`. Composer 2.5
+  (the low-tier mapping) has no effort key in `effort-models.json` and no
+  tier concept in the spawn API. The `-high` / `-medium` suffix on live
+  slugs (`cursor-grok-4.5-high`) is part of the **model name**, not a
+  separate parameter.   Treat `effort` in `effort-models.json` as unused on
+  Cursor; pick the mapped `model` only. A live inherit Task spawn on
+  2026-09-01 completed after the Claude `/usr/bin/env` import was fixed
+  (see the next item). The earlier failClosed that day was that import,
+  not a missing `effort` field.
+- [x] **Read-before-edit cost of large files (added 2026-08-31, closed 2026-09-01).**
+  Cursor is **not** Claude here, so do not promote that rule to `AGENTS.md`.
+  (a) `StrReplace` on `projects.json` with no prior `Read` this conversation
+  did **not** refuse for lack of a read; it searched the file and returned
+  "string to replace was not found." (b) A default `Read` of a 508-line
+  file (`CONCEPTS.md`) returned the whole file; so did 35-line and 573-line
+  files. There is no 2000-line default page. (c) There **is** a per-call
+  cap: `Read` of vscode.git `dist/main.js` (453,563 characters) failed with
+  "exceeds maximum allowed characters (100000)" and asked for `offset` /
+  `limit`. Cost exists for huge files, but the Claude coupling (must-read
+  before edit + 2000-line default) does not. Stays in `harness/claude.md`.
   Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.
 - [x] **Irreversible-git guard added to `cursor/before-shell.py` (2026-08-31,
   live in Cursor).** `beforeShellExecution` denied `git push --force`,
@@ -68,8 +69,34 @@ trigger a SessionStart reminder.
   branch-discipline note. Did **not** click Force Push in the Source
   Control panel (no UI from this agent). `vscode.git` in this session
   invoked `/usr/bin/git` itself (Git.log: `git rev-parse --show-toplevel`),
-  so that panel is not on `beforeShellExecution`. `AGENTS.md` had said
+  so that panel is not on `beforeShellExecution`. Closed 2026-09-01 without
+  a UI click: vscode.git contributes `git.pushForce` as its own command
+  (`enablement`: `config.git.allowForcePush`, default **false**) and this
+  session's Git.log already showed it invoking `/usr/bin/git` itself. A
+  throwaway branch cannot put that path onto `beforeShellExecution`. The
+  Source Control panel hanging on this workspace is the parent git repo at
+  `/home/itec/emanuele` (Git.log: `parent repositories (1)`); opening it
+  runs `git status` on the home tree over NFS. `.vscode/settings.json` now
+  sets `git.openRepositoryInParentFolders` to `never`. `AGENTS.md` had said
   the boundary is the same wherever you are working; that overstated it
   and is corrected. Also fixed live: `_current_branch` was spawning
   `git rev-parse` on every shell call and could failClosed the hook when
   that hung on NFS; it now runs only for commit/push and cannot failClosed.
+- [x] **Cursor importing Claude `command`+`args` as `/usr/bin/env` (closed
+  2026-09-01).** After reload, every Shell call (including `echo ping` and
+  `git commit`) still failed with `Hook "/usr/bin/env" returned invalid
+  JSON`. That was not `before-shell.py` and not the git guard. Cursor was
+  loading `~/.claude/settings.json` PreToolUse entries whose `command` was
+  `/usr/bin/env` with `args` setting `PYTHONPYCACHEPREFIX` and invoking
+  `python3`. Cursor drops `args`, so it ran bare `env` (which prints the
+  environment, not JSON) and fail-closed the action. Emptying
+  `beforeShellExecution` in `~/.cursor/hooks.json` did not help, which is
+  how this was distinguished from the Cursor-native adapter. Fix: Claude
+  `command` is now `/usr/bin/python3 /path/script.py`; the pycache prefix
+  is set inside the four `guard-*.py` scripts. After that, `echo ping`
+  returned, a `/tmp` `git commit` whose message named a force-push
+  succeeded, and a standalone `git push --force` was denied with
+  "Blocked a git operation that cannot be undone." An inherit `Task` spawn
+  completed. `failClosed` on the Cursor-native hooks is `true` again.
+  Candidate: `done/2026-09-01-cursor-drops-claude-hook-args.md`
+  (`needs_verification` on Claude).
