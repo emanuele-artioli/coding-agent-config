@@ -18,13 +18,19 @@ Not claimed verified on Claude.
 
 - `harness/claude.md` and `harness/cursor.md`: do not wire Claude
   PreToolUse as `"command": "/usr/bin/env"` plus `args`. Use one string,
-  `/usr/bin/python3 /path/script.py`. Set `PYTHONPYCACHEPREFIX` inside
-  the script.
+  `/usr/bin/python3 /path/script.py`. Set the bytecode-cache location from
+  inside the script (see the correction below for the mechanism that
+  actually works — both files now say `sys.pycache_prefix`).
 - `~/.claude/settings.json`: four PreToolUse entries converted to that
   shape.
 - `scripts/guard-{wait-loop,git,rm,model-family}.py`:
   `os.environ.setdefault("PYTHONPYCACHEPREFIX", "/var/tmp/emanuele-pycache")`
-  before importing guardlib.
+  before importing guardlib. **Corrected 2026-09-01 from Claude:** that line
+  was a no-op — CPython reads `PYTHONPYCACHEPREFIX` at interpreter startup,
+  so setting it from inside the script cannot affect that script's own
+  imports, and guardlib bytecode kept being written to the NFS source tree.
+  Replaced with a direct `sys.pycache_prefix = ...` assignment, which does
+  apply to later imports (verified both ways with a throwaway package).
 - Live Cursor: `echo ping` returned, `/tmp` commit allowed, standalone
   `git push --force` denied. Did **not** put this in `AGENTS.md`; it is a
   Cursor-import quirk, not a host-wide rule.

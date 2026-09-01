@@ -183,7 +183,9 @@ workflow should also auto-trigger from a description match.
   call, including `echo` and `git commit`, and it is not the git guard.
   Claude's `command` must be a single string Cursor can exec
   (`/usr/bin/python3 /path/script.py`). Do not use `command`+`args` with
-  `/usr/bin/env` to set `PYTHONPYCACHEPREFIX`; set that inside the script.
+  `/usr/bin/env` to set `PYTHONPYCACHEPREFIX`; instead assign
+  `sys.pycache_prefix` inside the script (an `os.environ` write there does
+  nothing — the variable is read at interpreter startup).
   `beforeShellExecution` timeout is 45s for NFS. Scripts use
   `#!/usr/bin/python3`. The Source Control panel bypasses this hook.
 - `~/.cursor/skills-cursor/` is Cursor's own managed directory. Never edit or
