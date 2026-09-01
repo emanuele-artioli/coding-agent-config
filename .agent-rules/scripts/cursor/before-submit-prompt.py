@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Cursor beforeSubmitPrompt — task-change detection (soft tier).
 
 Documented outputs: continue + user_message when blocked. Soft allow-and-whisper

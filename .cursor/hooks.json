@@ -4,7 +4,7 @@
     "beforeShellExecution": [
       {
         "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-shell.py",
-        "timeout": 15,
+        "timeout": 45,
         "failClosed": true
       }
     ],
@@ -36,14 +36,14 @@
       {
         "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-task.py",
         "matcher": "Task",
-        "timeout": 15,
+        "timeout": 45,
         "failClosed": true
       }
     ],
     "subagentStart": [
       {
         "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-task.py",
-        "timeout": 15,
+        "timeout": 45,
         "failClosed": true
       }
     ]

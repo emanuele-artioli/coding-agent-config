@@ -7,30 +7,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env",
-            "args": [
-              "PYTHONPYCACHEPREFIX=/var/tmp/emanuele-pycache",
-              "python3",
-              "/home/itec/emanuele/.agent-rules/scripts/guard-wait-loop.py"
-            ]
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-wait-loop.py"
           },
           {
             "type": "command",
-            "command": "/usr/bin/env",
-            "args": [
-              "PYTHONPYCACHEPREFIX=/var/tmp/emanuele-pycache",
-              "python3",
-              "/home/itec/emanuele/.agent-rules/scripts/guard-git.py"
-            ]
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-git.py"
           },
           {
             "type": "command",
-            "command": "/usr/bin/env",
-            "args": [
-              "PYTHONPYCACHEPREFIX=/var/tmp/emanuele-pycache",
-              "python3",
-              "/home/itec/emanuele/.agent-rules/scripts/guard-rm.py"
-            ]
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-rm.py"
           }
         ]
       },
@@ -39,12 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env",
-            "args": [
-              "PYTHONPYCACHEPREFIX=/var/tmp/emanuele-pycache",
-              "python3",
-              "/home/itec/emanuele/.agent-rules/scripts/guard-model-family.py"
-            ]
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-model-family.py"
           }
         ]
       }

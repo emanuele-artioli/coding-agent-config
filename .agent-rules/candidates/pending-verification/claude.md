@@ -79,3 +79,11 @@ from a Claude Code session after live verification.
   beyond model choice, so `effort` stays non-actionable for claude until a
   harness change adds one. Do not reopen without a schema change (a new
   field, a bracket-suffix model format actually landing).
+- [ ] **PreToolUse `command` is a python3 string, no `args` (added 2026-09-01
+  from Cursor).** Cursor imports these hooks and drops `args`, so
+  `"command": "/usr/bin/env"` plus an args array ran bare `env` and
+  fail-closed every Cursor Shell call. `~/.claude/settings.json` now uses
+  `/usr/bin/python3 /path/guard-*.py`. Confirm from a live Claude session
+  that Bash PreToolUse (wait-loop, irreversible git, protected rm) and
+  `Agent|Task` (model-family) still fire. Do not restore `command`+`args`
+  through `/usr/bin/env`. See `done/2026-09-01-cursor-drops-claude-hook-args.md`.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Cursor sessionStart adapter — candidate / pending-verification reminders.
 
 Returns `additional_context` per Cursor's sessionStart contract. Also logs a

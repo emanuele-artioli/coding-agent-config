@@ -145,6 +145,13 @@ off-tier pick still goes through once you confirm. See
   rejected before the hook even runs — the hook is defense-in-depth here,
   not the primary gate, at least until a spawn path with a looser schema is
   found.
+- Cursor loads these same `~/.claude/settings.json` hooks when third-party
+  skills are on. It takes `command` and drops `args`. A Claude entry of
+  `"command": "/usr/bin/env"` plus `args` therefore runs bare `env` inside
+  Cursor, dumps the environment to stdout, and Cursor fail-closes every
+  Shell call (`Hook "/usr/bin/env" returned invalid JSON`, live 2026-09-01).
+  Keep `command` as one string: `/usr/bin/python3 /path/script.py`. Set
+  `PYTHONPYCACHEPREFIX` inside the script, not via `env`+`args`.
 - `end-of-session` commits on invoke and asks before push; handoff is a
   conditional step or a standalone skill.
 - Prefer handoff before auto-compact; do not wait for full context.

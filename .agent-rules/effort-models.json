@@ -1,5 +1,5 @@
 {
-  "_comment": "Per-platform low/medium/high model tiers for spinning up a SUBAGENT at a given effort (never applies to a human's own top-level model choice). Consumed by scripts/guardlib/model_family.py as a soft nudge, and meant to be read by the orchestrating agent BEFORE calling Agent/Task so it can pick the right model up front. 'effort' fields are UNVERIFIED (verified: false) for all three platforms -- we do not yet know which platforms can set effort for a non-interactively-created session, or how. Flagged in candidates/pending-verification/.",
+  "_comment": "Per-platform low/medium/high model tiers for spinning up a SUBAGENT at a given effort (never applies to a human's own top-level model choice). Consumed by scripts/guardlib/model_family.py as a soft nudge, and meant to be read by the orchestrating agent BEFORE calling Agent/Task so it can pick the right model up front. Cursor 2026-09-01: Task spawn has model only, no effort field; live subagentStart payloads never carry effort; Composer 2.5 has no effort concept. The -high suffix is part of the model slug. Cursor effort keys are unused (effort_settable: false). Claude and Antigravity effort fields remain unverified on those platforms.",
   "platforms": {
     "claude": {
       "low":    {"model": "sonnet", "effort": "low", "verified": false},
@@ -12,9 +12,9 @@
       "high":   {"model": "gemini-flash-3.6", "effort": "high", "verified": false}
     },
     "cursor": {
-      "low":    {"model": "composer-2.5", "verified": false},
-      "medium": {"model": "grok-4.5", "effort": "medium", "verified": false},
-      "high":   {"model": "grok-4.5", "effort": "high", "verified": false}
+      "low":    {"model": "composer-2.5", "verified": true, "effort_settable": false},
+      "medium": {"model": "grok-4.5", "effort": "medium", "verified": true, "effort_settable": false},
+      "high":   {"model": "grok-4.5", "effort": "high", "verified": true, "effort_settable": false}
     }
   }
 }

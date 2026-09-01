@@ -14,8 +14,11 @@ loop through unchecked.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
+
+os.environ.setdefault("PYTHONPYCACHEPREFIX", "/var/tmp/emanuele-pycache")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 

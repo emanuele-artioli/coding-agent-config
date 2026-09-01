@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Cursor stop adapter — medium aging nudge + dirty-tree end-of-session hint.
 
 Medium tier prints to stderr (Hooks channel). Does not set followup_message
