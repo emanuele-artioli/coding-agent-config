@@ -18,8 +18,9 @@ Not claimed verified on Claude.
 
 - `harness/claude.md` and `harness/cursor.md`: do not wire Claude
   PreToolUse as `"command": "/usr/bin/env"` plus `args`. Use one string,
-  `/usr/bin/python3 /path/script.py`. Set `PYTHONPYCACHEPREFIX` inside
-  the script.
+  `/usr/bin/python3 /path/script.py`. Set the bytecode-cache location from
+  inside the script (see the correction below for the mechanism that
+  actually works — both files now say `sys.pycache_prefix`).
 - `~/.claude/settings.json`: four PreToolUse entries converted to that
   shape.
 - `scripts/guard-{wait-loop,git,rm,model-family}.py`:
