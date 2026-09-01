@@ -153,6 +153,24 @@ def _heredoc_case() -> str:
     return "\n".join(["cat > doc.md <<'EOF'", body, "git clean -fd", "EOF"])
 
 
+def _wait_loop_heredoc_case() -> str:
+    """A PR body, passed on the command line, that quotes the loop it forbids.
+
+    The live shape from 2026-09-01: a heredoc nested inside a command
+    substitution. `wait_loop.inspect` was not stripping heredocs the way the
+    other two policies do, so `gh pr create --body "$(cat <<EOF ... EOF)"` was
+    denied for its prose. Built at runtime, same reason as `_heredoc_case`.
+    """
+    loop = " ".join(["until", "!", "pgrep", "-f", "trainer;", "do"])
+    loop += " " + " ".join(["sleep", "5;", "done"])
+    return "\n".join([
+        "gh pr create --title t --body \"$(cat <<'EOF'",
+        "- " + loop + " -> wait-loop deny",
+        "EOF",
+        ")\"",
+    ])
+
+
 def check_guards(fix: bool) -> Result:
     r = Result("guards")
     try:
@@ -183,8 +201,15 @@ def check_guards(fix: bool) -> Result:
     if wait_loop.inspect("until ! pgrep -f trainer; do sleep 5; done", dialect="claude") is None:
         r.problem("wait_loop no longer denies a hand-rolled waiter")
 
+    # The same heredoc rule, for the policy that learned it last.
+    wl = _wait_loop_heredoc_case()
+    if wait_loop.inspect(wl, dialect="claude") is not None:
+        r.problem("a heredoc body is being read as a wait loop (guardlib/shell.py)")
+    if wait_loop.inspect(wl + "\nuntil ! pgrep -f t; do sleep 5; done") is None:
+        r.problem("a real waiter after a heredoc is no longer caught")
+
     if r.status == OK:
-        r.note(f"{len(GUARD_CASES) + 5} decisions correct")
+        r.note(f"{len(GUARD_CASES) + 7} decisions correct")
     return r
 
 
@@ -443,6 +468,10 @@ def check_queue(fix: bool) -> Result:
 # block, Cursor a `{"permission": ...}` object, Antigravity a non-zero exit.
 # This normalises all three to a boolean and compares.
 
+# Claude wires one hook script per policy; Cursor and Antigravity run all
+# three policies from a single shell hook. So the Claude side of a case has to
+# be the adapter for the policy that case exercises -- otherwise a case can
+# only ever "agree", because the script asked was never going to decide it.
 _ADAPTERS = {
     "claude": (SCRIPTS / "guard-git.py", "claude"),
     "cursor": (SCRIPTS / "cursor" / "before-shell.py", "cursor"),
@@ -479,10 +508,14 @@ def _ask_adapter(path: Path, dialect: str, command: str) -> bool | None:
 def check_parity(fix: bool) -> Result:
     r = Result("parity")
     disagreements = 0
-    for command, must_deny in GUARD_CASES + [(_heredoc_case(), False)]:
+    cases = [(c, d, "guard-git.py") for c, d in GUARD_CASES]
+    cases.append((_heredoc_case(), False, "guard-git.py"))
+    cases.append((_wait_loop_heredoc_case(), False, "guard-wait-loop.py"))
+    for command, must_deny, claude_script in cases:
+        adapters = {**_ADAPTERS, "claude": (SCRIPTS / claude_script, "claude")}
         verdicts = {
             name: _ask_adapter(path, dialect, command)
-            for name, (path, dialect) in _ADAPTERS.items()
+            for name, (path, dialect) in adapters.items()
         }
         live = {k: v for k, v in verdicts.items() if v is not None}
         if not live:
@@ -501,7 +534,7 @@ def check_parity(fix: bool) -> Result:
                     f"{name} {'did not deny' if must_deny else 'wrongly denied'}: {command[:60]}"
                 )
     if r.status == OK:
-        r.note(f"{len(_ADAPTERS)} adapters agree on {len(GUARD_CASES) + 1} commands")
+        r.note(f"{len(_ADAPTERS)} adapters agree on {len(GUARD_CASES) + 2} commands")
     return r
 
 SLOW_CHECKS = {"generated", "shell", "measurements", "parity"}
