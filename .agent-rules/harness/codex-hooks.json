@@ -1,0 +1,66 @@
+{
+  "description": "Shared host guards and continuity hooks for OpenAI Codex.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/codex/session-start.py",
+            "timeout": 10,
+            "statusMessage": "Loading shared host context",
+            "additionalContextLimit": 3000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/codex/pre-tool-use.py",
+            "timeout": 10,
+            "statusMessage": "Checking shared shell policy"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/codex/user-prompt-submit.py",
+            "timeout": 10,
+            "additionalContextLimit": 1000
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/codex/pre-compact.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/codex/stop.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }

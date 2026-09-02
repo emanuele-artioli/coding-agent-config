@@ -2,8 +2,7 @@
 
 Single source of truth for the configuration shared by every coding agent on
 this host: Claude Code, Cursor, Google Antigravity, and GitHub Copilot CLI
-(skills/agents farmed; hooks unverified). OpenAI Codex is documented but not
-installed here yet. Each agent's own native config is either a symlink into
+(skills/agents farmed; hooks unverified). OpenAI Codex is installed and wired through its active CODEX_HOME; live hook trust and fresh-session discovery remain tracked under candidates/pending-verification/codex.md. Each agent's own native config is either a symlink into
 this repo, a thin wrapper importing it, or a generated file. **Edit content
 only in this directory, never in a per-agent copy.**
 
@@ -123,6 +122,7 @@ flowchart TB
     ha_antigravity[antigravity]
     ha_claude[claude]
     ha_cursor[cursor]
+    ha_codex[codex]
   end
   subgraph scripts[scripts/ (top-level)]
     sc_antigravity[antigravity]
@@ -368,7 +368,7 @@ Provider prompt caches (and any local reuse of a system/rules prefix) need
 - **`scope:` deferral** shrinks always-on *delivery* for Claude/Copilot Chat;
   it is not a substitute for keeping the remaining always-on bytes stable.
 
-Audit (2026-07-31): lifecycle hooks under `scripts/{cursor,claude,antigravity}/`
+Audit (2026-07-31): lifecycle hooks under `scripts/{cursor,claude,antigravity,codex}/`
 write only under `var/` (nudge state, precompact stubs) and probe logs — not
 `AGENTS.md` or harness files.
 
@@ -404,7 +404,7 @@ bites — the payload and response contract:
 | Project config | `.claude/settings.json` | `.cursor/hooks.json` | `.agents/hooks.json` | `.codex/hooks.json` | `.github/hooks/*.json` |
 | Shell event | `PreToolUse` + `Bash` matcher | `beforeShellExecution` | `PreToolUse` + `run_command` matcher | `PreToolUse` + regex matcher | `preToolUse` |
 | Command in | `tool_input.command` | top-level `command` | `toolCall.args.CommandLine` | `tool_input.command` | assumed Claude-shaped |
-| Denial out | `hookSpecificOutput.permissionDecision` | `{"permission": "deny"}` | `{"decision": "deny"}` JSON | hook JSON verdict | unverified |
+| Denial out | `hookSpecificOutput.permissionDecision` | `{"permission": "deny"}` | `{"decision": "deny"}` JSON | `hookSpecificOutput.permissionDecision` | unverified |
 
 
 So a single script cannot serve them all: pointing Cursor's `hooks.json` at
@@ -487,9 +487,7 @@ Notes:
   The symlink farm still distributes skills until platforms load the package
   directory natively.
 - **Auto-memory and statusline** are Claude/Cursor UI chrome, not shared files.
-- **Codex is not installed here.** `~/.codex/` and `~/.agents/` do not exist,
-  so `install.py` reports its links as skipped. Install Codex, re-run
-  `install.py`, and they appear.
+- **Codex is installed here.** Its active state is host-local under `` (`/var/tmp/emanuele-codex` on this host); global rules and hooks are linked there, while user skills use the documented `~/.agents/skills` path. Run `install.py` after adding a shared skill or changing hosts.
 
 ## Verification status
 
