@@ -26,6 +26,7 @@ DETACHED = re.compile(r"\bnohup\b|\bsetsid\b|&\s*$|\bdisown\b")
 _DETACH_ADVICE = {
     "claude": "use run_in_background, or `setsid nohup ... < /dev/null &`",
     "cursor": "use Shell with block_until_ms: 0, or `setsid nohup ... < /dev/null &`",
+    "codex": "use unified exec for bounded work, or setsid/nohup for durable jobs",
 }
 
 

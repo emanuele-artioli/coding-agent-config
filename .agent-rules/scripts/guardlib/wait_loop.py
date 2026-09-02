@@ -74,6 +74,14 @@ ALTERNATIVES = {
         "success.\n\n"
         "See the waiting rule in .agent-rules/harness/cursor.md."
     ),
+    "codex": (
+        "Use instead:\n"
+        "  - Let unified exec return a session id, then use write_stdin to wait "
+        "for completion or more output. No process polling.\n"
+        "  - For a durable long job, launch with setsid/nohup and checkpoint "
+        "at least hourly.\n\n"
+        "See .agent-rules/harness/codex.md."
+    ),
 }
 
 

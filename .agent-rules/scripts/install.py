@@ -20,7 +20,8 @@ Deliberately conservative about which agents it touches:
     (except `~/.gemini/config/`, which this script may create because
     Antigravity is installed and that is where it looks for global skills,
     workflows and MCP).
-  * Codex (`~/.codex`, `~/.agents`) links are skipped until those tools exist.
+  * Codex links use `$CODEX_HOME` when set. The user skills path remains
+    `~/.agents/skills`, which the installer creates once Codex exists.
   * A real file (not a symlink) sitting where a link belongs is reported as a
     conflict and left alone.
 
@@ -43,6 +44,7 @@ from pathlib import Path
 
 HOST = Path(__file__).resolve().parent.parent
 HOME = Path.home()
+CODEX_HOME = Path(os.environ.get("CODEX_HOME", HOME / ".codex")).expanduser()
 
 SKILLS = HOST / "skills"
 AGENTS = HOST / "agents"
@@ -278,13 +280,21 @@ def plan() -> list[Link]:
     )
     links.append(
         Link(
-            HOME / ".codex" / "AGENTS.md",
+            CODEX_HOME / "AGENTS.md",
             HOST_RULES,
             "Codex global scope",
-            requires=HOME / ".codex",
+            requires=CODEX_HOME,
         )
     )
 
+    links.append(
+        Link(
+            CODEX_HOME / "hooks.json",
+            HOST / "harness" / "codex-hooks.json",
+            "Codex lifecycle hooks",
+            requires=CODEX_HOME,
+        )
+    )
     # --- skills ----------------------------------------------------------
     if SKILLS.is_dir():
         for skill in sorted(p for p in SKILLS.iterdir() if p.is_dir()):
@@ -320,7 +330,7 @@ def plan() -> list[Link]:
                     HOME / ".agents" / "skills" / skill.name,
                     skill,
                     "cross-tool global skills (Codex, Cursor, Copilot)",
-                    requires=HOME / ".agents",
+                    requires=CODEX_HOME if CODEX_HOME.is_dir() else HOME / ".agents",
                     create_parents=True,
                 )
             )
