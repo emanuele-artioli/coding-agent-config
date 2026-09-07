@@ -10,8 +10,20 @@ elif [ -x "$HOME/.agent-rules/scripts/clean-merged-worktrees.py" ]; then
 fi
 
 # Chain to local repository hook if present and executable
-LOCAL_HOOK="$(git rev-parse --git-path hooks/post-merge 2>/dev/null || true)"
-if [ -n "$LOCAL_HOOK" ] && [ -x "$LOCAL_HOOK" ] && [ "$LOCAL_HOOK" != "$0" ]; then
-    "$LOCAL_HOOK" "$@"
+GIT_COMMON_DIR="$(git rev-parse --git-common-dir 2>/dev/null || true)"
+if [ -n "$GIT_COMMON_DIR" ]; then
+    case "$GIT_COMMON_DIR" in
+        /*) LOCAL_HOOK="$GIT_COMMON_DIR/hooks/post-merge" ;;
+        *)  REPO_TOP="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+            if [ -n "$REPO_TOP" ]; then
+                LOCAL_HOOK="$REPO_TOP/$GIT_COMMON_DIR/hooks/post-merge"
+            else
+                LOCAL_HOOK="$GIT_COMMON_DIR/hooks/post-merge"
+            fi
+            ;;
+    esac
+    if [ -f "$LOCAL_HOOK" ] && [ -x "$LOCAL_HOOK" ] && [ "$(readlink -f "$LOCAL_HOOK" 2>/dev/null)" != "$(readlink -f "$0" 2>/dev/null)" ]; then
+        "$LOCAL_HOOK" "$@"
+    fi
 fi
 

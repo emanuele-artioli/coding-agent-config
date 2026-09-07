@@ -4,11 +4,14 @@ created: 2026-09-07
 source_platform: antigravity
 source_project: /home/itec/emanuele/pointstream
 axis: project
-status: open
+status: needs_verification
 summary: Automate safe post-merge cleanup of linked git worktrees whose commits are fully merged into origin/main across all harnesses and projects
 suggested_action: lift to foundation host-wide tools via scripts/guardlib/worktree_cleanup.py, scripts/clean-merged-worktrees.py, and global git core.hooksPath
 verify_platforms: [cursor, claude, codex, antigravity]
 ---
+
+Evaluated 2026-09-07 from Antigravity. Applied to shared SoT and verified live in Antigravity.
+Logged for cross-harness verification under `candidates/pending-verification/{cursor,claude,codex}.md`.
 
 ## Context and Problem
 
@@ -44,3 +47,17 @@ A tool-agnostic, fail-safe cleanup system implemented at the Git and host level:
    - Configured host-wide via `git config --global core.hooksPath ~/.agent-rules/git-hooks`.
    - Automatically executes whenever `git merge`, `git pull`, or `gh pr merge` completes in any repository on this host, regardless of which harness (Cursor, Claude, Codex, Antigravity, VS Code, or human) executed the merge.
    - Automatically chains to any repo-local `.git/hooks/post-merge` so project-specific hooks are preserved.
+
+## Verification & Status (2026-09-07)
+
+- **Antigravity (verified live)**:
+  - Fixed repo-local hook chaining in `git-hooks/post-merge`: `git rev-parse --git-path` resolved to `core.hooksPath` (the global hook itself), preventing local hooks from ever executing. Switched to `git rev-parse --git-common-dir`.
+  - Fixed branch deletion in `scripts/guardlib/worktree_cleanup.py`: `git branch -d` checks HEAD by default and fails when repo HEAD is on a separate branch or not yet fast-forwarded; added upstream setting (`--set-upstream-to`) and safe fallback.
+  - Added wiring enforcement to `scripts/verify.py` (`core.hooksPath`, `git-clean-merged-worktrees` CLI) and `scripts/install.py`.
+  - Added 3 new unit/integration tests to `scripts/guardlib/test_worktree_cleanup.py` (9/9 pass, 105/105 total guardlib tests pass).
+- **Pending Verification on other platforms**:
+  - `candidates/pending-verification/cursor.md`
+  - `candidates/pending-verification/claude.md`
+  - `candidates/pending-verification/codex.md`
+
+

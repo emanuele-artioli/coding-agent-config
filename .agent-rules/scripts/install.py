@@ -295,6 +295,14 @@ def plan() -> list[Link]:
             requires=CODEX_HOME,
         )
     )
+    links.append(
+        Link(
+            HOME / "bin" / "git-clean-merged-worktrees",
+            HOST / "scripts" / "clean-merged-worktrees.py",
+            "cross-project git worktree cleanup CLI on PATH",
+            requires=HOME / "bin",
+        )
+    )
     # --- skills ----------------------------------------------------------
     if SKILLS.is_dir():
         for skill in sorted(p for p in SKILLS.iterdir() if p.is_dir()):

@@ -34,3 +34,11 @@ from an Antigravity session after live verification. Hook commands must be
   tools do not expose an `effort` parameter. Effort level is controlled at the
   harness/session level, so `effort` in `effort-models.json` is confirmed as
   informational metadata rather than an invocable tool parameter.
+- [x] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup` — verified live in Antigravity).**
+  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via global `core.hooksPath`
+  and `git clean-merged-worktrees` CLI on PATH (`~/bin/git-clean-merged-worktrees`). Verified with 105 tests
+  (9 in `test_worktree_cleanup.py`): automated cleanup triggers on git merge/pull, chains to repo-local
+  `.git/hooks/post-merge` (fixed path resolution via `git rev-parse --git-common-dir`), safely deletes
+  merged branch even when repo HEAD is on a different branch, and strictly preserves dirty or unmerged worktrees.
+  Wired into `verify.py` and `install.py`.
+

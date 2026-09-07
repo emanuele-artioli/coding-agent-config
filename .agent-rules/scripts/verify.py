@@ -23,6 +23,7 @@ repo has actually had answers a different question, and nothing was asking it:
 | `AGENTS.md` asserted "~6 file opens per second" as a timeless property of the mount; it was one contended measurement, and it sent a whole investigation after the wrong cause | `claims` |
 | `candidates/HANDOFF.md` claimed "Open candidates: none" for five weeks while eleven sat in the queue | `queue` |
 | a generated file drifted from the `AGENTS.md` it is derived from | `generated` |
+| post-merge worktree cleanup hook was not firing because `core.hooksPath` was unset or CLI missing | `hooks` |
 
 Two failure modes, over and over: **written but not wired**, and **true once,
 still asserted**. Both are invisible to a file-presence check, and both look
@@ -118,8 +119,40 @@ def check_hooks(fix: bool) -> Result:
         for path in re.findall(r"(/home/[^\s\"']+\.py)", blob):
             if not Path(path).is_file():
                 r.problem(f"{platform}: hook path does not exist: {path}")
+
+    # Host-wide git post-merge hook for automated worktree cleanup
+    global_hooks_raw = subprocess.run(
+        ["git", "config", "--global", "core.hooksPath"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    expected_hooks = HOST_DIR / "git-hooks"
+    if not global_hooks_raw or Path(global_hooks_raw).resolve() != expected_hooks.resolve():
+        if fix:
+            subprocess.run(
+                ["git", "config", "--global", "core.hooksPath", str(expected_hooks)],
+                check=True,
+            )
+            r.fixes.append(f"set git core.hooksPath to {expected_hooks}")
+        else:
+            r.problem(
+                f"git global core.hooksPath is {global_hooks_raw or 'unset'}, "
+                f"expected {expected_hooks}. Post-merge worktree cleanup will not fire."
+            )
+
+    post_merge = expected_hooks / "post-merge"
+    if not (post_merge.is_file() and os.access(post_merge, os.X_OK)):
+        r.problem(f"post-merge hook missing or not executable: {post_merge}")
+
+    cli_path = HOME / "bin" / "git-clean-merged-worktrees"
+    if not (cli_path.is_file() and os.access(cli_path, os.X_OK)):
+        r.problem(
+            f"{cli_path} is missing or not executable. "
+            "git clean-merged-worktrees will not be available on PATH."
+        )
+
     if r.status == OK:
-        r.note(f"{len(HOOK_EXPECTATIONS)} platforms wired")
+        r.note(f"{len(HOOK_EXPECTATIONS)} platforms wired + global git post-merge hook")
     return r
 
 
