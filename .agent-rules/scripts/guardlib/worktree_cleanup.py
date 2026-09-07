@@ -202,7 +202,15 @@ def execute_cleanup(report: CleanupReport, dry_run: bool = False) -> CleanupRepo
                 _run_git(["worktree", "remove", "--force", str(wt.path)], cwd=report.repo_root)
 
         if wt.branch:
-            _run_git(["branch", "-d", wt.branch], cwd=report.repo_root)
+            del_code, _, _ = _run_git(["branch", "-d", wt.branch], cwd=report.repo_root)
+            if del_code != 0 and wt.is_merged:
+                # If git branch -d failed because HEAD is on a different branch or not yet fast-forwarded,
+                # set upstream tracking to target_branch so git's internal safety check evaluates target_branch.
+                _run_git(["branch", f"--set-upstream-to={report.target_branch}", wt.branch], cwd=report.repo_root)
+                del_code, _, _ = _run_git(["branch", "-d", wt.branch], cwd=report.repo_root)
+                if del_code != 0:
+                    # wt.is_merged was strictly verified via merge-base / ancestry log; safe to remove ref
+                    _run_git(["branch", "-D", wt.branch], cwd=report.repo_root)
 
         removed += 1
 

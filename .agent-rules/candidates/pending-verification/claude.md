@@ -104,3 +104,8 @@ from a Claude Code session after live verification.
   NFS source tree. Replaced with `sys.pycache_prefix = …` in all four guards
   (verified: bytecode now lands under `/var/tmp/emanuele-pycache`, nothing
   next to the source), and the wording corrected in both harness files.
+- [ ] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup`).**
+  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via `core.hooksPath`
+  and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm from a Claude Code session that executing
+  `git merge`, `git pull`, or `gh pr merge` executes post-merge cleanup, deletes clean fully-merged linked worktrees
+  and local branches, and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.

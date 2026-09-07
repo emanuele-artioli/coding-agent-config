@@ -100,3 +100,8 @@ trigger a SessionStart reminder.
   completed. `failClosed` on the Cursor-native hooks is `true` again.
   Candidate: `done/2026-09-01-cursor-drops-claude-hook-args.md`
   (`needs_verification` on Claude).
+- [ ] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup`).**
+  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via `core.hooksPath`
+  and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm that merging/pulling a branch in Cursor
+  automatically triggers post-merge cleanup, deletes clean fully-merged linked worktrees and local branches,
+  and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
