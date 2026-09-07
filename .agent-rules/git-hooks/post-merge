@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Host-wide git post-merge hook managed by ~/.agent-rules
+# Automatically cleans up linked worktrees whose branches are fully merged.
+# Never removes dirty or unmerged worktrees.
+
+if command -v git-clean-merged-worktrees >/dev/null 2>&1; then
+    git-clean-merged-worktrees --quiet 2>/dev/null || true
+elif [ -x "$HOME/.agent-rules/scripts/clean-merged-worktrees.py" ]; then
+    python3 "$HOME/.agent-rules/scripts/clean-merged-worktrees.py" --quiet 2>/dev/null || true
+fi
+
+# Chain to local repository hook if present and executable
+LOCAL_HOOK="$(git rev-parse --git-path hooks/post-merge 2>/dev/null || true)"
+if [ -n "$LOCAL_HOOK" ] && [ -x "$LOCAL_HOOK" ] && [ "$LOCAL_HOOK" != "$0" ]; then
+    "$LOCAL_HOOK" "$@"
+fi
+
