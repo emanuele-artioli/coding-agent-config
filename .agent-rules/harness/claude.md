@@ -84,7 +84,13 @@ and pointers that name the specific body file. Unverified whether other
 platforms couple read-before-edit the same way; see the pending-verification
 checklists.
 
-## Model family and effort tier (subagent spawns only)
+## Subagents and model tiers (subagent spawns only)
+
+Claude Code supports subagents via `Agent` / `Task`, including parallel subagent
+workstreams for multi-part plans. Like other harnesses, subagents running parallel
+lanes should be configured to use weaker/cheaper models (`haiku` or `sonnet`, per
+`../effort-models.json`) rather than flagship models (`opus`), preventing runaway
+token burn across concurrent agents.
 
 Before spawning a subagent via `Agent`, assess the effort its task needs
 (simple/bounded lookup vs. substantial multi-step work vs.
@@ -93,7 +99,7 @@ mapped for that tier in `../effort-models.json`. Omitting `model` (which
 inherits the parent session) is still correct specifically when the
 subagent's task is roughly the same effort as the parent's own — that's the
 "no strong opinion" case, not the universal default. Do not pin versioned
-slugs — they go stale; the file uses stable aliases (`sonnet` / `opus`).
+slugs — they go stale; the file uses stable aliases (`haiku` / `sonnet` / `opus`).
 None of this ever applies to your own top-level session model, which the
 user picks freely.
 
