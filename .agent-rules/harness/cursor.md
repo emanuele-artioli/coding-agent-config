@@ -87,6 +87,10 @@ sleep waiting for one.
 
 Split genuinely independent workstreams across parallel subagents in one
 message, per the host-wide plan-mode rule; keep sequential work in one agent.
+Parallel subagent execution is not unique to Cursor — Antigravity (via
+`invoke_subagent`), Claude Code (`Agent`/`Task`), and Codex can also execute
+parallel workstreams, provided subagents are configured to use weaker/cheaper
+models to conserve token budgets.
 
 Global SoT agents live in `../agents/<name>.agent.md` and are linked into
 `~/.cursor/agents/<name>.md` by `../scripts/install.py`. Project agents stay

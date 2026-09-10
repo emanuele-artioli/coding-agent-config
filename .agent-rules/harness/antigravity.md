@@ -35,16 +35,48 @@ history so the work aligns with branches that already exist.
   map at most 5–7 analytical steps, and cross-examine edge cases (memory
   overhead, latency penalties) before drafting code.
 
+## Subagents
+
+Antigravity natively supports subagent orchestration through `invoke_subagent`
+(with `manage_subagents` for listing/canceling and `define_subagent` for custom
+specialized roles). Subagents execute in the background with their own prompt and
+notify the parent agent upon completion.
+
+Key capabilities and operational rules:
+- **Parallel subagent waves**: A single `invoke_subagent` call accepts an array
+  of subagent specs, launching them concurrently. Split genuinely independent
+  workstreams across parallel subagents in one call, per the host-wide plan-mode
+  rule; keep sequential work in one agent.
+- **Workspace isolation**: Use `Workspace: "branch"` (isolated cloned workspace)
+  or `"share"` (shares underlying repo git storage, similar to a git worktree)
+  for parallel lanes that make filesystem or git changes, preventing parallel
+  sessions from stepping on each other. Use `"inherit"` (default) for read-only
+  or shared-tree coordination.
+- **Weaker models for subagents**: Subagents support explicit model selection via
+  the `Model` parameter (`inherit`, `flash_lite`, `flash`, `pro`). Parallel
+  workstreams, exploratory research, and bounded edits should always be set up
+  with weaker/lighter models (`flash_lite` or `flash`) to conserve token and
+  context budgets. Reserve `pro` or `inherit` for tasks requiring deep reasoning,
+  complex architectural trade-offs, or large refactors.
+- **Communication**: Communicate with spawned subagents via `send_message` using
+  their `conversationId`. Do not poll or loop waiting for them; the system
+  resumes reactively when a subagent finishes or replies.
+
 ## Model family and effort tier (subagent spawns only)
 
 Before spawning subagent work, assess the effort its task needs
-(low/medium/high) and check `../effort-models.json` for the mapped model —
-today all three Antigravity tiers map to the same Gemini Flash 3.6 model, so
-in practice this collapses to "prefer omitting an explicit model" so it
-inherits the parent session (Gemini in-house). Do not pin versioned slugs —
-they go stale. If you must pass a model, use only the Gemini family. This
-never applies to your own top-level session model, which the user picks
-freely.
+(low/medium/high). Antigravity's `invoke_subagent` accepts an explicit `Model`
+parameter:
+- `flash_lite`: very light model, best for simple lookups, quick searches, or file checks.
+- `flash`: smaller, faster model, best for bounded coding, tests, or exploratory analysis.
+- `pro`: larger model, reserved for complex architectural tasks requiring deep reasoning.
+- `inherit` (default): inherits the calling session's model.
+
+For parallel workstreams and routine subagent lanes, always prefer weaker models
+(`flash_lite` or `flash`) over flagship models to keep resource consumption
+sustainable. If you must pass a custom model string, use only the Gemini family.
+Do not pin versioned slugs — they go stale. This never applies to your own
+top-level session model, which the user picks freely.
 
 Do not follow multi-family skill defaults from other platforms. If Gemini is
 clearly struggling, ask the user; prefer switching platform/session over

@@ -9,7 +9,7 @@ Read this after `../AGENTS.md`. Codex-only mechanics live here; shared policy st
 - User skills load from `~/.agents/skills/<name>/SKILL.md`; repository skills load from `.agents/skills`. Codex follows symlinked skill directories.
 - Global hooks are `$CODEX_HOME/hooks.json`, linked to `codex-hooks.json` beside this file. Review changed hooks with `/hooks`.
 - User MCP configuration lives in `$CODEX_HOME/config.toml`. The shared MCP catalog is currently empty; preserve unrelated Codex entries.
-- Codex custom subagents are TOML roles under `[agents]`, not Claude/Cursor Markdown agents. Do not claim shared `agents/*.agent.md` parity until mappings exist.
+- Codex custom subagents are TOML roles under `[agents]`, not Claude/Cursor Markdown agents. Do not claim shared `agents/*.agent.md` parity until mappings exist. When running parallel subagents or roles, configure them to use weaker/cheaper models to conserve token budgets.
 
 ## Shell and waiting
 

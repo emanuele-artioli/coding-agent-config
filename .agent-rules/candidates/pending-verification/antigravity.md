@@ -41,4 +41,8 @@ from an Antigravity session after live verification. Hook commands must be
   `.git/hooks/post-merge` (fixed path resolution via `git rev-parse --git-common-dir`), safely deletes
   merged branch even when repo HEAD is on a different branch, and strictly preserves dirty or unmerged worktrees.
   Wired into `verify.py` and `install.py`.
+- [x] **Subagent parallel execution & model selection (verified live in Antigravity 2026-09-10).**
+  Confirmed native `invoke_subagent` tool schema exposes `Model: 'inherit' | 'flash_lite' | 'flash' | 'pro'`
+  and `Workspace: 'inherit' | 'branch' | 'share'`. Accepts an array of subagent definitions to launch in parallel
+  with workspace isolation, supporting weaker models (`flash_lite`, `flash`) for parallel waves.
 
