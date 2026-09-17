@@ -87,27 +87,39 @@ sleep waiting for one.
 
 Split genuinely independent workstreams across parallel subagents in one
 message, per the host-wide plan-mode rule; keep sequential work in one agent.
-Parallel subagent execution is not unique to Cursor — Antigravity (via
-`invoke_subagent`), Claude Code (`Agent`/`Task`), and Codex can also execute
-parallel workstreams, provided subagents are configured to use weaker/cheaper
-models to conserve token budgets.
+
+If the project `AGENTS.md` names a subagent ladder (PointStream:
+`.cursor/agents/` `budget-default` then `expert-retry`), follow that instead
+of the generic `effort-models.json` mapping. Spawn those children by
+`subagent_type` and omit `model` so the file's frontmatter `model` applies;
+an inline Task `model` currently wins over Explore-settings and can fight
+the profile. Custom subagent files use YAML frontmatter; bracket options
+(`composer-2.5[fast=false]`) work there, while the Task `model` enum only
+accepts exact live slugs. Cursor has no separate subagent `effort` field —
+Grok effort is the slug (`cursor-grok-4.6-low`). Escalate with a fresh child
+after a failed acceptance check, not by resuming the cheaper one.
 
 Global SoT agents live in `../agents/<name>.agent.md` and are linked into
-`~/.cursor/agents/<name>.md` by `../scripts/install.py`. Project agents stay
-real under `.claude/agents/` with `.cursor/agents` → symlink (same pattern as
-`.agents/agents`). Claude-oriented `tools:` frontmatter on those files is
-ignored here — Cursor uses its own tool set; keep the prompt body tool-agnostic.
+`~/.cursor/agents/<name>.md` by `../scripts/install.py`. Shared project
+agents stay real under `.claude/agents/` with `.cursor/agents` → symlink
+when that tree exists. A project-only ladder may be real files in
+`.cursor/agents/` (Cursor's native path; no `.claude` copy required).
+Claude-oriented `tools:` frontmatter on those files is ignored here —
+Cursor uses its own tool set; keep the prompt body tool-agnostic.
 
 ## Model family and effort tier (subagent spawns only)
 
 Before spawning a `Task` subagent, assess the effort its task needs
 (low/medium/high) and pass the `model` value mapped for that tier in
-`../effort-models.json` (today: low=Composer 2.5, medium/high=Grok 4.5).
-Omitting `model` so the subagent inherits the parent session (this host's
-in-house Cursor models: Grok / Composer) remains correct when the
-subagent's task is roughly the same effort as the parent's own. Do not pin
-versioned slugs in prompts — they go stale. This never applies to your own
-top-level session model, which the user picks freely.
+`../effort-models.json` (today: low=Composer 2.5, medium/high=Grok 4.5),
+unless the project documents a cost-first ladder — then follow that
+instead. Omitting `model` so the subagent inherits the parent session
+(this host's in-house Cursor models: Grok / Composer) remains correct when
+the subagent's task is roughly the same effort as the parent's own and no
+project profile applies. Do not pin versioned slugs in host prompts — they
+go stale; project profile files may pin live slugs the way Codex
+`config.toml` does. This never applies to your own top-level session
+model, which the user picks freely.
 
 Never pass Claude / GPT (or other off-family) models because a skill table
 said so. The Cursor marketplace **pstack** plugin’s multi-family defaults
