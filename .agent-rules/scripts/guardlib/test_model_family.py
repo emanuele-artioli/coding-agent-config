@@ -54,7 +54,9 @@ class ModelFamilyInspect(unittest.TestCase):
         self.assertIn("Claude", reason)
 
     def test_antigravity_allows_gemini(self) -> None:
-        self.assertIsNone(model_family.inspect("gemini-2.5-pro", "antigravity"))
+        for slug in ("gemini-2.5-pro", "gemini-3.8-flash", "flash", "flash_lite", "pro"):
+            with self.subTest(slug=slug):
+                self.assertIsNone(model_family.inspect(slug, "antigravity"))
 
     def test_antigravity_denies_claude(self) -> None:
         reason = model_family.inspect("sonnet", "antigravity")
@@ -102,9 +104,14 @@ class ModelFamilyTierNudge(unittest.TestCase):
                 assert nudge is not None
                 self.assertIn(slug, nudge)
 
+    def test_antigravity_live_slug_matches_tier_table(self) -> None:
+        for slug in ("flash", "gemini-3.8-flash", "flash-high", "flash-low"):
+            with self.subTest(slug=slug):
+                self.assertIsNone(model_family.tier_nudge(slug, "antigravity"))
+
     def test_allowed_models_reflects_effort_models_json(self) -> None:
         self.assertEqual(model_family.allowed_models("claude"), {"sonnet", "opus"})
-        self.assertEqual(model_family.allowed_models("antigravity"), {"gemini-flash-3.6"})
+        self.assertEqual(model_family.allowed_models("antigravity"), {"flash"})
         self.assertEqual(model_family.allowed_models("cursor"), {"composer-2.5", "grok-4.5"})
 
 
