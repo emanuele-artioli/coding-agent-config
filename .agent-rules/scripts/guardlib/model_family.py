@@ -35,7 +35,7 @@ _ALLOW: dict[str, tuple[re.Pattern[str], str]] = {
         "Claude",
     ),
     "antigravity": (
-        re.compile(r"^(gemini-)"),
+        re.compile(r"^(gemini-|flash$|flash_lite$|pro$|flash-|gemini$)"),
         "Gemini",
     ),
 }
@@ -163,6 +163,8 @@ def matches_tier_model(requested: str, tier_model: str) -> bool:
             return True
     if req.startswith(tier + "-"):
         return req[len(tier) + 1 :] in _TIER_EFFORT_SUFFIXES
+    if tier == "flash" and ("gemini-" in req and "flash" in req):
+        return True
     return False
 
 

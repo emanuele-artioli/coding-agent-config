@@ -7,9 +7,9 @@
       "high":   {"model": "opus", "effort": "high", "verified": false}
     },
     "antigravity": {
-      "low":    {"model": "gemini-flash-3.6", "effort": "high", "verified": false},
-      "medium": {"model": "gemini-flash-3.6", "effort": "high", "verified": false},
-      "high":   {"model": "gemini-flash-3.6", "effort": "high", "verified": false}
+      "low":    {"model": "flash", "effort": "low", "verified": true},
+      "medium": {"model": "flash", "effort": "medium", "verified": true},
+      "high":   {"model": "flash", "effort": "high", "verified": true}
     },
     "cursor": {
       "low":    {"model": "composer-2.5", "verified": true, "effort_settable": false},

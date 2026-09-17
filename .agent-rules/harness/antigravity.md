@@ -58,6 +58,11 @@ Key capabilities and operational rules:
   with weaker/lighter models (`flash_lite` or `flash`) to conserve token and
   context budgets. Reserve `pro` or `inherit` for tasks requiring deep reasoning,
   complex architectural trade-offs, or large refactors.
+- **Custom subagents & cost-first ladder**: Defined in `.agents/agents/<name>.md`
+  with YAML frontmatter (`name`, `description`, `model`, `effort` / `reasoningEffort`,
+  `subagent: true`). Standard cost-first ladder uses `budget-default` (Gemini 3.8 Flash /
+  low effort) by default, escalating to `expert-retry` (Gemini 3.8 Flash / high effort)
+  only after a declared acceptance check fails.
 - **Communication**: Communicate with spawned subagents via `send_message` using
   their `conversationId`. Do not poll or loop waiting for them; the system
   resumes reactively when a subagent finishes or replies.
@@ -69,7 +74,7 @@ Before spawning subagent work, assess the effort its task needs
 parameter:
 - `flash_lite`: very light model, best for simple lookups, quick searches, or file checks.
 - `flash`: smaller, faster model, best for bounded coding, tests, or exploratory analysis.
-- `pro`: larger model, reserved for complex architectural tasks requiring deep reasoning.
+- `pro`: larger model, currently stale, do not select.
 - `inherit` (default): inherits the calling session's model.
 
 For parallel workstreams and routine subagent lanes, always prefer weaker models
@@ -95,6 +100,8 @@ this platform yet. See `../candidates/pending-verification/antigravity.md`.
 - Skills: `~/.gemini/config/skills/<name>/` globally, `.agents/skills/<name>/`
   per project. The per-project path is the same directory Cursor, Codex and
   Copilot read, so one real directory serves all of them.
+- Subagents: `~/.gemini/config/agents/` globally, `.agents/agents/<name>.md`
+  per project. Workspace subagents are declared with `subagent: true`.
 - Workflows (slash prompts): `~/.gemini/config/global_workflows/<name>.md`
   globally (linked from `../workflows/` by `install.py`), `.agents/workflows/`
   per project. Cursor's `.cursor/commands` is a symlink onto the project
