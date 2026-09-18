@@ -16,7 +16,9 @@ auto-run it.
 Re-verify (SessionStart output is stale):
 
 - `git status -sb`, branch, ahead/behind, dirty files
-- other worktrees (`git worktree list`)
+- other worktrees (`git worktree list`): dirty vs merged into `origin/main` or `origin/master` vs unmerged. List only; do not remove
+- unmerged local branches vs that origin default (`git log --oneline origin/main..` or `origin/master..`; do not delete)
+- if this tree is dirty, do not `git checkout` another branch here — add a worktree
 - background / GPU jobs that will outlive this session
 
 ### 2. Surface on both axes
@@ -24,8 +26,8 @@ Re-verify (SessionStart output is stale):
 *Consider* project and platform independently. Write a candidate **only when
 there is something to surface**:
 
-- Project → `/home/itec/emanuele/.agent-rules/candidates/open/project/`
-- Platform → `/home/itec/emanuele/.agent-rules/candidates/open/platform/`
+- Project → this checkout's `.agent-rules/candidates/open/project/`
+- Platform → this checkout's `.agent-rules/candidates/open/platform/`
 
 Follow the schema in `candidates/README.md`. Do not create “nothing to
 surface” files. A one-line verbal note (“nothing on either axis”) is enough

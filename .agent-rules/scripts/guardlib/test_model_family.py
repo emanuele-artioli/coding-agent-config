@@ -83,21 +83,25 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertIsNone(model_family.tier_nudge("sonnet", "cursor"))
 
     def test_in_family_off_tier_model_nudges(self) -> None:
-        nudge = model_family.tier_nudge("haiku", "claude")
+        nudge = model_family.tier_nudge("sonnet", "claude")
         self.assertIsNotNone(nudge)
         assert nudge is not None
-        self.assertIn("haiku", nudge)
-        self.assertIn("low=sonnet", nudge)
+        self.assertIn("sonnet", nudge)
+        self.assertIn("low=opus", nudge)
         self.assertIn("high=opus", nudge)
 
     def test_cursor_live_slug_matches_tier_table(self) -> None:
-        # Live Task/subagentStart passes cursor-grok-4.5-high; JSON keeps grok-4.5.
-        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.5-high", "cursor"))
-        self.assertIsNone(model_family.tier_nudge("grok-4.5", "cursor"))
-        self.assertIsNone(model_family.tier_nudge("composer-2.5", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-medium", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-high", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("grok-4.6", "cursor"))
+
+    def test_cursor_composer_is_in_family_but_off_tier(self) -> None:
+        self.assertIsNone(model_family.inspect("composer-2.5", "cursor"))
+        nudge = model_family.tier_nudge("composer-2.5", "cursor")
+        self.assertIsNotNone(nudge)
 
     def test_cursor_fast_variants_still_nudge(self) -> None:
-        for slug in ("grok-4.5-fast", "composer-2.5-fast", "cursor-grok-4.5-fast"):
+        for slug in ("grok-4.6-fast", "composer-2.5-fast", "cursor-grok-4.6-fast"):
             with self.subTest(slug=slug):
                 nudge = model_family.tier_nudge(slug, "cursor")
                 self.assertIsNotNone(nudge)
@@ -109,10 +113,17 @@ class ModelFamilyTierNudge(unittest.TestCase):
             with self.subTest(slug=slug):
                 self.assertIsNone(model_family.tier_nudge(slug, "antigravity"))
 
+    def test_antigravity_lite_and_pro_nudge(self) -> None:
+        for slug in ("flash_lite", "pro", "gemini-3.8-pro"):
+            with self.subTest(slug=slug):
+                self.assertIsNone(model_family.inspect(slug, "antigravity"))
+                self.assertIsNotNone(model_family.tier_nudge(slug, "antigravity"))
+
     def test_allowed_models_reflects_effort_models_json(self) -> None:
-        self.assertEqual(model_family.allowed_models("claude"), {"sonnet", "opus"})
+        self.assertEqual(model_family.allowed_models("claude"), {"opus"})
         self.assertEqual(model_family.allowed_models("antigravity"), {"flash"})
-        self.assertEqual(model_family.allowed_models("cursor"), {"composer-2.5", "grok-4.5"})
+        self.assertEqual(model_family.allowed_models("cursor"), {"grok-4.6"})
+        self.assertEqual(model_family.allowed_models("codex"), {"luna", "astra"})
 
 
 if __name__ == "__main__":

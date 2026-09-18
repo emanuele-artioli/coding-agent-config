@@ -7,8 +7,9 @@ its own path, under its own filename. The content is authored once in
 are no copies to drift apart.
 
 This directory is also an Agent Plugins v1 package: portable core is
-`plugin.json` + `skills/` + `mcp.json`. Hooks, AGENTS.md, subagents, and the
-symlink farm are host-only (see `plugin.json` → `extensions`).
+`plugin.json` + `AGENTS.md` + `skills/` + `mcp.json`. Hooks, `host.md`,
+subagents, and the symlink farm are host-only (see `plugin.json` →
+`extensions`).
 
     python3 install.py            # create anything missing; upsert MCP configs
     python3 install.py --check    # report only, exit 1 if anything is missing

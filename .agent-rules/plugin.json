@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "coding-agent-config",
   "version": "1.0.0",
-  "description": "Host SoT for shared coding-agent skills, MCP, and (non-portable) hooks/rules on this lab GPU host. Portable Agent Plugins core: skills/ + mcp.json. Everything else is host wiring.",
+  "description": "Portable coding-agent fleet (skills, MCP) plus optional lab host overlay. Projects need no own AGENTS.md.",
   "author": {
     "name": "emanuele-artioli",
     "url": "https://github.com/emanuele-artioli"
@@ -20,11 +20,12 @@
     "com.emanuele.coding-agent-config": {
       "role": "host-sot",
       "portable": [
+        "AGENTS.md",
         "skills/",
         "mcp.json"
       ],
       "hostOnly": [
-        "AGENTS.md",
+        "host.md",
         "harness/",
         "agents/",
         "workflows/",
@@ -34,7 +35,7 @@
         "projects.json",
         "enforceable-rules.md"
       ],
-      "notes": "Hooks, subagents, slash workflows, and AGENTS.md are outside Agent Plugins v1 portable core. Clients discover skills/ and mcp.json; install.py still farms them into per-platform paths until clients load this directory as a plugin natively."
+      "notes": "Hooks, subagents, slash workflows, and host.md are outside Agent Plugins v1 portable core. Clients discover skills/ and mcp.json; AGENTS.md is portable prose. install.py still farms into per-platform paths until clients load this directory as a plugin natively."
     }
   }
 }

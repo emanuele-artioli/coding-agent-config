@@ -1,20 +1,30 @@
 {
-  "_comment": "Per-platform low/medium/high model tiers for spinning up a SUBAGENT at a given effort (never applies to a human's own top-level model choice). Consumed by scripts/guardlib/model_family.py as a soft nudge, and meant to be read by the orchestrating agent BEFORE calling Agent/Task so it can pick the right model up front. Cursor 2026-09-01: Task spawn has model only, no effort field; live subagentStart payloads never carry effort; Composer 2.5 has no effort concept. The -high suffix is part of the model slug. Cursor effort keys are unused (effort_settable: false). Claude and Antigravity effort fields remain unverified on those platforms.",
+  "_comment": "SUBAGENT spawn map only (never overrides the human's interactive model). Soft-nudge via scripts/guardlib/model_family.py. Snapshot 2026-09-18: API Pareto is GPT-heavy; this host follows subscription quota. Thinking default is medium; high is optional on Grok/Flash. Cursor Task has no separate effort field (slug suffix). Composer remains in-family for the hard gate but is not a mapped tier. Codex has no model_family adapter yet; slugs here are for parents reading the file.",
+  "snapshot": {
+    "date": "2026-09-18",
+    "source": "Artificial Analysis Intelligence Index vs Cost (API list prices)",
+    "chart": "assets/2026-09-18-intelligence-index-vs-cost-simplified.png"
+  },
   "platforms": {
     "claude": {
-      "low":    {"model": "sonnet", "effort": "low", "verified": false},
-      "medium": {"model": "sonnet", "effort": "medium", "verified": false},
-      "high":   {"model": "opus", "effort": "high", "verified": false}
+      "low":    {"model": "opus", "effort": "medium", "verified": false},
+      "medium": {"model": "opus", "effort": "medium", "verified": false},
+      "high":   {"model": "opus", "effort": "medium", "verified": false}
     },
     "antigravity": {
-      "low":    {"model": "flash", "effort": "low", "verified": true},
+      "low":    {"model": "flash", "effort": "medium", "verified": true},
       "medium": {"model": "flash", "effort": "medium", "verified": true},
       "high":   {"model": "flash", "effort": "high", "verified": true}
     },
     "cursor": {
-      "low":    {"model": "composer-2.5", "verified": true, "effort_settable": false},
-      "medium": {"model": "grok-4.5", "effort": "medium", "verified": true, "effort_settable": false},
-      "high":   {"model": "grok-4.5", "effort": "high", "verified": true, "effort_settable": false}
+      "low":    {"model": "grok-4.6", "effort": "medium", "verified": true, "effort_settable": false},
+      "medium": {"model": "grok-4.6", "effort": "medium", "verified": true, "effort_settable": false},
+      "high":   {"model": "grok-4.6", "effort": "high", "verified": true, "effort_settable": false}
+    },
+    "codex": {
+      "low":    {"model": "luna", "effort": "xhigh", "verified": false},
+      "medium": {"model": "luna", "effort": "xhigh", "verified": false},
+      "high":   {"model": "astra", "effort": "low", "verified": false, "note": "stuck only; often dies mid-prompt"}
     }
   }
 }

@@ -1,11 +1,25 @@
 # coding-agent-config
 
-Shared infrastructure for running a **fleet of AI coding agents** across
-multiple projects without reinventing the same tools, rules, and safety
-guards on every platform.
+Shared infrastructure for a **fleet of AI coding agents** across projects
+and harnesses (Claude Code, Cursor, Antigravity, Codex, Copilot).
 
-This repo is the single source of truth (SoT) for host-wide agent
-configuration used with:
+**Projects do not need their own AGENTS.md, skills, or agents.** Install
+this repo (or its Agent Plugins slice), point the harness at it, and work
+in a normal git checkout. Optional project files can still add science
+rules later.
+
+**This GPU/NFS host is optional.** Portable rules are
+[`.agent-rules/AGENTS.md`](.agent-rules/AGENTS.md). Lab facts are
+[`.agent-rules/host.md`](.agent-rules/host.md) — other machines skip that
+file. Edit [`effort-models.json`](.agent-rules/effort-models.json) for
+your own subscriptions; the checked-in map is the author's.
+
+Deep layout and verification: [`.agent-rules/README.md`](.agent-rules/README.md).
+
+PointStream's project agent files are snapshotted on unmerged branch
+`archive/pointstream-agentic-2026-09-18` (restore only, not a second SoT).
+
+## Platforms on the author's host
 
 | Platform | Status on this host |
 |---|---|
@@ -13,11 +27,27 @@ configuration used with:
 | [Cursor](https://cursor.com) | live (rules via project harness, skills via Claude path, agents, hooks) |
 | [Google Antigravity](https://antigravity.google) | live (rules, skills, workflows); hooks pending verification |
 | GitHub Copilot CLI | skills/agents farmed; hooks unverified |
-| OpenAI Codex | documented paths only — not installed here yet |
+| OpenAI Codex | live (CODEX_HOME on local disk; hook trust still pending-verification) |
 
 Deep layout, hook dialects, verification claims, and living architecture
 diagrams live in **[`.agent-rules/README.md`](.agent-rules/README.md)**. This
 root file is the public overview.
+
+## Which models to use (dated 2026-09-18)
+
+Snapshot from [Artificial Analysis](https://artificialanalysis.ai) on
+**2026-09-18** (simplified set). The axes are **API list price**. The
+author pays **subscriptions**, so do not treat the Pareto line as the
+ranking to follow. Edit `effort-models.json` for your bill. The chart is
+stale the moment a newer one exists.
+
+![Artificial Analysis Intelligence Index vs cost per task, 18 Sep 2026](.agent-rules/assets/2026-09-18-intelligence-index-vs-cost-simplified.png)
+
+Interactive models are set once in each product UI. Subagent slugs and
+stuck-escalation live in [`.agent-rules/effort-models.json`](.agent-rules/effort-models.json).
+The parent plans and dispatches; children self-check. Escalate only when
+stuck. Skill `model-routing`. Family gate (hard) + off-tier nudge (soft):
+`model_family` hooks.
 
 ## The problem
 
@@ -46,9 +76,9 @@ hand-copied drift.
 ### 1. Host-wide rules (`AGENTS.md` + per-agent harness)
 
 - **[`AGENTS.md`](.agent-rules/AGENTS.md)** — tool-agnostic prose every agent
-  should obey (host constraints, git safety, research-test philosophy, long-job
-  checkpointing, knowledge-loop habits). Also the register of mistakes that
-  happened more than once.
+  should obey (git safety, research-test philosophy, long-job checkpointing,
+  knowledge-loop habits). Lab GPU/NFS facts live in `host.md`, not here.
+- **[`host.md`](.agent-rules/host.md)** — this machine only. Other clones skip it.
 - **[`harness/<agent>.md`](.agent-rules/harness/)** — platform mechanics only
   (tool names, backgrounding, where that agent keeps config). Keeps Claude's
   `Monitor` / `run_in_background` advice from being handed to Cursor, where
@@ -57,13 +87,13 @@ hand-copied drift.
 Delivery uses three mechanisms because no single one reaches every consumer:
 
 1. **Import** — `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md` `@`-import the
-   SoT.
-2. **Symlink** — `~/AGENTS.md`, `~/.gemini/AGENTS.md`, … point at the same
-   bytes.
-3. **Inlining** — `scripts/sync_agent_rules.py` maintains a `host-rules` block
-   inside each *project's* `AGENTS.md`, so Copilot's cloud agent and Cursor
-   cloud agents (machines that have never seen this home directory) still get
-   the rules.
+   portable SoT (and `host.md` on this lab).
+2. **Symlink** — `~/AGENTS.md`, `~/.gemini/AGENTS.md`, `$CODEX_HOME/AGENTS.md`
+   point at the same bytes.
+3. **Cursor User Rule** — Cursor does not walk up from a project folder.
+   Point a User Rule at this clone; a project pointer file is optional.
+   **Do not inline fleet rules into a project.** Cloud agents will not see
+   `~`; accepted.
 
 ### 2. Global skills and subagents (skeleton + thin project wrappers)
 
@@ -80,8 +110,12 @@ global folder:
 | Skill | `handoff` | Self-contained handoff doc for another agent/platform with zero shared memory |
 | Skill | `end-of-session` | Close-out: surface knowledge, optional handoff, commit on invoke, ask before push |
 | Skill | `evaluate-candidates` | Apply / discard / defer the central knowledge queue |
+| Skill | `session` | Dispatch / report when the project has no own session skill |
+| Skill | `model-routing` | Dispatch bounded children; escalate only when stuck |
 | Agent | `paper-editor` | Edit manuscripts via project marker conventions |
 | Agent | `gpu-job-runner` | Run long GPU jobs and return a distilled summary |
+| Agent | `budget-default` | Bounded child when the project has no own profiles |
+| Agent | `stuck-escalation` | Fresh child after `STUCK: out of ideas.` |
 
 Projects that need local metrics or paper paths keep a **thin wrapper**
 (project-specific `description` + pointer at the global body). Edit the
@@ -164,13 +198,14 @@ discipline.
 
 ## Who this is for
 
-- People running **more than one** AI coding agent, or one agent across
-  **more than one** project, who are tired of duplicated skills and drifting
-  rules.
-- Anyone who wants host rules to reach **cloud** agents (Copilot / Cursor
-  cloud) that never see `~`.
-- Research / multi-repo setups where the same paper, test, and results
-  workflows should stay generic at the host and thin at the project.
+- Anyone running more than one coding agent, or one agent across more
+  than one repo, including **other people on other machines**.
+- A **single project with no agent files** — global skills and `AGENTS.md`
+  are enough.
+- This lab, which also loads `host.md` for NFS/GPU facts.
+
+Cloud agents still will not see `~`; that is accepted. Do not inline host
+or fleet rules into a project to "fix" that.
 
 ## Learn more / contribute feedback
 

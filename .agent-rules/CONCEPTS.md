@@ -1,7 +1,7 @@
 # Concept catalog — coding-agent-config
 
 Single inventory of toolkit concepts across the host SoT (`.agent-rules/`)
-and research projects that carry `AGENTS.md`.
+and research projects. A project need not ship `AGENTS.md`.
 
 ## How this file is organized
 
@@ -368,10 +368,14 @@ stay in `harness/`, not here.
 
 ### `effort-tier-nudge`
 - **Description:** Soft map low/medium/high → model for subagent spawns via
-  `effort-models.json` (fields partly unverified).
-- **Suggested delivery:** **Hook** (soft) + JSON table.
-- **Ablation test:** Trivial explore spawn — always max model? Drop if unused.
-- **Current:** `effort-models.json` + tier_nudge
+  `effort-models.json`. Subscription ranking (2026-09-18) is not the API
+  Pareto chart. Parent dispatches; escalate only when stuck.
+- **Suggested delivery:** **Hook** (soft) + JSON table + skill `model-routing`
+  + subagent `stuck-escalation`.
+- **Ablation test:** Trivial explore spawn — off-family or Composer? Volume
+  child loops instead of `STUCK`? Drop if unused.
+- **Current:** `effort-models.json` + tier_nudge + `skills/model-routing` +
+  `agents/stuck-escalation.agent.md`
 
 ---
 
