@@ -1,0 +1,15 @@
+# Worker A — restore the residual fidelity path
+
+Assignment: CODEC-ACT-05 plus the runner portion of EVAL-ACT-06. Follow overnight-recovery.md. Own src/runner/client.py, src/runner/run.py, src/runner/stages.py, src/pipeline/residual/ and focused tests. Coordinate shared contracts and codec helper interfaces before editing.
+
+Trace the full path from server prediction to actual transmitted residual bytes to a fresh-process client. Current anchors: frozen_procedure.py disables residual and generation; serialize_client_request rejects residual payloads; _coded_residual returns reconstructed frames and a size rather than preserving the encoded stream. Check whether the independent output is the output actually scored and timed.
+
+Preserve the true server predictor, actual encoded residual, decoder settings and all required side information. Make the byte-only client decode that stream, reconstruct, and supply the scored frames. The receiver must not access source frames or encoder-only arrays. Reconcile its serialized envelope with the byte ledger. Reject unencoded fallback arrays as compressed evidence.
+
+For source x, encoder predictor P_s and receiver predictor P_c, error is (P_c-P_s)+(decoded_residual-(x-P_s)). Audit consistency of decoded references, foreground generation, frame alignment and model/config identity. Same seed does not prove reproducibility across devices. Either verify the supported deterministic path or declare/reject incompatible decoding conditions.
+
+Audit encode_lossy: adding 128 and clipping to uint8 cannot represent all signed differences in [-255,255]. Implement an explicit full-range representation with sign/scale/precision in the format, or clearly separate a clipped mode from a validated high-fidelity mode. A raw int16 calibration is useful but not a compressed operating point. Compute correction against the true predictor: reconstructing the base by subtracting residual from an already clipped sum needs explicit overflow tests. Gating, downscaling and chroma subsampling are additional losses, not just residual codec quantization.
+
+Authorized behavioral tests: zero residual; both +/-255 extrema and saturation; exact uncompressed algebra; coded roundtrip using an available native codec; fresh-process source-free decode and scored-output identity; all-byte ledger reconciliation; absent residual makes zero residual calls/bytes; corrupted/truncated or incompatible payload rejection; generation-enabled predictor consistency. Keep external codec tests explicitly conditional on availability; do not treat skips as native validation. Coordinate the generation-off/residual-off and generation-on/residual-off DAG corner with the coordinator; source fallback must never earn a valid quality score.
+
+Deliver a tested transport repair and tiny native smoke artifact, not a competitive claim. Record limitations and provide a command for a fine residual quality ladder with gating/downscaling disabled. Coordinator handles full sweeps and status documents.

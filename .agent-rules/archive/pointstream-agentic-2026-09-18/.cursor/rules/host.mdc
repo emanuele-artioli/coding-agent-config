@@ -1,0 +1,14 @@
+---
+description: Host rules and Cursor harness — pointers, not copies
+alwaysApply: true
+---
+
+Host-wide rules and Cursor-specific mechanics live on this machine, not in
+this repo. Read both files now if they are not already in context, and follow
+them for the rest of the session:
+
+- `/home/itec/emanuele/.agent-rules/AGENTS.md`
+- `/home/itec/emanuele/.agent-rules/harness/cursor.md`
+
+Do not skip this because a project file looks complete. The project
+`AGENTS.md` is project rules only.

@@ -1,0 +1,31 @@
+# PointStream Codex defaults. Keep this file project-scoped so other projects
+# can choose their own model budget.
+
+[features.multi_agent_v2]
+hide_spawn_agent_metadata = false
+tool_namespace = "agents"
+
+[agents.budget_default]
+description = "Default for bounded child work (Luna extra-high)"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "xhigh"
+
+[agents.expert_retry]
+description = "Fresh child after STUCK or a failed acceptance check (Astra low; quota-thin)"
+model = "gpt-5.6-astra"
+model_reasoning_effort = "low"
+
+[agents.trial_a_start]
+description = "Demo trial A first attempt"
+model = "gpt-5.6-terra"
+model_reasoning_effort = "low"
+
+[agents.trial_a_retry_1]
+description = "Demo trial A first escalation"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "low"
+
+[agents.trial_a_retry_2]
+description = "Demo trial A final escalation"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
