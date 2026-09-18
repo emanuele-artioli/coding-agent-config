@@ -52,26 +52,30 @@ Key capabilities and operational rules:
   for parallel lanes that make filesystem or git changes, preventing parallel
   sessions from stepping on each other. Use `"inherit"` (default) for read-only
   or shared-tree coordination.
-- **Weaker models for subagents**: Subagents support explicit model selection via
+- **Weaker models for juniors**: Subagents support explicit model selection via
   the `Model` parameter (`inherit`, `flash_lite`, `flash`, `pro`). This host
-  maps children to **Flash** (`effort-models.json`). Medium effort is the
-  default; high is optional. There is no Gemini 3.8 Pro on this product;
-  do not pass `pro` expecting 3.8 Pro. `flash_lite` is in-family but off
-  the tier table.
+  maps every rung to **Flash** (`effort-models.json`). There is no Gemini 3.8
+  Pro on this product; do not pass `pro` expecting 3.8 Pro. `flash_lite` is
+  in-family but off the rung table.
 - **Custom subagents**: Defined in `.agents/agents/<name>.md`
   with YAML frontmatter (`name`, `description`, `model`, `effort` / `reasoningEffort`,
-  `subagent: true`). Project ladders (if any) win when the project names them.
-  Read the `model-routing` skill before the first spawn.
+  `subagent: true`). Shared agents: `implementer`, `paper-screener`,
+  `data-condenser`, `paper-editor`, `referee`, `gpu-job-runner`,
+  `stuck-escalation`. Project ladders (if any) win when the project names them.
+  Read skill `session` before the first spawn. There is no report-contract
+  hook on this platform yet — the senior re-runs the junior's check itself.
 - **Communication**: Communicate with spawned subagents via `send_message` using
   their `conversationId`. Do not poll or loop waiting for them; the system
   resumes reactively when a subagent finishes or replies.
 
-## Model family and effort tier (subagent spawns only)
+## Rungs (subagent spawns only)
 
-The interactive model is whatever the user set in the Antigravity UI.
+The interactive model is whatever the user set in the Antigravity UI; that
+session is the senior. Mapped rungs (`effort-models.json`): junior and
+senior are Flash at medium, escalation is Flash at high.
 `invoke_subagent` `Model` values:
-- `flash`: mapped child (Gemini 3.8 Flash). Medium effort default; high optional.
-- `flash_lite`: in-family, off the tier table.
+- `flash`: every mapped rung (Gemini 3.8 Flash); the rung is the effort.
+- `flash_lite`: in-family, off the rung table.
 - `pro`: enum may still exist; there is no 3.8 Pro — do not select it for
   3.8 Pro work.
 - `inherit` (default): inherits the calling session's model.
@@ -84,8 +88,8 @@ Do not follow multi-family skill defaults from other platforms. If Gemini is
 clearly struggling, ask the user; prefer switching platform/session over
 silently crossing family. Live deny wiring (hard, family mismatch only):
 `../scripts/antigravity/guard-model-family.py` (absolute path). The same
-script logs (never blocks) an effort-tier nudge to stderr when a model is
-in-family but off the tier table — no confirmed "ask"-style prompt exists on
+script logs (never blocks) a rung nudge to stderr when a model is
+in-family but off the rung table — no confirmed "ask"-style prompt exists on
 this platform yet. See `../candidates/pending-verification/antigravity.md`.
 
 ## Where Antigravity's own config lives

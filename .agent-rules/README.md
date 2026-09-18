@@ -63,6 +63,7 @@ flowchart LR
     ch_pre_compact[pre-compact]
     ch_session_start[session-start]
     ch_stop[stop]
+    ch_subagent_stop[subagent-stop]
   end
   cursorHooks --> Guard[guardlib / context_nudge]
   Install[install.py symlink farm] -.-> SoT
@@ -107,9 +108,13 @@ those belong in host paths or a future client extension namespace.
 flowchart TB
   subgraph skills[skills/]
     sk_end_of_session[end-of-session]
+    sk_escalate[escalate]
     sk_evaluate_candidates[evaluate-candidates]
+    sk_figure_first[figure-first]
     sk_handoff[handoff]
-    sk_model_routing[model-routing]
+    sk_implementation_plan[implementation-plan]
+    sk_literature_review[literature-review]
+    sk_paper_outline[paper-outline]
     sk_paper_structure[paper-structure]
     sk_results_report[results-report]
     sk_reviewer_response[reviewer-response]
@@ -119,9 +124,12 @@ flowchart TB
     sk_verify_measurement[verify-measurement]
   end
   subgraph agents[agents/]
-    ag_budget_default[budget-default]
+    ag_data_condenser[data-condenser]
     ag_gpu_job_runner[gpu-job-runner]
+    ag_implementer[implementer]
     ag_paper_editor[paper-editor]
+    ag_paper_screener[paper-screener]
+    ag_referee[referee]
     ag_stuck_escalation[stuck-escalation]
   end
   subgraph workflows[workflows/]
@@ -150,6 +158,7 @@ flowchart TB
     sc_install_py[install.py]
     sc_lint_plan_waves_py[lint_plan_waves.py]
     sc_migrate_to_agents_md_py[migrate_to_agents_md.py]
+    sc_paper_markers_lint_py[paper-markers-lint.py]
     sc_paper_sync_reminder_py[paper-sync-reminder.py]
     sc_precompact_stub_py[precompact_stub.py]
     sc_render_architecture_py[render_architecture.py]
@@ -157,10 +166,12 @@ flowchart TB
     sc_sync_agent_rules_py[sync_agent_rules.py]
     sc_sync_host_rules_py[sync_host_rules.py]
     sc_test_install_plugin_py[test_install_plugin.py]
+    sc_test_paper_markers_lint_py[test_paper_markers_lint.py]
     sc_test_precompact_stub_py[test_precompact_stub.py]
     sc_test_sync_agent_rules_py[test_sync_agent_rules.py]
     sc_vendor_sync_agent_rules_sh[vendor-sync-agent-rules.sh]
     sc_verify_py[verify.py]
+    sc_verify_roles_py[verify_roles.py]
     sc_verify_tiering_py[verify_tiering.py]
   end
   subgraph candidates[candidates/]

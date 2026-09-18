@@ -43,11 +43,14 @@ stale the moment a newer one exists.
 
 ![Artificial Analysis Intelligence Index vs cost per task, 18 Sep 2026](.agent-rules/assets/2026-09-18-intelligence-index-vs-cost-simplified.png)
 
-Interactive models are set once in each product UI. Subagent slugs and
-stuck-escalation live in [`.agent-rules/effort-models.json`](.agent-rules/effort-models.json).
-The parent plans and dispatches; children self-check. Escalate only when
-stuck. Skill `model-routing`. Family gate (hard) + off-tier nudge (soft):
-`model_family` hooks.
+Interactive models are set once in each product UI. Subagent rungs live in
+[`.agent-rules/effort-models.json`](.agent-rules/effort-models.json). The map
+has **three rungs — junior, senior, escalation** — and seniority follows
+model size: the senior wrangles context and judgment, a junior is a bounded
+child with a runnable check, and the escalation rung is a fresh child after
+`STUCK` or a failed check. The senior plans and dispatches; juniors
+self-check; escalate only when stuck. Skill `session`. Family gate (hard) +
+off-tier nudge (soft): `model_family` hooks.
 
 ## The problem
 
@@ -103,19 +106,54 @@ global folder:
 
 | Kind | Name | Role |
 |---|---|---|
+| Skill | `session` | The senior's dispatch procedure: routing table, dispatch and report contracts, escalation ladder |
+| Skill | `literature-review` | Read a field and come back with what is known and what is open |
+| Skill | `figure-first` | Decide what a figure must show before any number is pulled |
+| Skill | `implementation-plan` | Turn a goal into bounded, checkable pieces |
+| Skill | `paper-outline` | Lay out the manuscript's sections, claims, and holes |
+| Skill | `escalate` | Hand the problem to the human when two rungs are spent |
 | Skill | `test-design` | Propose behaviour / misuse / deliberately-untested cases before writing tests |
 | Skill | `results-report` | Summarize or compare experiment runs under a project's results dir |
+| Skill | `verify-measurement` | Calibrate and null-control a number before reporting it |
+| Skill | `paper-structure` | Check the manuscript's page, section, and float budget |
 | Skill | `update-paper` | Fold findings into the manuscript + research log |
 | Skill | `reviewer-response` | Close a reviewer checklist item end-to-end |
 | Skill | `handoff` | Self-contained handoff doc for another agent/platform with zero shared memory |
 | Skill | `end-of-session` | Close-out: surface knowledge, optional handoff, commit on invoke, ask before push |
 | Skill | `evaluate-candidates` | Apply / discard / defer the central knowledge queue |
-| Skill | `session` | Dispatch / report when the project has no own session skill |
-| Skill | `model-routing` | Dispatch bounded children; escalate only when stuck |
-| Agent | `paper-editor` | Edit manuscripts via project marker conventions |
-| Agent | `gpu-job-runner` | Run long GPU jobs and return a distilled summary |
-| Agent | `budget-default` | Bounded child when the project has no own profiles |
-| Agent | `stuck-escalation` | Fresh child after `STUCK: out of ideas.` |
+| Agent | `implementer` | Bounded code, test, or doc edit with a runnable check |
+| Agent | `paper-screener` | Screen papers against written criteria |
+| Agent | `data-condenser` | Pull numbers from existing runs into the shape a figure needs |
+| Agent | `paper-editor` | Fill one paper marker with text |
+| Agent | `referee` | Adversarial read of a manuscript before submission |
+| Agent | `gpu-job-runner` | Run a long GPU or CPU job and return a distilled summary |
+| Agent | `stuck-escalation` | Fresh child after `STUCK` or a failed check |
+
+### How the tools work together
+
+The **senior** is the interactive session. It holds the goal, the context,
+and the judgment, and it is the only thing that talks to you. Senior
+procedures are **skills** — a skill is a page the senior reads and follows
+itself.
+
+A **junior** is an agent file: a fresh context, a lower effort rung, and a
+turn cap. It cannot see the senior's conversation, so every dispatch carries
+seven fields — goal, read first, allowed paths, check, budget, report,
+stuck rule — and every report comes back under five headings: Result,
+Changed, Check, Not verified, Assumptions.
+
+The senior then **re-runs the child's check** instead of reading the child's
+work. A `STUCK` or a failed check goes to a *fresh* child on the escalation
+rung — never the same child with a bigger model — and if that one is stuck
+too, the `escalate` skill takes the question to the human.
+
+Code enforces what prose cannot: `scripts/verify_roles.py` checks the
+contracts, the Claude `SubagentStop` hook checks the report headings,
+`scripts/paper-markers-lint.py` checks the manuscript's markers, and
+`maxTurns` in the agent file holds the budget.
+
+To add a role: write an agent file copying the shape of `implementer`, add a
+row to the routing table in the `session` skill, then run `verify_roles.py`.
 
 Projects that need local metrics or paper paths keep a **thin wrapper**
 (project-specific `description` + pointer at the global body). Edit the

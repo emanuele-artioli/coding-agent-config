@@ -1,36 +1,96 @@
 ---
 name: session
-description: Route a task, dispatch a bounded child, or report/close work when no project session skill exists. Use at the start of multi-step work, before spawning subagents, and when finishing a unit of work. Ordinary one-file edits do not need it.
+description: The senior's dispatch procedure. Use at the start of multi-step work, before the first subagent spawn on any harness, when a child reports STUCK or fails its check, and when finishing a unit of work. Holds the routing table, the dispatch contract, the report contract, and the escalation ladder. Ordinary one-file edits do not need it.
 ---
 
-# Session (no project files required)
+# Session: route, dispatch, verify, close
 
-If the project has its own session skill, follow that instead.
+You are the senior. You hold the goal, the context, and the judgment.
+Children hold one bounded task each. Read `effort-models.json` once for
+the rungs on this platform; spawn by agent name and omit `model`.
 
-## Dispatch
+## Route
 
-1. Extract the outcome and constraints.
-2. Read what exists: README, `pyproject.toml`, tests. If `PLAN.md` or
-   `docs/areas/` is present, use the one relevant area. Do not invent a
-   project docs tree.
-3. Child prompt (when you spawn): goal, allowed paths, success check the
-   child can run alone, stuck rule (`STUCK: out of ideas.`). Worktree and
-   branch if the child writes in parallel.
-4. Parent keeps integration and hard judgment. Children report short.
+| Need | Call |
+|---|---|
+| find things in a repo, read-only | the harness's explore agent |
+| bounded code, test, or doc edit with a runnable check | `implementer` |
+| screen papers against written criteria | `paper-screener` |
+| pull numbers from existing runs into the shape a figure needs | `data-condenser` |
+| fill one paper marker with text | `paper-editor` |
+| adversarial read of a manuscript before submission | `referee` |
+| long GPU or CPU job | `gpu-job-runner` |
+| after `STUCK` or a failed check | `stuck-escalation` |
 
-Reuse existing evidence before new runs. A folder name or a newer patch
-does not certify old numbers. Missing timing is not a reason to rerun a
-finished rate/quality measurement. Smallest probe that fills the gap.
-`verify-measurement` before claiming a ranking. `model-routing` before
-the first spawn. Check the child's reported model before accepting.
-Long jobs: checkpoints and progress lines, not a periodic agent poll.
+Senior procedures are skills: `literature-review`, `figure-first`,
+`implementation-plan`, `paper-outline`, `escalate` (report to the human),
+`end-of-session`. A project's own session skill wins over this one.
 
-## Report
+## Dispatch contract
 
-What changed, how you checked it, what is still open. For experiments:
-command, config identity, size/quality/time if those axes exist.
+Every child prompt carries these seven fields. A child cannot see this
+conversation, so the prompt must stand alone.
+
+1. **Goal.** One sentence naming the outcome.
+2. **Read first.** The exact files to read. Nothing else is context.
+3. **Allowed paths.** What may be written. No git commands; the senior
+   commits.
+4. **Check.** One command the child runs alone, and the pass condition.
+   Write it so you can re-run it yourself in one call.
+5. **Budget.** Turns, files, minutes, or items. At the budget the child
+   stops and reports, whatever state it is in.
+6. **Report.** The report contract below, verbatim headings.
+7. **Stuck rule.** If out of ideas before the budget, stop and return
+   `STUCK: out of ideas.` plus what was tried.
+
+Independent children run in parallel in one message, on disjoint paths.
+A child that must write in the same files as another waits.
+
+## Report contract
+
+The child's last message uses exactly these headings:
+
+```
+## Result: PASS | FAIL | STUCK
+## Changed
+## Check
+## Not verified
+## Assumptions
+```
+
+Under **Check** the child pastes the command and the last lines of its
+real output. **Not verified** lists what the check does not cover, or
+`nothing`. A report missing a heading, or with no pasted output, is a
+FAIL whatever its Result line says. On Claude a SubagentStop hook flags
+that automatically.
+
+## Intake: verify the claim, not the work
+
+1. Re-run the check yourself. One call. If it fails, the task failed,
+   whatever the report says.
+2. Read **Not verified** and **Assumptions**. Anything there that touches
+   the goal is your job now, not the child's.
+3. Do not read the diff. The exceptions are a failed check and an
+   artifact that is itself the product (a paragraph, a summary table).
+   For a batch of such artifacts, sample a few and reject the batch if
+   one is wrong.
+4. Record the runtime model and effort if the harness reports them.
+
+A child that exhausts its budget without a passing check is stuck, even
+when it did not say so.
+
+## Escalation ladder
+
+`STUCK` or a failed check after intake: spawn a **fresh** child on the
+`escalation` rung with the same seven fields plus what the first child
+tried. Never resume the stuck child to change its model. If the second
+child is also stuck, or the failure is a design question, stop and run
+`escalate`. Do not loop. File a candidate when the cause was a missing
+rule, not a hard task.
 
 ## Close
 
-`end-of-session` when the user is done or the session should hand off.
-Do not retire worktrees without asking.
+Report to the human: what changed, how it was checked, what is open.
+For experiments: command, config identity, and size, quality, time when
+those axes exist. `end-of-session` when the user is done. Do not retire
+worktrees without asking.

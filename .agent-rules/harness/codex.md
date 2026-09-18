@@ -19,14 +19,18 @@ For work that must survive SSH or app-server loss, use `setsid`/`nohup`, checkpo
 
 The shell hook blocks unrecoverable git operations and protected-path removal, and adds advisory context for long runs and branch discipline. Hooks are guardrails, not a complete security boundary.
 
-## Models
+## Rungs
 
-Subagent map in `../effort-models.json` (no `model_family` adapter on this
-platform yet). Ordinary children: Luna extra-high. Stuck escape: Astra low
-or medium, rarely — it often dies mid-prompt. The interactive model is
-whatever the user set in the Codex UI (Sol medium is the intended parent).
-Codex custom subagents are TOML `[agents]`, not the shared markdown files.
-Read the `model-routing` skill before spawning helpers.
+Rung map in `../effort-models.json` (no `model_family` adapter on this
+platform yet). Junior: Luna extra-high. Senior: Sol medium — the
+interactive model, whatever the user set in the Codex UI. Escalation:
+Astra low, rarely — it often dies mid-prompt. `agents.job_max_runtime_seconds`
+in `config.toml` is the mechanical budget for a junior. Codex custom
+subagents are TOML `[agents]`, not the shared markdown files; the shared
+agents are `implementer`, `paper-screener`, `data-condenser`,
+`paper-editor`, `referee`, `gpu-job-runner`, `stuck-escalation`. Read skill
+`session` before spawning helpers. There is no report-contract hook on this
+platform yet — the senior re-runs the junior's check itself.
 
 ## Knowledge loop
 

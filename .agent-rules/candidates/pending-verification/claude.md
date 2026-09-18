@@ -109,3 +109,21 @@ from a Claude Code session after live verification.
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm from a Claude Code session that executing
   `git merge`, `git pull`, or `gh pr merge` executes post-merge cleanup, deletes clean fully-merged linked worktrees
   and local branches, and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
+- [ ] **Junior rung via agent-file `effort` (added 2026-09-18).** Vendor docs now
+  list `effort: low|medium|high|xhigh|max` in subagent frontmatter and nesting up
+  to three layers; this supersedes the closed 'Effort-settability' item above.
+  `implementer` and the other junior files carry `effort: low`, `stuck-escalation`
+  carries `effort: xhigh`. Confirm from a fresh Claude session that (a) `implementer`
+  is spawnable by name, (b) the harness reports the child at low effort, (c) the
+  `SubagentStop` hook `scripts/claude/subagent-stop.py` injects a system message
+  when a child's last message lacks the report headings.
+  2026-09-18, same session that authored it: (a) closed live, `implementer`
+  was spawned by name and completed a bounded task; it became available
+  about ten minutes after `install.py` linked the file, without a restart.
+  (b) not closable: the `Agent` result reports tokens, tool uses and
+  duration, not model or effort, and the child cannot see its own effort.
+  (c) still open: the `SubagentStop` entry was added to `~/.claude/settings.json`
+  mid-session and a probe child that skipped the headings produced no system
+  message, consistent with hooks being snapshotted at session start. Re-run
+  the probe from a fresh session: spawn `implementer` with "reply `probe done`
+  only" and expect a report-contract system message.

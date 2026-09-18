@@ -79,25 +79,25 @@ nothing and then hits the block deadline. Use it for env activation only.
 ## Subagents
 
 `Task` subagents each get their own context window. Use `explore` for
-broad codebase questions, `budget-default` when the project has no
-profiles, and named agents (`gpu-job-runner`, `paper-editor`,
-`stuck-escalation`, and whatever a project adds) for the jobs they were
-written for. A background subagent notifies on completion — never
-`AwaitShell` or sleep waiting for one.
+broad codebase questions and a named agent for the job it was written
+for: `implementer`, `paper-screener`, `data-condenser`, `paper-editor`,
+`referee`, `gpu-job-runner`, `stuck-escalation`, plus whatever a project
+adds. A background subagent notifies on completion — never `AwaitShell`
+or sleep waiting for one.
 
 Split genuinely independent workstreams across parallel subagents in one
 message, per the host-wide plan-mode rule; keep sequential work in one agent.
 
-Read the `model-routing` skill before the first `Task` spawn. If the project
-`AGENTS.md` names a subagent ladder, follow that. Spawn those children by
+Read skill `session` before the first `Task` spawn. If the project
+`AGENTS.md` names its own ladder, follow that. Spawn juniors by
 `subagent_type` and omit `model` so the file's frontmatter `model` applies;
 an inline Task `model` currently wins over Explore-settings and can fight
 the profile. Custom subagent files use YAML frontmatter; bracket options
 (`composer-2.5[fast=false]`) work there, while the Task `model` enum only
 accepts exact live slugs. Cursor has no separate subagent `effort` field —
-Grok effort is the slug (`cursor-grok-4.6-medium` or `-high`). Escalate with
+the slug is the effort (`cursor-grok-4.6-medium` or `-high`). Escalate with
 a fresh `stuck-escalation` child after `STUCK: out of ideas.` or a failed
-acceptance check, not by resuming the previous child.
+check, not by resuming the previous child.
 
 Global SoT agents live in `../agents/<name>.agent.md` and are linked into
 `~/.cursor/agents/<name>.md` by `../scripts/install.py`. Shared project
@@ -107,29 +107,33 @@ when that tree exists. A project-only ladder may be real files in
 Claude-oriented `tools:` frontmatter on those files is ignored here —
 Cursor uses its own tool set; keep the prompt body tool-agnostic.
 
-## Model family and effort tier (subagent spawns only)
+## Rungs (subagent spawns only)
 
-The interactive model is whatever the user set in the Cursor UI. Subagent
-spawns stay Grok 4.6 (`effort-models.json`). Medium is the mapped default;
-the `-high` slug is optional thinking, not a different model family. Omit
-`model` when the child should match the parent. Do not pin versioned slugs
-in host prompts. This never overrides the user's session model.
+The interactive model is whatever the user set in the Cursor UI; that
+session is the senior. Mapped rungs (`effort-models.json`): junior and
+senior are `cursor-grok-4.6-medium`, escalation is the `-high` slug. There
+is no effort field here — the slug is the effort, and `-high` is optional
+thinking, not a different model family. Omit `model` when the junior should
+match the senior. Do not pin versioned slugs in host prompts. This never
+overrides the user's session model.
 
 Never pass Claude / GPT (or other off-family) models because a skill table
 said so. The Cursor marketplace **pstack** plugin’s multi-family defaults
 (`/setup-pstack`, arena / interrogate panels) ignore which IDE you are on
 and are **untrusted** here — do not follow them. `before-task.py` on
 `preToolUse`/`Task` and `subagentStart` hard-denies off-family spawns; when
-a model is in-family but off the tier table it still returns
+a model is in-family but off the rung table it still returns
 `{"permission": "allow"}` and logs the nudge to
 `~/.cursor/model-family-hook.log` (also echoed as `agent_message`). Live
 2026-07-28: `{"permission": "ask"}` on this hook is rejected by Cursor
 ("ask … for preToolUse hooks is not yet implemented") — so do not use ask
 here until that lands. `ask` remains valid for `beforeShellExecution`.
-Tier matching accepts Cursor’s live slugs (`cursor-grok-4.6-medium` ≡
+Rung matching accepts Cursor’s live slugs (`cursor-grok-4.6-medium` ≡
 `grok-4.6`); product variants like `composer-2.5-fast` / `grok-4.6-fast`
 still nudge. Composer stays in-family for the hard gate but is off the
-tier table.
+rung table. A `subagentStop` adapter `scripts/cursor/subagent-stop.py`
+exists for the report contract; its wiring in `~/.cursor/hooks.json` and
+the payload field name are pending verification from a Cursor session.
 
 If in-house models are clearly struggling, ask the user; prefer switching
 platform/session over silently crossing family. Settings hygiene: Explore

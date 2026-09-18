@@ -4,7 +4,7 @@ created: 2026-09-10
 source_platform: antigravity
 source_project: /home/itec/emanuele/pointstream
 axis: platform
-status: open
+status: discarded
 summary: Antigravity, Claude, and Codex support parallel subagents alongside Cursor when configured with weaker models
 suggested_action: update harness files and session skills to reflect that parallel wave execution is supported across all major harnesses using cheaper model tiers
 verify_platforms: [antigravity, cursor, claude, codex]
@@ -24,3 +24,5 @@ Always configure subagents running parallel lanes or multi-agent waves to use
 weaker/cheaper models (e.g. `flash_lite`/`flash` on Antigravity, `composer-2.5`
 on Cursor, `haiku`/`sonnet` on Claude) to conserve token budgets and avoid
 runaway context costs.
+
+Discarded 2026-09-18: recommends Haiku, Sonnet, and Composer for parallel lanes, which the locked 2026-09-18 decision rejects; parallel lanes use the junior rung in effort-models.json.

@@ -105,3 +105,8 @@ trigger a SessionStart reminder.
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm that merging/pulling a branch in Cursor
   automatically triggers post-merge cleanup, deletes clean fully-merged linked worktrees and local branches,
   and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
+- [ ] **subagentStop report-contract adapter (added 2026-09-18).**
+  `scripts/cursor/subagent-stop.py` is authored, not wired. From a Cursor session:
+  add a `subagentStop` entry in `~/.cursor/hooks.json`, confirm the payload field
+  that carries the child's final message, and confirm the advisory output reaches
+  the parent.

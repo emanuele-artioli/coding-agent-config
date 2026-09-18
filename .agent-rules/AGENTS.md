@@ -71,10 +71,11 @@ hook.
 
 ## No project files required
 
-Ordinary edits need no dispatch ceremony. For multi-step work, the parent
-reads the repo as it is (README, tests, existing docs). Child prompts
-still carry: goal, allowed paths, success check, stuck rule. Skills
-`session` and `model-routing`. Close with `end-of-session`.
+Ordinary edits need no dispatch ceremony. For multi-step work the senior
+(the parent session) reads the repo as it is (README, tests, existing
+docs), then dispatches juniors with the seven-field prompt from skill
+`session` and re-runs their check instead of reading their work. Close
+with `end-of-session`.
 
 <!-- scope: tests/**, **/tests/**, **/test_*.py, **/*_test.py, conftest.py, **/conftest.py -->
 ## Research code — tests are a failsafe, not a formality
@@ -124,17 +125,16 @@ a periodic agent poll loop; wake on actionable events.
 entry failed.** Compare results produced against entries submitted;
 never read exit 0 as "the wave completed".
 
-## Match model capability to the task
+## Seniority follows model size
 
-Stay on this platform's in-house family. Subagent slugs:
-`effort-models.json` (this author's map — edit it for your bill). The
-parent gathers context, plans, and dispatches bounded children with a
-success check; it keeps high-level state and reports, not every child
-trace. A child that is out of ideas returns `STUCK: out of ideas.` —
-do not loop, and do not re-read every child diff with a smarter model.
-Check the child's actual model (and effort, if the harness reports it)
-before treating the report as that profile's result. Do not spawn another
-vendor's model from this session. Dated API chart: repo README.
+Stay on this platform's in-house family. Three rungs in
+`effort-models.json` (this author's map — edit it for your bill): junior
+for bounded children, senior for the parent session, escalation for a
+fresh child after `STUCK: out of ideas.` or a failed check. The senior
+holds context and judgment; a junior holds one task, a runnable check,
+and a budget. Verify the claim, not the work: re-run the check, do not
+re-read the diff. Never resume a stuck child to change its model, never
+loop, never spawn another vendor's model. Dated API chart: repo README.
 
 ## Plan mode: split complex plans into parallel-agent waves
 

@@ -84,22 +84,33 @@ and pointers that name the specific body file. Unverified whether other
 platforms couple read-before-edit the same way; see the pending-verification
 checklists.
 
-## Model family and effort tier (subagent spawns only)
+## Rungs (subagent spawns only)
 
-The interactive model is whatever the user set in the Claude UI. Subagent
-spawns use `opus` at medium (`effort-models.json`). Omitting `model`
-inherits the parent. Do not pin versioned slugs — the file uses stable
-aliases (`haiku` / `sonnet` / `opus`). Haiku and Sonnet are in-family but
-off the tier table (soft ask). This never overrides the user's session
-model.
+The interactive model is whatever the user set in the Claude UI; that
+session is the senior. Mapped rungs (`effort-models.json`): junior Opus
+low, senior Opus at the session effort, escalation Opus xhigh. The `Agent`
+tool has no effort parameter, so spawn a junior by agent name and omit
+`model` — effort comes from the agent file's frontmatter, `effort: low`
+plus a `maxTurns:` budget on juniors and `effort: xhigh` on
+`stuck-escalation`. A new agent file is not spawnable at once: on
+2026-09-18 `implementer` appeared in the `Agent` tool about ten minutes
+after `install.py` linked it, without a restart. Hook entries in
+`settings.json` are snapshotted at session start, so a new hook needs a
+fresh session. Do not pin versioned slugs — the file
+uses stable aliases (`haiku` / `sonnet` / `opus`). Haiku and Sonnet are
+in-family but off the rung table (soft ask). This never overrides the
+user's session model.
 
 Do not pass Grok, GPT, Gemini, or other off-family models unless the user
 explicitly redirects the work. If Claude is clearly struggling on a task,
 ask the user; prefer another platform/session over silently crossing family.
 Live deny wiring (hard, family mismatch only): `../scripts/guard-model-family.py`.
 The same script also asks for confirmation (soft — never blocks) when a
-requested model is in-family but off the tier table, so a deliberate
-off-tier pick still goes through once you confirm. See
+requested model is in-family but off the rung table, so a deliberate
+off-rung pick still goes through once you confirm. A `SubagentStop` hook,
+`scripts/claude/subagent-stop.py`, checks the child's last message against
+the report contract in skill `session` and warns the senior as a system
+message; advisory, fail-open. See
 `../candidates/pending-verification/claude.md`.
 
 ## Where Claude's own config lives
@@ -113,6 +124,8 @@ off-tier pick still goes through once you confirm. See
   directory and reads the target's `SKILL.md`, which is what makes the
   symlink farm work.
 - Subagents: `~/.claude/agents/<name>.md`, symlinked into `../agents/`.
+  Shared agents: `implementer`, `paper-screener`, `data-condenser`,
+  `paper-editor`, `referee`, `gpu-job-runner`, `stuck-escalation`.
 - Hooks: `~/.claude/settings.json`, keyed by event name (`PreToolUse`,
   `PostToolUse`, `UserPromptSubmit`, `Stop`, `SessionStart`, …), invoking the
   Claude-dialect entry points in `../scripts/`. User- and project-level hooks

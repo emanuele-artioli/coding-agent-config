@@ -263,6 +263,16 @@ Absorbs `paper-as-progress-log`, `skill-update-paper`, `agent-paper-editor`,
 - **Current:** project AGENTS + skills + paper-editor + Stop hooks — catalog
   says thin facts first
 
+### `paper-markers-lint`
+- **Description:** Every `CLAIM` in the manuscript names an existing `src=`
+  path, no `HOLE` survives inside its `CLAIM`, and marker ids are unique.
+- **Suggested delivery:** **Standalone gate** —
+  `scripts/paper-markers-lint.py <paper-dir>`, run before a paper edit lands.
+- **Ablation test:** A `HOLE` cleared without the data having landed — is it
+  caught?
+- **Current:** `scripts/paper-markers-lint.py` + skills `update-paper` /
+  `paper-outline`
+
 ---
 
 ## Scope: Orchestration
@@ -284,6 +294,20 @@ Absorbs `paper-as-progress-log`, `skill-update-paper`, `agent-paper-editor`,
 - **Ablation test:** “Start work while another session is on main.” Without:
   same checkout / clobber?
 - **Current:** project AGENTS on presley, pointstream, TIGAS
+
+### `report-contract`
+- **Description:** A junior's last message carries five fixed headings
+  (Result / Changed / Check / Not verified / Assumptions) and pastes the real
+  output of its check; the senior re-runs that check instead of reading the
+  child's work. A report with a missing heading or no pasted output is a FAIL
+  whatever its Result line says.
+- **Suggested delivery:** **Hook** (soft) on Claude `SubagentStop`; Cursor
+  `subagentStop` adapter pending; plus `scripts/verify_roles.py` as a
+  **standalone gate** over the skill and agent files.
+- **Ablation test:** A child that bluffs success without pasted output — is
+  it caught?
+- **Current:** `skills/session` report contract +
+  `scripts/guardlib/report_contract.py` + `scripts/verify_roles.py`
 
 ---
 
@@ -367,14 +391,15 @@ stay in `harness/`, not here.
 - **Current:** `model_family.py` + adapters
 
 ### `effort-tier-nudge`
-- **Description:** Soft map low/medium/high → model for subagent spawns via
-  `effort-models.json`. Subscription ranking (2026-09-18) is not the API
-  Pareto chart. Parent dispatches; escalate only when stuck.
-- **Suggested delivery:** **Hook** (soft) + JSON table + skill `model-routing`
+- **Description:** Soft map of three rungs — junior / senior / escalation →
+  model and effort for subagent spawns via `effort-models.json`. Subscription
+  ranking (2026-09-18) is not the API Pareto chart. The senior dispatches;
+  escalate only when stuck.
+- **Suggested delivery:** **Hook** (soft) + JSON table + skill `session`
   + subagent `stuck-escalation`.
-- **Ablation test:** Trivial explore spawn — off-family or Composer? Volume
+- **Ablation test:** Trivial explore spawn — off-family or off-rung? Junior
   child loops instead of `STUCK`? Drop if unused.
-- **Current:** `effort-models.json` + tier_nudge + `skills/model-routing` +
+- **Current:** `effort-models.json` + tier_nudge + `skills/session` +
   `agents/stuck-escalation.agent.md`
 
 ---
