@@ -9,7 +9,7 @@ Read this after `../AGENTS.md`. Codex-only mechanics live here; shared policy st
 - User skills load from `~/.agents/skills/<name>/SKILL.md`; repository skills load from `.agents/skills`. Codex follows symlinked skill directories.
 - Global hooks are `$CODEX_HOME/hooks.json`, linked to `codex-hooks.json` beside this file. Review changed hooks with `/hooks`.
 - User MCP configuration lives in `$CODEX_HOME/config.toml`. The shared MCP catalog is currently empty; preserve unrelated Codex entries.
-- Codex custom subagents are TOML roles under `[agents]`, not Claude/Cursor Markdown agents. Do not claim shared `agents/*.agent.md` parity until mappings exist. When running parallel subagents or roles, configure them to use weaker/cheaper models to conserve token budgets.
+- Codex custom subagents are TOML roles under `[agents]`, not Claude/Cursor Markdown agents. Do not claim shared `agents/*.agent.md` parity until mappings exist.
 
 ## Shell and waiting
 
@@ -18,6 +18,15 @@ Unified exec returns a session id for a continuing process. Use `write_stdin` wi
 For work that must survive SSH or app-server loss, use `setsid`/`nohup`, checkpoint at least hourly, and append progress at least every ten minutes.
 
 The shell hook blocks unrecoverable git operations and protected-path removal, and adds advisory context for long runs and branch discipline. Hooks are guardrails, not a complete security boundary.
+
+## Models
+
+Subagent map in `../effort-models.json` (no `model_family` adapter on this
+platform yet). Ordinary children: Luna extra-high. Stuck escape: Astra low
+or medium, rarely — it often dies mid-prompt. The interactive model is
+whatever the user set in the Codex UI (Sol medium is the intended parent).
+Codex custom subagents are TOML `[agents]`, not the shared markdown files.
+Read the `model-routing` skill before spawning helpers.
 
 ## Knowledge loop
 

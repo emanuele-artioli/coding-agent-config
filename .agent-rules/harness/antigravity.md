@@ -53,33 +53,30 @@ Key capabilities and operational rules:
   sessions from stepping on each other. Use `"inherit"` (default) for read-only
   or shared-tree coordination.
 - **Weaker models for subagents**: Subagents support explicit model selection via
-  the `Model` parameter (`inherit`, `flash_lite`, `flash`, `pro`). Parallel
-  workstreams, exploratory research, and bounded edits should always be set up
-  with weaker/lighter models (`flash_lite` or `flash`) to conserve token and
-  context budgets. Reserve `pro` or `inherit` for tasks requiring deep reasoning,
-  complex architectural trade-offs, or large refactors.
-- **Custom subagents & cost-first ladder**: Defined in `.agents/agents/<name>.md`
+  the `Model` parameter (`inherit`, `flash_lite`, `flash`, `pro`). This host
+  maps children to **Flash** (`effort-models.json`). Medium effort is the
+  default; high is optional. There is no Gemini 3.8 Pro on this product;
+  do not pass `pro` expecting 3.8 Pro. `flash_lite` is in-family but off
+  the tier table.
+- **Custom subagents**: Defined in `.agents/agents/<name>.md`
   with YAML frontmatter (`name`, `description`, `model`, `effort` / `reasoningEffort`,
-  `subagent: true`). Standard cost-first ladder uses `budget-default` (Gemini 3.8 Flash /
-  low effort) by default, escalating to `expert-retry` (Gemini 3.8 Flash / high effort)
-  only after a declared acceptance check fails.
+  `subagent: true`). Project ladders (if any) win when the project names them.
+  Read the `model-routing` skill before the first spawn.
 - **Communication**: Communicate with spawned subagents via `send_message` using
   their `conversationId`. Do not poll or loop waiting for them; the system
   resumes reactively when a subagent finishes or replies.
 
 ## Model family and effort tier (subagent spawns only)
 
-Before spawning subagent work, assess the effort its task needs
-(low/medium/high). Antigravity's `invoke_subagent` accepts an explicit `Model`
-parameter:
-- `flash_lite`: very light model, best for simple lookups, quick searches, or file checks.
-- `flash`: smaller, faster model, best for bounded coding, tests, or exploratory analysis.
-- `pro`: larger model, currently stale, do not select.
+The interactive model is whatever the user set in the Antigravity UI.
+`invoke_subagent` `Model` values:
+- `flash`: mapped child (Gemini 3.8 Flash). Medium effort default; high optional.
+- `flash_lite`: in-family, off the tier table.
+- `pro`: enum may still exist; there is no 3.8 Pro — do not select it for
+  3.8 Pro work.
 - `inherit` (default): inherits the calling session's model.
 
-For parallel workstreams and routine subagent lanes, always prefer weaker models
-(`flash_lite` or `flash`) over flagship models to keep resource consumption
-sustainable. If you must pass a custom model string, use only the Gemini family.
+If you must pass a custom model string, use only the Gemini family.
 Do not pin versioned slugs — they go stale. This never applies to your own
 top-level session model, which the user picks freely.
 

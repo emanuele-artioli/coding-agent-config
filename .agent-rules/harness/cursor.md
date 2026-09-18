@@ -3,17 +3,16 @@
 Cursor-specific mechanics, to sit alongside the tool-agnostic host rules in
 `../AGENTS.md`.
 
-**How this file reaches Cursor.** Cursor has no user-level rules file — a
-`~/.cursor/rules/` directory is *not* read (confirmed against Cursor's docs
-and its own forum: global `.mdc` support does not exist), and User Rules live
-only in Settings → Rules as plain text synced to the account. So each
-project that Cursor opens must *point* at this file: an `alwaysApply`
-`.cursor/rules/*.mdc` whose body is a Read/`@` pointer, not a copy. Host
-prose is the same idea — point at `../AGENTS.md`, do not inline it.
-Pointstream is on this layout; other projects may still have a generated
-`cursor-harness.mdc` until the TODO in
-`../candidates/open/platform/2026-08-23-pointer-not-inline-host-rules.md`
-lands.
+**How this file reaches Cursor.** Cursor has no user-level rules file —
+`~/.cursor/rules/` is not read. User Rules live in Settings as plain
+text. Projects **need not** ship a pointer file. On this lab, paste the
+User Rule in `../host.md`. Elsewhere, point a User Rule at this clone's
+`AGENTS.md` and `harness/cursor.md`. Opening this repo also loads them.
+A project `.mdc` that only points here is optional, never a copy.
+
+NFS timings, `/var/tmp` editor-server paths, and parent-repo git-panel
+hangs in this file apply **only when `host.md` is loaded**. Skip them on
+a local disk. Wait-loop, subagent, and model-family rules still apply.
 
 ## Shell calls still pay a per-call tax — prefer the file tools
 
@@ -79,25 +78,26 @@ nothing and then hits the block deadline. Use it for env activation only.
 
 ## Subagents
 
-`Task` subagents each get their own context window. Use `explore` for broad
-codebase questions, and the project's own registered agents (`gpu-job-runner`,
-`paper-editor`, and whatever a project adds) for the jobs they were written
-for. A background subagent notifies on completion — never `AwaitShell` or
-sleep waiting for one.
+`Task` subagents each get their own context window. Use `explore` for
+broad codebase questions, `budget-default` when the project has no
+profiles, and named agents (`gpu-job-runner`, `paper-editor`,
+`stuck-escalation`, and whatever a project adds) for the jobs they were
+written for. A background subagent notifies on completion — never
+`AwaitShell` or sleep waiting for one.
 
 Split genuinely independent workstreams across parallel subagents in one
 message, per the host-wide plan-mode rule; keep sequential work in one agent.
 
-If the project `AGENTS.md` names a subagent ladder (PointStream:
-`.cursor/agents/` `budget-default` then `expert-retry`), follow that instead
-of the generic `effort-models.json` mapping. Spawn those children by
+Read the `model-routing` skill before the first `Task` spawn. If the project
+`AGENTS.md` names a subagent ladder, follow that. Spawn those children by
 `subagent_type` and omit `model` so the file's frontmatter `model` applies;
 an inline Task `model` currently wins over Explore-settings and can fight
 the profile. Custom subagent files use YAML frontmatter; bracket options
 (`composer-2.5[fast=false]`) work there, while the Task `model` enum only
 accepts exact live slugs. Cursor has no separate subagent `effort` field —
-Grok effort is the slug (`cursor-grok-4.6-low`). Escalate with a fresh child
-after a failed acceptance check, not by resuming the cheaper one.
+Grok effort is the slug (`cursor-grok-4.6-medium` or `-high`). Escalate with
+a fresh `stuck-escalation` child after `STUCK: out of ideas.` or a failed
+acceptance check, not by resuming the previous child.
 
 Global SoT agents live in `../agents/<name>.agent.md` and are linked into
 `~/.cursor/agents/<name>.md` by `../scripts/install.py`. Shared project
@@ -109,17 +109,11 @@ Cursor uses its own tool set; keep the prompt body tool-agnostic.
 
 ## Model family and effort tier (subagent spawns only)
 
-Before spawning a `Task` subagent, assess the effort its task needs
-(low/medium/high) and pass the `model` value mapped for that tier in
-`../effort-models.json` (today: low=Composer 2.5, medium/high=Grok 4.5),
-unless the project documents a cost-first ladder — then follow that
-instead. Omitting `model` so the subagent inherits the parent session
-(this host's in-house Cursor models: Grok / Composer) remains correct when
-the subagent's task is roughly the same effort as the parent's own and no
-project profile applies. Do not pin versioned slugs in host prompts — they
-go stale; project profile files may pin live slugs the way Codex
-`config.toml` does. This never applies to your own top-level session
-model, which the user picks freely.
+The interactive model is whatever the user set in the Cursor UI. Subagent
+spawns stay Grok 4.6 (`effort-models.json`). Medium is the mapped default;
+the `-high` slug is optional thinking, not a different model family. Omit
+`model` when the child should match the parent. Do not pin versioned slugs
+in host prompts. This never overrides the user's session model.
 
 Never pass Claude / GPT (or other off-family) models because a skill table
 said so. The Cursor marketplace **pstack** plugin’s multi-family defaults
@@ -132,9 +126,10 @@ a model is in-family but off the tier table it still returns
 2026-07-28: `{"permission": "ask"}` on this hook is rejected by Cursor
 ("ask … for preToolUse hooks is not yet implemented") — so do not use ask
 here until that lands. `ask` remains valid for `beforeShellExecution`.
-Tier matching accepts Cursor’s live slugs (`cursor-grok-4.5-high` ≡
-`grok-4.5`); product variants like `composer-2.5-fast` / `grok-4.5-fast`
-still nudge.
+Tier matching accepts Cursor’s live slugs (`cursor-grok-4.6-medium` ≡
+`grok-4.6`); product variants like `composer-2.5-fast` / `grok-4.6-fast`
+still nudge. Composer stays in-family for the hard gate but is off the
+tier table.
 
 If in-house models are clearly struggling, ask the user; prefer switching
 platform/session over silently crossing family. Settings hygiene: Explore

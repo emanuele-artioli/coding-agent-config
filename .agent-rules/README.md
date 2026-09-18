@@ -1,10 +1,13 @@
 # Cross-agent shared rules and tools
 
-Single source of truth for the configuration shared by every coding agent on
-this host: Claude Code, Cursor, Google Antigravity, and GitHub Copilot CLI
-(skills/agents farmed; hooks unverified). OpenAI Codex is installed and wired through its active CODEX_HOME; live hook trust and fresh-session discovery remain tracked under candidates/pending-verification/codex.md. Each agent's own native config is either a symlink into
-this repo, a thin wrapper importing it, or a generated file. **Edit content
-only in this directory, never in a per-agent copy.**
+Portable fleet SoT (`AGENTS.md`, skills, agents, hook policy) plus optional
+**this-machine** overlay (`host.md`). Other clones skip `host.md`. Projects
+need no own AGENTS.md. PointStream project agent files live on unmerged
+branch `archive/pointstream-agentic-2026-09-18` (restore only).
+
+Each agent's native config is a symlink into this directory, a thin
+wrapper, or a generated file. **Edit portable content here, never in a
+per-agent copy.** Lab NFS/GPU facts: `host.md` only.
 
 This repo is also an **[Agent Plugins](https://agent-plugins.org) v1**
 package for its portable slice (`plugin.json` + `skills/` + `mcp.json`).
@@ -106,14 +109,20 @@ flowchart TB
     sk_end_of_session[end-of-session]
     sk_evaluate_candidates[evaluate-candidates]
     sk_handoff[handoff]
+    sk_model_routing[model-routing]
+    sk_paper_structure[paper-structure]
     sk_results_report[results-report]
     sk_reviewer_response[reviewer-response]
+    sk_session[session]
     sk_test_design[test-design]
     sk_update_paper[update-paper]
+    sk_verify_measurement[verify-measurement]
   end
   subgraph agents[agents/]
+    ag_budget_default[budget-default]
     ag_gpu_job_runner[gpu-job-runner]
     ag_paper_editor[paper-editor]
+    ag_stuck_escalation[stuck-escalation]
   end
   subgraph workflows[workflows/]
     wf_repo_hygiene[repo-hygiene]
@@ -121,14 +130,19 @@ flowchart TB
   subgraph harness[harness/]
     ha_antigravity[antigravity]
     ha_claude[claude]
-    ha_cursor[cursor]
     ha_codex[codex]
+    ha_cursor[cursor]
   end
   subgraph scripts[scripts/ (top-level)]
     sc_antigravity[antigravity]
+    sc_bootstrap_hostlocal_sh[bootstrap-hostlocal.sh]
+    sc_bootstrap_hostlocal_sh_before_codex_home_fix_20260901[bootstrap-hostlocal.sh.before-codex-home-fix-20260901]
     sc_candidate_reminders_py[candidate-reminders.py]
     sc_claude[claude]
+    sc_clean_merged_worktrees_py[clean-merged-worktrees.py]
+    sc_codex[codex]
     sc_context_nudge_py[context_nudge.py]
+    sc_guard_git_py[guard-git.py]
     sc_guard_long_run_py[guard-long-run.py]
     sc_guard_model_family_py[guard-model-family.py]
     sc_guard_rm_py[guard-rm.py]
@@ -137,11 +151,16 @@ flowchart TB
     sc_lint_plan_waves_py[lint_plan_waves.py]
     sc_migrate_to_agents_md_py[migrate_to_agents_md.py]
     sc_paper_sync_reminder_py[paper-sync-reminder.py]
+    sc_precompact_stub_py[precompact_stub.py]
     sc_render_architecture_py[render_architecture.py]
     sc_session_status_py[session-status.py]
     sc_sync_agent_rules_py[sync_agent_rules.py]
+    sc_sync_host_rules_py[sync_host_rules.py]
+    sc_test_install_plugin_py[test_install_plugin.py]
+    sc_test_precompact_stub_py[test_precompact_stub.py]
     sc_test_sync_agent_rules_py[test_sync_agent_rules.py]
     sc_vendor_sync_agent_rules_sh[vendor-sync-agent-rules.sh]
+    sc_verify_py[verify.py]
     sc_verify_tiering_py[verify_tiering.py]
   end
   subgraph candidates[candidates/]
@@ -219,57 +238,46 @@ one for real before trusting it with anything that matters. Same for the
 Three different mechanisms, because no single one reaches everything:
 
 1. **Import** — `~/.claude/CLAUDE.md` and `~/.gemini/GEMINI.md` `@`-import
-   `AGENTS.md` and `harness/<agent>.md`. Zero drift. **`~/.claude/CLAUDE.md`
-   is the only Claude user-level rules file** — there is no `~/CLAUDE.md`.
+   `AGENTS.md` and `harness/<agent>.md`. On this lab they also import
+   `host.md`. Zero drift. **`~/.claude/CLAUDE.md` is the only Claude
+   user-level rules file** — there is no `~/CLAUDE.md`.
 2. **Symlink** — `~/AGENTS.md` (Cursor, session opened on the home
-   directory), `~/.gemini/AGENTS.md`, and `~/.codex/AGENTS.md` once Codex
-   exists here. Also zero drift; the same bytes.
-3. **Pointer** — a project `AGENTS.md` names/`@`-imports the host file, and
-   Cursor gets an `alwaysApply` `.mdc` that points at `AGENTS.md` plus
-   `harness/cursor.md`. No copy, no sync script. Pointstream is on this
-   layout. **Neither Cursor nor Claude walks up from a project folder to
-   `~/AGENTS.md`**, which is why the pointer has to live *in the project*.
+   directory), `~/.gemini/AGENTS.md`, and `$CODEX_HOME/AGENTS.md`. Also
+   zero drift; the same bytes.
+3. **Cursor User Rule** — Cursor does not walk up from a project folder
+   to `~/AGENTS.md`. Paste a User Rule that reads this clone's
+   `AGENTS.md` and `harness/cursor.md` (plus `host.md` on this lab). A
+   project `.mdc` pointer is optional. **Do not inline these files into
+   a project.**
 
 **Inlining is retired** (2026-08-31). `sync_agent_rules.py` used to write a
 full copy of this file into every project's `AGENTS.md`, plus a copied
-`cursor-harness.mdc`. It now writes a pointer to both. Every project on this
-host is on the pointer layout.
+`cursor-harness.mdc`. That was a second source of truth. Cloud agents and
+CI never see this home directory; accepted. Do not bring a copy back
+"just for cloud".
 
-Why it was retired: the copy was a second source of truth pretending not to be
-one. An edit here was stale in every project until somebody re-ran the script,
-and nothing said so. On 2026-08-31 presley, TIGAS and 4DGStudy were found five
-weeks and one rewrite behind — still telling their agents "never destroy work
-you have not read" after the host had replaced that with a policy giving agents
-autonomy over anything revertible. The block read perfectly plausibly.
+Why it was retired: an edit here was stale in every project until somebody
+re-ran the script, and nothing said so. On 2026-08-31 presley, TIGAS and
+4DGStudy were found five weeks and one rewrite behind.
 
-**The cost, accepted deliberately:** Copilot's and Cursor's cloud agents, and CI
-runners, never see this home directory, so they no longer see the host rules at
-all. `AGENTS.md` states that acceptance in as many words. Do not bring a copy
-back "just for cloud" without changing that decision in the host file first —
-that is the exact door this failure came through.
-
-The pointer layout is also why Claude no longer needs the host rules twice
-— `~/.claude/CLAUDE.md` loads them once.
+`~/.claude/CLAUDE.md` loads host rules once; project files are not required.
 
 Cursor is the awkward case for harness rules specifically: it has no
-user-level rules file at all. `~/.cursor/rules/*.mdc` is not read (confirmed
-against Cursor's docs and its own forum), and User Rules live only in
-Settings → Rules as plain text synced to the account, so they cannot be
-version-controlled here. Each project therefore ships an `alwaysApply`
-`.mdc` that **points at** `harness/cursor.md` rather than copying it
-(pointstream: `.cursor/rules/host.mdc`). Other projects may still have a
-generated copy until the TODO lands. If you want a global belt-and-braces,
-add this as a User Rule by hand:
+user-level rules file at all. `~/.cursor/rules/*.mdc` is not read
+(confirmed against Cursor's docs and its own forum), and User Rules live
+only in Settings → Rules as plain text. **Do not require a project
+`.mdc`.** Paste this as a User Rule (lab paths; other clones substitute
+their checkout):
 
-    Before anything else in a session outside a project, read
-    /home/itec/emanuele/.agent-rules/AGENTS.md and
-    /home/itec/emanuele/.agent-rules/harness/cursor.md with the Read tool,
-    and follow them for the rest of the session.
+    Before anything else, read /home/itec/emanuele/.agent-rules/AGENTS.md,
+    /home/itec/emanuele/.agent-rules/host.md, and
+    /home/itec/emanuele/.agent-rules/harness/cursor.md, and follow them.
 
-## Per-project layout
+## Per-project layout (optional)
 
-Since 2026-07-25 the direction is inverted from what it used to be. `AGENTS.md`
-is the hand-edited source; `CLAUDE.md` is the wrapper.
+Projects **need no agent files**. If a project *does* keep local science
+rules, the usual shape since 2026-07-25 is: `AGENTS.md` is the hand-edited
+source; `CLAUDE.md` is the wrapper.
 
 | File | Status | Who reads it |
 |---|---|---|

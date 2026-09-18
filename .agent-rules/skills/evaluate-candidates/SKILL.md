@@ -9,8 +9,8 @@ Async apply/discard for the central queue. One skill walks both axes.
 
 ## Procedure
 
-1. List `/home/itec/emanuele/.agent-rules/candidates/open/project/` and
-   `.../open/platform/`.
+1. List this checkout's `.agent-rules/candidates/open/project/` and
+   `open/platform/`.
 2. For each candidate, read frontmatter + body. Decide: apply, discard, or defer.
 3. **Apply — branch on `axis`:**
    - `project` → lift into foundation skills/agents/AGENTS notes and/or copy

@@ -30,6 +30,39 @@
 
 HOSTLOCAL_SERVERS="/var/tmp/emanuele-editor-servers"
 HOSTLOCAL_PYCACHE="/var/tmp/emanuele-pycache"
+HOSTLOCAL_CODEX="/var/tmp/emanuele-codex"
+HOSTLOCAL_CODEX_BIN="/var/tmp/emanuele-codex-bin"
+
+# Codex app-server state must be host-local. All GPU machines share the same
+# NFS home, but Unix sockets, startup locks, SQLite WAL files and temporary
+# arg0 directories are machine-local resources. Sharing ~/.codex made every
+# reconnect race on the same control socket and databases, leaving many stale
+# app-server processes and eventually blocking in NFS I/O.
+mkdir -p "$HOSTLOCAL_CODEX" "$HOSTLOCAL_CODEX_BIN" 2>/dev/null || true
+chmod 700 "$HOSTLOCAL_CODEX" "$HOSTLOCAL_CODEX_BIN" 2>/dev/null || true
+
+# Synchronize durable settings from the shared configuration when it changes. Runtime state stays local;
+# Authentication is seeded once; configuration follows the shared source.
+if [ -f "$HOME/.codex/config.toml" ] && { [ ! -e "$HOSTLOCAL_CODEX/config.toml" ] || [ "$HOME/.codex/config.toml" -nt "$HOSTLOCAL_CODEX/config.toml" ]; }; then
+    install -m 600 "$HOME/.codex/config.toml" "$HOSTLOCAL_CODEX/config.toml" 2>/dev/null || true
+fi
+if [ ! -e "$HOSTLOCAL_CODEX/auth.json" ] && [ -f "$HOME/.codex/auth.json" ]; then
+    install -m 600 "$HOME/.codex/auth.json" "$HOSTLOCAL_CODEX/auth.json" 2>/dev/null || true
+fi
+
+# Keep future standalone updates host-local too. Until the first local update,
+# a local symlink reuses the already installed binary without duplicating it.
+if [ ! -e "$HOSTLOCAL_CODEX_BIN/codex" ] && [ -x "$HOME/.local/bin/codex" ]; then
+    ln -s "$(readlink -f "$HOME/.local/bin/codex")" "$HOSTLOCAL_CODEX_BIN/codex" 2>/dev/null || true
+fi
+
+export CODEX_HOME="$HOSTLOCAL_CODEX"
+export CODEX_SQLITE_HOME="$HOSTLOCAL_CODEX"
+export CODEX_INSTALL_DIR="$HOSTLOCAL_CODEX_BIN"
+case ":$PATH:" in
+    *":$HOSTLOCAL_CODEX_BIN:"*) ;;
+    *) export PATH="$HOSTLOCAL_CODEX_BIN:$PATH" ;;
+esac
 
 # Editor servers. Empty directories are enough: Cursor and VS Code install into
 # them on connect, which is a network download plus a local extract — fast.
