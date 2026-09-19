@@ -156,15 +156,15 @@ def plan() -> dict[Path, str]:
 def codex_plan() -> dict[Path, str]:
     """Codex's single always-on file: the three sources, concatenated.
 
-    The sources point at siblings as `` `../candidates/…` ``, which resolves
-    correctly for an agent reading them at their real path. This copy is read
-    from `$CODEX_HOME/AGENTS.md`, where the same relative path lands nowhere,
-    so every in-tree pointer is absolutised on the way in.
+    Kept **portable**: in-tree pointers stay relative (`` `../candidates/…` ``)
+    so this file is byte-identical in every checkout and CI can verify it.
+    Codex reads it from `$CODEX_HOME/AGENTS.md`, outside the repo, where a
+    relative pointer lands nowhere, so `install.py` absolutises them when it
+    writes that copy. Never bake a checkout path in here.
     """
     parts = [f"{BANNER} (+ host.md, harness/codex.md)"]
     for name in CODEX_SOURCES:
-        body = (HOST_DIR / name).read_text(encoding="utf-8").strip()
-        parts.append(body.replace("`../", f"`{HOST_DIR}/"))
+        parts.append((HOST_DIR / name).read_text(encoding="utf-8").strip())
     return {CODEX_OUT: "\n\n".join(parts) + "\n"}
 
 

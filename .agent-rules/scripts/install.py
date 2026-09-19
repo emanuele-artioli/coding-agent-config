@@ -280,14 +280,17 @@ def plan() -> list[Link]:
             requires=HOME / ".gemini",
         )
     )
-    links.append(
-        Link(
-            CODEX_HOME / "AGENTS.md",
-            CODEX_HOST_RULES if CODEX_HOST_RULES.is_file() else HOST_RULES,
-            "Codex global scope",
-            requires=CODEX_HOME,
+    if not CODEX_HOST_RULES.is_file():
+        # No generated concatenation yet: fall back to the portable source.
+        # When it exists, apply_codex_agents() writes the absolutised copy.
+        links.append(
+            Link(
+                CODEX_HOME / "AGENTS.md",
+                HOST_RULES,
+                "Codex global scope",
+                requires=CODEX_HOME,
+            )
         )
-    )
 
     links.append(
         Link(
@@ -507,6 +510,20 @@ def render_codex_agent(agent: Path, rungs: dict[str, dict]) -> str:
     )
 
 
+def codex_host_rules_file() -> list[tuple[Path, str]]:
+    """`$CODEX_HOME/AGENTS.md` with in-tree pointers made absolute.
+
+    `generated/codex-AGENTS.md` stays portable so every checkout produces the
+    same bytes and CI can check it. Codex reads its copy from outside the
+    repo, where `` `../ `` resolves to nothing, so the absolute form is
+    written here rather than generated into the tree.
+    """
+    if not CODEX_HOST_RULES.is_file():
+        return []
+    body = CODEX_HOST_RULES.read_text(encoding="utf-8")
+    return [(CODEX_HOME / "AGENTS.md", body.replace("`../", f"`{HOST}/"))]
+
+
 def codex_agent_files() -> list[tuple[Path, str]]:
     """(destination path, rendered content) for every shared agent."""
     if not AGENTS.is_dir():
@@ -524,9 +541,22 @@ def apply_codex_agents(*, check: bool) -> list[tuple[str, str]]:
     if not CODEX_HOME_SET or not CODEX_HOME.is_dir():
         return [("Codex shared agents (*.toml)", "skipped")]
     results: list[tuple[str, str]] = []
-    for dest, content in codex_agent_files():
-        label = f"Codex agent {dest.name}"
-        if dest.is_symlink() or (dest.exists() and not dest.is_file()):
+    for dest, content in codex_host_rules_file() + codex_agent_files():
+        label = (
+            "Codex host rules AGENTS.md"
+            if dest.name == "AGENTS.md"
+            else f"Codex agent {dest.name}"
+        )
+        if dest.is_symlink():
+            # A farm link we made earlier for this path; the content is
+            # written now, so retire the link. Anything else is a conflict.
+            target = dest.resolve()
+            if not check and (target == HOST_RULES or HOST in target.parents):
+                dest.unlink()
+            else:
+                results.append((label, "conflict" if check else "conflict"))
+                continue
+        if dest.exists() and not dest.is_file():
             results.append((label, "conflict"))
             continue
         current = dest.read_text(encoding="utf-8") if dest.is_file() else None

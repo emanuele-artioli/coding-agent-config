@@ -248,12 +248,12 @@ Cursor does not read `~/.cursor/rules/`. Paste:
 
 # OpenAI Codex — host harness
 
-Read this after `/home/itec/emanuele/.agent-rules/AGENTS.md`. Codex-only mechanics live here; shared policy stays in `AGENTS.md` and `scripts/guardlib/`.
+Read this after `../AGENTS.md`. Codex-only mechanics live here; shared policy stays in `AGENTS.md` and `scripts/guardlib/`.
 
 ## Discovery
 
 - Active state uses `$CODEX_HOME`; this server sets it to `/var/tmp/emanuele-codex` so sockets and SQLite state do not cross hosts over NFS.
-- Global prose is `$CODEX_HOME/AGENTS.md`, linked to `/home/itec/emanuele/.agent-rules/AGENTS.md`. Repository `AGENTS.md` files still apply from git root to cwd.
+- Global prose is `$CODEX_HOME/AGENTS.md`, linked to `../AGENTS.md`. Repository `AGENTS.md` files still apply from git root to cwd.
 - User skills load from `~/.agents/skills/<name>/SKILL.md`; repository skills load from `.agents/skills`. Codex follows symlinked skill directories.
 - Global hooks are `$CODEX_HOME/hooks.json`, linked to `codex-hooks.json` beside this file. Review changed hooks with `/hooks`.
 - User MCP configuration lives in `$CODEX_HOME/config.toml`. The shared MCP catalog is currently empty; preserve unrelated Codex entries.
@@ -269,7 +269,7 @@ The shell hook blocks unrecoverable git operations and protected-path removal, a
 
 ## Rungs
 
-Rung map in `/home/itec/emanuele/.agent-rules/effort-models.json` (no `model_family` adapter on this
+Rung map in `../effort-models.json` (no `model_family` adapter on this
 platform yet). Junior: Luna extra-high. Senior: Sol medium — the
 interactive model, whatever the user set in the Codex UI. Escalation:
 Astra low, rarely — it often dies mid-prompt. `agents.job_max_runtime_seconds`
@@ -282,7 +282,7 @@ platform yet — the senior re-runs the junior's check itself.
 
 ## Knowledge loop (Codex)
 
-Queue layout and how to file a candidate: `/home/itec/emanuele/.agent-rules/candidates/README.md`. The
+Queue layout and how to file a candidate: `../candidates/README.md`. The
 procedures are the `end-of-session`, `evaluate-candidates` and `handoff`
 skills; this platform's live-wiring status is
-`/home/itec/emanuele/.agent-rules/candidates/pending-verification/codex.md`.
+`../candidates/pending-verification/codex.md`.
