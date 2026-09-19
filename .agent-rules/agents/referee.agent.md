@@ -1,5 +1,6 @@
 ---
 name: referee
+rung: junior
 description: Junior reviewer. Call for an adversarial read of a manuscript or the sections a senior names, before submission. Returns a numbered list of findings in a venue reviewer's shape, labelled major or minor, plus a separate list of claims that cite no number and no source. Not for editing the paper, not for fixing what it finds, and not for reading files the prompt did not name.
 tools: Read, Grep, Glob
 model: opus

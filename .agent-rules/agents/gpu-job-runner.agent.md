@@ -1,5 +1,6 @@
 ---
 name: gpu-job-runner
+rung: junior
 description: Lab technician. Call to launch a project's real GPU or CPU job and keep its logs out of the parent chat. Returns the launch command, the distilled headline numbers with the pre-stated bounds beside them, and the run's own timings. Not for mock or dry-run-only work, not for deciding what to run, and not for cleaning up results.
 tools: Bash, Read, Grep, Glob
 model: opus

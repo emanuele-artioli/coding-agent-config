@@ -16,7 +16,8 @@ Rules enforced:
 * Every `agents/<name>.agent.md` has frontmatter `name` equal to its stem,
   a non-empty `description`, and the five report headings verbatim in its
   body, so a child cannot be spawned without the report contract. A junior
-  (one listed in JUNIOR_AGENTS) also carries `effort:` and `maxTurns:`.
+  (one listed in JUNIOR_AGENTS) also carries its portable `rung: junior`,
+  `effort:` and `maxTurns:`; the escalation role carries `rung: escalation`.
 * Every junior and escalation agent restricts `tools:`, sets
   `omitClaudeMd: true`, and carries the `agents/JUNIOR-FACTS.md` text
   verbatim in its body. Those three go together: a child that does not
@@ -61,6 +62,9 @@ JUNIOR_AGENTS = (
     "gpu-job-runner",
 )
 ESCALATION_AGENTS = ("stuck-escalation",)
+ROLE_RUNGS = {agent: "junior" for agent in JUNIOR_AGENTS} | {
+    agent: "escalation" for agent in ESCALATION_AGENTS
+}
 RETIRED_NAMES = ("model-routing", "budget-default", "review-fix", "expert-retry")
 MAX_SKILL_LINES = 120
 MAX_AGENT_LINES = 100
@@ -120,11 +124,22 @@ def check_agent(path: Path, failures: list[str], passed: list[str], facts: str) 
         if heading not in text:
             failures.append(f"{label}: missing report heading {heading!r}")
     if stem in JUNIOR_AGENTS:
+        if fm.get("rung") != ROLE_RUNGS[stem]:
+            failures.append(
+                f"{label}: role frontmatter rung {fm.get('rung')!r} "
+                f"!= {ROLE_RUNGS[stem]!r}"
+            )
         for key in ("effort", "maxTurns"):
             if key not in fm:
                 failures.append(f"{label}: junior without frontmatter {key}:")
-    if stem in ESCALATION_AGENTS and "effort" not in fm:
-        failures.append(f"{label}: escalation agent without frontmatter effort:")
+    if stem in ESCALATION_AGENTS:
+        if fm.get("rung") != ROLE_RUNGS[stem]:
+            failures.append(
+                f"{label}: role frontmatter rung {fm.get('rung')!r} "
+                f"!= {ROLE_RUNGS[stem]!r}"
+            )
+        if "effort" not in fm:
+            failures.append(f"{label}: escalation agent without frontmatter effort:")
     if stem in JUNIOR_AGENTS + ESCALATION_AGENTS:
         if not fm.get("tools"):
             failures.append(f"{label}: child without frontmatter tools:")

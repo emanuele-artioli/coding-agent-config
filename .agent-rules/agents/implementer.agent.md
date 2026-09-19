@@ -1,5 +1,6 @@
 ---
 name: implementer
+rung: junior
 description: Junior engineer. Call for a bounded code, test, or documentation edit that has a check the child can run alone, typically after a senior wrote the interface, docstrings, and test list with the implementation-plan skill. Fills bodies and tests inside the allowed paths, runs the check, returns the fixed report. Not for shared-contract changes, GPU jobs, git operations, or anything without a runnable check.
 tools: Bash, Read, Edit, Write, Glob, Grep
 model: opus

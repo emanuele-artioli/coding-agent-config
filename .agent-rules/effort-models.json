@@ -73,7 +73,7 @@
     "codex": {
       "junior": {
         "model": "gpt-5.6-luna",
-        "effort": "xhigh",
+        "effort": "max",
         "verified": false,
         "note": "full slug as Codex config.toml expects it"
       },
@@ -88,6 +88,24 @@
         "effort": "low",
         "verified": false,
         "note": "rarely; often dies mid-prompt; ask the user first if quota is thin"
+      },
+      "capabilities": {
+        "native_format": "toml",
+        "supported_fields": [
+          "name",
+          "description",
+          "developer_instructions",
+          "model",
+          "model_reasoning_effort"
+        ],
+        "omitted_source_fields": [
+          "tools",
+          "omitClaudeMd",
+          "maxTurns"
+        ],
+        "diagnostic_mode": "comments",
+        "verified": false,
+        "note": "Claude agent frontmatter is source metadata; omitted fields are not Codex controls"
       }
     }
   }

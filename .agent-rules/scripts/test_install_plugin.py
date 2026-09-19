@@ -46,6 +46,7 @@ def test_load_catalog_from_mcp_json() -> None:
 
 AGENT_FIXTURE = """---
 name: tiny-probe
+rung: junior
 description: A "quoted" one-line description.
 model: opus
 ---
@@ -65,7 +66,11 @@ class CodexAgentTomlTest(unittest.TestCase):
     def _render(self, stem: str) -> str:
         with tempfile.TemporaryDirectory() as tmp:
             agent = Path(tmp) / f"{stem}.agent.md"
-            agent.write_text(AGENT_FIXTURE, encoding="utf-8")
+            rung = "escalation" if stem == "stuck-escalation" else "junior"
+            agent.write_text(
+                AGENT_FIXTURE.replace("rung: junior", f"rung: {rung}"),
+                encoding="utf-8",
+            )
             return self.mod.render_codex_agent(agent, self.mod.codex_rungs())
 
     def test_five_keys_present(self) -> None:
@@ -101,6 +106,70 @@ class CodexAgentTomlTest(unittest.TestCase):
         self.assertIn(
             f'model_reasoning_effort = "{escalation.get("effort", "")}"', stuck
         )
+
+    def test_luna_max_metadata_is_current_and_validated(self) -> None:
+        rungs = self.mod.codex_rungs()
+        self.assertEqual(
+            (rungs["junior"]["model"], rungs["junior"]["effort"]),
+            ("gpt-5.6-luna", "max"),
+        )
+        self.assertEqual(
+            (rungs["escalation"]["model"], rungs["escalation"]["effort"]),
+            ("gpt-5.6-astra", "low"),
+        )
+        self.assertEqual(self.mod.validate_codex_rungs(rungs), [])
+
+    def test_stale_model_metadata_is_rejected(self) -> None:
+        rungs = self.mod.codex_rungs()
+        stale = {
+            key: value.copy() if isinstance(value, dict) else value
+            for key, value in rungs.items()
+        }
+        stale["junior"]["effort"] = "xhigh"
+        issues = self.mod.validate_codex_rungs(stale)
+        self.assertTrue(any("junior.effort" in issue for issue in issues))
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Path(tmp) / "tiny-probe.agent.md"
+            agent.write_text(AGENT_FIXTURE, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                self.mod.render_codex_agent(agent, stale)
+
+    def test_claude_only_controls_are_omitted_with_diagnostics(self) -> None:
+        text = self._render("tiny-probe")
+        parsed = tomllib.loads(text) if tomllib is not None else {}
+        for field in ("tools", "omitClaudeMd", "maxTurns"):
+            self.assertNotIn(field, parsed)
+            self.assertIn(field, text)
+        self.assertIn("source model/effort are overridden", text)
+
+    def test_invalid_source_rung_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Path(tmp) / "tiny-probe.agent.md"
+            agent.write_text(
+                AGENT_FIXTURE.replace("rung: junior", "rung: unknown"),
+                encoding="utf-8",
+            )
+            with self.assertRaises(ValueError):
+                self.mod.render_codex_agent(agent, self.mod.codex_rungs())
+
+    def test_all_shared_roles_render_as_owned_native_toml(self) -> None:
+        if tomllib is None:
+            self.skipTest("tomllib is unavailable")
+        rendered = self.mod.codex_agent_files()
+        self.assertEqual(len(rendered), 7)
+        rungs = self.mod.codex_rungs()
+        for destination, text in rendered:
+            parsed = tomllib.loads(text)
+            stem = destination.stem
+            rung = "escalation" if stem == "stuck-escalation" else "junior"
+            self.assertEqual(parsed["model"], rungs[rung]["model"])
+            self.assertEqual(
+                parsed["model_reasoning_effort"], rungs[rung]["effort"]
+            )
+            self.assertEqual(self.mod._codex_ownership(text), "managed")
+            self.assertNotIn("tools =", text)
+            self.assertNotIn("omitClaudeMd =", text)
+            self.assertNotIn("maxTurns =", text)
 
     def test_quotes_backslashes_parse_as_toml(self) -> None:
         if tomllib is None:
