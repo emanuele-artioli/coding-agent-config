@@ -5,7 +5,10 @@ description: Process open knowledge candidates under .agent-rules/candidates/ â€
 
 # Evaluate candidates
 
-Async apply/discard for the central queue. One skill walks both axes.
+Async apply/discard for the central queue. One skill walks both axes. The
+closeout tool only records receipts and event identity; this skill remains the
+place where a senior decides whether a lesson is applied, discarded, or
+deferred.
 
 ## Procedure
 
