@@ -29,8 +29,10 @@ created: 2026-07-27
 source_platform: cursor   # cursor | claude | antigravity | copilot | codex
 source_project: /home/itec/emanuele/pointstream   # or "." for this repo
 axis: project             # project | platform (must match open/<axis>/)
-status: open              # open | applied | discarded | needs_verification
+status: open              # open | recurring | applied | discarded | needs_verification
 summary: One-line description
+occurrences: 1            # bumped by `scripts/lessons.py record` on a repeat
+keywords: [five, to, eight, tokens]   # match keys; slug + summary used if absent
 suggested_action: lift to foundation skills / copy to projects X / …
 verify_platforms: []      # e.g. [claude, antigravity] when live configs need checks
 ---
@@ -44,6 +46,14 @@ The knowledge itself — enough that evaluation does not need the chat.
 2. **applied** / **discarded** — moved to `done/` with final status in frontmatter
 3. **needs_verification** — product touches another platform’s live config; also
    listed under `pending-verification/<platform>.md` until that platform closes it
+4. **recurring** — the same lesson happened again. `AGENTS.md` makes a rule out
+   of anything that goes wrong more than once, so a repeat is not a new file:
+   `scripts/lessons.py record <id>` bumps `occurrences`, sets this status, moves
+   the file back to `open/<axis>/` renamed **`promote-<id>.md`**, and appends a
+   dated occurrence stub. The prefix is what `candidate-reminders.py` counts, by
+   name alone — no `open()` per file, which matters on this NFS home. A repeat
+   of an already-`applied` lesson means its delivery was too weak; see the
+   `recurring` branch in `evaluate-candidates`.
 
 ## Who writes / who evaluates
 
