@@ -17,6 +17,10 @@ Rules enforced:
   a non-empty `description`, and the five report headings verbatim in its
   body, so a child cannot be spawned without the report contract. A junior
   (one listed in JUNIOR_AGENTS) also carries `effort:` and `maxTurns:`.
+* Every junior and escalation agent restricts `tools:`, sets
+  `omitClaudeMd: true`, and carries the `agents/JUNIOR-FACTS.md` text
+  verbatim in its body. Those three go together: a child that does not
+  load the imported host rules must be handed the host facts instead.
 * The `session` skill's routing table names every agent file, and every
   agent it names exists. Same for the senior skills it lists.
 * No file under skills/ or agents/ still names a retired tool
@@ -59,7 +63,8 @@ JUNIOR_AGENTS = (
 ESCALATION_AGENTS = ("stuck-escalation",)
 RETIRED_NAMES = ("model-routing", "budget-default", "review-fix", "expert-retry")
 MAX_SKILL_LINES = 120
-MAX_AGENT_LINES = 80
+MAX_AGENT_LINES = 100
+JUNIOR_FACTS = AGENTS / "JUNIOR-FACTS.md"
 
 _FM = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 
@@ -97,7 +102,12 @@ def check_skill(path: Path, failures: list[str], passed: list[str]) -> None:
     passed.append(label)
 
 
-def check_agent(path: Path, failures: list[str], passed: list[str]) -> None:
+def _stripped(text: str) -> str:
+    """The text with trailing whitespace removed from every line."""
+    return "\n".join(line.rstrip() for line in text.strip().splitlines())
+
+
+def check_agent(path: Path, failures: list[str], passed: list[str], facts: str) -> None:
     text = path.read_text()
     fm = frontmatter(text)
     stem = path.name.removesuffix(".agent.md")
@@ -115,6 +125,13 @@ def check_agent(path: Path, failures: list[str], passed: list[str]) -> None:
                 failures.append(f"{label}: junior without frontmatter {key}:")
     if stem in ESCALATION_AGENTS and "effort" not in fm:
         failures.append(f"{label}: escalation agent without frontmatter effort:")
+    if stem in JUNIOR_AGENTS + ESCALATION_AGENTS:
+        if not fm.get("tools"):
+            failures.append(f"{label}: child without frontmatter tools:")
+        if fm.get("omitClaudeMd") != "true":
+            failures.append(f"{label}: child without frontmatter omitClaudeMd: true")
+        if facts and _stripped(facts) not in _stripped(text):
+            failures.append(f"{label}: body does not carry the JUNIOR-FACTS.md text")
     lines = len(text.splitlines())
     if lines > MAX_AGENT_LINES:
         failures.append(f"{label}: {lines} lines > {MAX_AGENT_LINES}")
@@ -153,8 +170,13 @@ def main() -> int:
     passed: list[str] = []
     for skill in sorted(SKILLS.glob("*/SKILL.md")):
         check_skill(skill, failures, passed)
+    facts = ""
+    if JUNIOR_FACTS.is_file():
+        facts = JUNIOR_FACTS.read_text()
+    else:
+        failures.append(f"agents/{JUNIOR_FACTS.name}: missing")
     for agent in sorted(AGENTS.glob("*.agent.md")):
-        check_agent(agent, failures, passed)
+        check_agent(agent, failures, passed, facts)
     check_routing(failures)
 
     if args.list:

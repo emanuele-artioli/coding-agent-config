@@ -122,8 +122,25 @@ from a Claude Code session after live verification.
   about ten minutes after `install.py` linked the file, without a restart.
   (b) not closable: the `Agent` result reports tokens, tool uses and
   duration, not model or effort, and the child cannot see its own effort.
+  2026-09-19, (b) closed from the transcripts instead: every assistant
+  record carries an `effort` field, and the two `implementer` children of
+  2026-09-18 (`agent-aafcf592de2ea65c5`, `agent-aa3080c70738fbb79`) record
+  `effort: "low"` while the seven general-purpose children of the same
+  wave (`a23f05d453ef8c1b8`, `a29d1c3152e7f2fb0`, `a36f4668105da868c`,
+  `a42a5afdc736e9d82`, `a4aa038496b2f4584`, `a9955c5bfdf9df40f`,
+  `adb3f207a9f6b1a20`) record the session effort, `high`.
   (c) still open: the `SubagentStop` entry was added to `~/.claude/settings.json`
   mid-session and a probe child that skipped the headings produced no system
   message, consistent with hooks being snapshotted at session start. Re-run
   the probe from a fresh session: spawn `implementer` with "reply `probe done`
   only" and expect a report-contract system message.
+- [ ] **Junior context diet (added 2026-09-19).** Junior files now restrict
+  `tools:`, set `omitClaudeMd: true`, and carry `agents/JUNIOR-FACTS.md`.
+  A zero-tool probe of `implementer` in the session that made the change
+  still cost 41,477 tokens with 22 tools in its prompt snapshot: the harness
+  kept the agent definition it had loaded earlier, so frontmatter edits do
+  not hot-reload. From a fresh session spawn `implementer` with "reply
+  `probe done` only" and read the first-turn `input + cache_creation +
+  cache_read` from its transcript; expect at most 19k (tools and rules
+  dropped) or at most 11k (skill listing dropped too). Above 30k means a
+  field did not take; check the snapshot's `tools` array length (was 22).

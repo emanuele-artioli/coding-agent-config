@@ -101,6 +101,11 @@ uses stable aliases (`haiku` / `sonnet` / `opus`). Haiku and Sonnet are
 in-family but off the rung table (soft ask). This never overrides the
 user's session model.
 
+Junior and escalation files also restrict `tools:`, set `omitClaudeMd:
+true`, and carry the `agents/JUNIOR-FACTS.md` block in place of the
+imported rules: of a ~40k-token floor measured on the 2026-09-18 children,
+~17k was tool schemas the child never used and ~6k was the imported rules.
+
 Do not pass Grok, GPT, Gemini, or other off-family models unless the user
 explicitly redirects the work. If Claude is clearly struggling on a task,
 ask the user; prefer another platform/session over silently crossing family.
@@ -115,60 +120,12 @@ message; advisory, fail-open. See
 
 ## Where Claude's own config lives
 
-- Prose: `~/.claude/CLAUDE.md` is the **only** Claude user-level rules file
-  (there is no `~/CLAUDE.md`). It `@`-imports this file and `../AGENTS.md`.
-  Each project's `CLAUDE.md` is a thin wrapper importing that project's
-  `AGENTS.md` only — host rules are already loaded from the user-level file.
-- Skills: `~/.claude/skills/<name>/SKILL.md`, symlinked into
-  `../skills/<name>/`. Claude Code follows symlinks out of the skills
-  directory and reads the target's `SKILL.md`, which is what makes the
-  symlink farm work.
-- Subagents: `~/.claude/agents/<name>.md`, symlinked into `../agents/`.
-  Shared agents: `implementer`, `paper-screener`, `data-condenser`,
-  `paper-editor`, `referee`, `gpu-job-runner`, `stuck-escalation`.
-- Hooks: `~/.claude/settings.json`, keyed by event name (`PreToolUse`,
-  `PostToolUse`, `UserPromptSubmit`, `Stop`, `SessionStart`, …), invoking the
-  Claude-dialect entry points in `../scripts/`. User- and project-level hooks
-  both fire; the more specific level does not override.
+Every path, hook event name and payload shape: `../README.md`, sections
+"Global tool locations per platform" and "Hooks".
 
 ## Knowledge loop (Claude Code)
 
-- Shared queue and skills live under `../candidates/` and `../skills/`
-  (`end-of-session`, `evaluate-candidates`, `handoff`).
-- SessionStart / Stop / UserPromptSubmit / PreCompact wired in
-  `~/.claude/settings.json` → `../scripts/claude/{session-start,stop,
-  user-prompt-submit,pre-compact}.py`. All four are direct-executable
-  (chmod +x, no `python3` prefix) so a missing file fails open rather than
-  turning into an interpreter error; `stop.py` and `user-prompt-submit.py`
-  always exit 0 regardless of nudge content, since Stop's exit 2 blocks
-  Claude from stopping and would turn an advisory into a hang. Driven with
-  sample payloads (see `../candidates/pending-verification/claude.md`) —
-  true live-session firing still needs confirming from a fresh session.
-- UserPromptSubmit soft task-change nudge stays log-only
-  (`CONTEXT_NUDGE_BLOCK_SOFT` unset) per the locked decision in
-  `HANDOFF-claude.md`.
-- Model-family gate wired: `PreToolUse` matcher `Agent|Task` →
-  `../scripts/guard-model-family.py` (`python3 <path>`, fail-closed). Note:
-  the `Agent` tool's own schema already restricts `model` to the Claude
-  family (`sonnet|opus|haiku|fable`), so an off-family spawn attempt is
-  rejected before the hook even runs — the hook is defense-in-depth here,
-  not the primary gate, at least until a spawn path with a looser schema is
-  found.
-- Cursor loads these same `~/.claude/settings.json` hooks when third-party
-  skills are on. It takes `command` and drops `args`. A Claude entry of
-  `"command": "/usr/bin/env"` plus `args` therefore runs bare `env` inside
-  Cursor, dumps the environment to stdout, and Cursor fail-closes every
-  Shell call (`Hook "/usr/bin/env" returned invalid JSON`, live 2026-09-01).
-  Keep `command` as one string: `/usr/bin/python3 /path/script.py`. To keep
-  bytecode off NFS from inside the script, assign `sys.pycache_prefix` before
-  the first project import — writing `os.environ["PYTHONPYCACHEPREFIX"]` there
-  is a no-op, because the interpreter reads that variable at startup, before
-  any line of the script runs (measured 2026-09-01: the `.pyc` still landed
-  next to the source).
-- `end-of-session` commits on invoke and asks before push; handoff is a
-  conditional step or a standalone skill.
-- Prefer handoff before auto-compact; do not wait for full context.
-  PreCompact writes a resume stub under `../var/precompact/` and names it in
-  the injected message; SessionStart re-surfaces a recent stub or project
-  `HANDOFF.md`. Always-on rule files stay session-stable — volatile reminders
-  go through hook stdout only (see README).
+Queue layout and how to file a candidate: `../candidates/README.md`. The
+procedures are the `end-of-session`, `evaluate-candidates` and `handoff`
+skills; this platform's live-wiring status is
+`../candidates/pending-verification/claude.md`.
