@@ -12,24 +12,83 @@
   },
   "platforms": {
     "claude": {
-      "junior":     {"model": "opus", "effort": "low",    "verified": false, "note": "effort via agent-file frontmatter (vendor docs 2026-09-18); Agent tool has no effort param"},
-      "senior":     {"model": "opus", "effort": "medium", "verified": false, "note": "interactive session; set in the UI"},
-      "escalation": {"model": "opus", "effort": "xhigh",  "verified": false}
+      "junior": {
+        "model": "opus",
+        "effort": "low",
+        "verified": false,
+        "note": "effort via agent-file frontmatter (vendor docs 2026-09-18); Agent tool has no effort param"
+      },
+      "senior": {
+        "model": "opus",
+        "effort": "medium",
+        "verified": false,
+        "note": "interactive session; set in the UI"
+      },
+      "escalation": {
+        "model": "opus",
+        "effort": "xhigh",
+        "verified": false
+      }
     },
     "antigravity": {
-      "junior":     {"model": "flash", "effort": "medium", "verified": true},
-      "senior":     {"model": "flash", "effort": "medium", "verified": true, "note": "interactive session; there is no 3.8 Pro"},
-      "escalation": {"model": "flash", "effort": "high",   "verified": true}
+      "junior": {
+        "model": "flash",
+        "effort": "medium",
+        "verified": true
+      },
+      "senior": {
+        "model": "flash",
+        "effort": "medium",
+        "verified": true,
+        "note": "interactive session; there is no 3.8 Pro"
+      },
+      "escalation": {
+        "model": "flash",
+        "effort": "high",
+        "verified": true
+      }
     },
     "cursor": {
-      "junior":     {"model": "grok-4.6", "effort": "medium", "verified": true, "effort_settable": false},
-      "senior":     {"model": "grok-4.6", "effort": "medium", "verified": true, "effort_settable": false, "note": "interactive session"},
-      "escalation": {"model": "grok-4.6", "effort": "high",   "verified": true, "effort_settable": false, "note": "effort is the slug suffix: cursor-grok-4.6-high"}
+      "junior": {
+        "model": "grok-4.6",
+        "effort": "medium",
+        "verified": true,
+        "effort_settable": false
+      },
+      "senior": {
+        "model": "grok-4.6",
+        "effort": "medium",
+        "verified": true,
+        "effort_settable": false,
+        "note": "interactive session"
+      },
+      "escalation": {
+        "model": "grok-4.6",
+        "effort": "high",
+        "verified": true,
+        "effort_settable": false,
+        "note": "effort is the slug suffix: cursor-grok-4.6-high"
+      }
     },
     "codex": {
-      "junior":     {"model": "luna",  "effort": "xhigh",  "verified": false},
-      "senior":     {"model": "sol",   "effort": "medium", "verified": false, "note": "interactive session"},
-      "escalation": {"model": "astra", "effort": "low",    "verified": false, "note": "rarely; often dies mid-prompt; ask the user first if quota is thin"}
+      "junior": {
+        "model": "gpt-5.6-luna",
+        "effort": "xhigh",
+        "verified": false,
+        "note": "full slug as Codex config.toml expects it"
+      },
+      "senior": {
+        "model": "gpt-5.6-sol",
+        "effort": "medium",
+        "verified": false,
+        "note": "interactive session"
+      },
+      "escalation": {
+        "model": "gpt-5.6-astra",
+        "effort": "low",
+        "verified": false,
+        "note": "rarely; often dies mid-prompt; ask the user first if quota is thin"
+      }
     }
   }
 }

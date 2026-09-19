@@ -12,4 +12,11 @@ Unchecked items trigger the Codex SessionStart reminder.
   Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via `core.hooksPath`
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm from a Codex session that git merge/pull operations
   safely trigger post-merge cleanup of merged worktrees while preserving dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
-
+- [ ] **Shared agents as `$CODEX_HOME/agents/*.toml` and AGENTS concatenation (added 2026-09-19).**
+  `scripts/install.py` now generates one TOML per shared agent under
+  `$CODEX_HOME/agents/`, with `model` / `model_reasoning_effort` from
+  `effort-models.json` (junior for all, escalation for `stuck-escalation`), and
+  links `generated/codex-AGENTS.md` as `$CODEX_HOME/AGENTS.md` when it exists.
+  Confirm from a Codex session that the generated TOML files load, that
+  `implementer` spawns on Luna extra-high and `stuck-escalation` on Astra, and
+  that `$CODEX_HOME/AGENTS.md` now carries the Codex harness section.

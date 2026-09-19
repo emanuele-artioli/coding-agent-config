@@ -123,7 +123,7 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertEqual(model_family.allowed_models("claude"), {"opus"})
         self.assertEqual(model_family.allowed_models("antigravity"), {"flash"})
         self.assertEqual(model_family.allowed_models("cursor"), {"grok-4.6"})
-        self.assertEqual(model_family.allowed_models("codex"), {"luna", "sol", "astra"})
+        self.assertEqual(model_family.allowed_models("codex"), {"gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-astra"})
 
 
 if __name__ == "__main__":
