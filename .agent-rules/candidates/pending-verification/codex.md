@@ -20,3 +20,8 @@ Unchecked items trigger the Codex SessionStart reminder.
   Confirm from a Codex session that the generated TOML files load, that
   `implementer` spawns on Luna extra-high and `stuck-escalation` on Astra, and
   that `$CODEX_HOME/AGENTS.md` now carries the Codex harness section.
+  Also: `$CODEX_HOME/config.toml` still defines its own `[agents.luna_medium]`,
+  `[agents.terra_medium]` and `[agents.sol_medium]` tables next to the seven
+  generated `agents/*.toml`. Once the generated ones spawn, remove those three
+  tables so there is one ladder at user level; PointStream's project copy was
+  deleted on 2026-09-19 for the same reason.
