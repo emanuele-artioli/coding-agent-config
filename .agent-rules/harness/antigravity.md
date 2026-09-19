@@ -94,35 +94,12 @@ this platform yet. See `../candidates/pending-verification/antigravity.md`.
 
 ## Where Antigravity's own config lives
 
-- Prose: `~/.gemini/GEMINI.md` (this file's importer) and `~/.gemini/AGENTS.md`
-  (a symlink to `../AGENTS.md`, read natively since v1.20.3). Per project, the
-  root `AGENTS.md` is read directly — no generated per-project copy is needed
-  any more.
-- Skills: `~/.gemini/config/skills/<name>/` globally, `.agents/skills/<name>/`
-  per project. The per-project path is the same directory Cursor, Codex and
-  Copilot read, so one real directory serves all of them.
-- Subagents: `~/.gemini/config/agents/` globally, `.agents/agents/<name>.md`
-  per project. Workspace subagents are declared with `subagent: true`.
-- Workflows (slash prompts): `~/.gemini/config/global_workflows/<name>.md`
-  globally (linked from `../workflows/` by `install.py`), `.agents/workflows/`
-  per project. Cursor's `.cursor/commands` is a symlink onto the project
-  workflows directory so both agents share one tree.
-- MCP: `~/.gemini/config/mcp_config.json` globally, `.agents/mcp_config.json`
-  per project. Shared servers come from `../mcp/catalog.json` via `install.py`
-  (remote entries use `serverUrl`). Unrelated entries are left alone.
-- Hooks: `~/.gemini/config/hooks.json` globally, `.agents/hooks.json` per
-  project. Structure is a map of named hook objects (e.g. `{"shell-guard": {"PreToolUse": [{"matcher": "run_command", "hooks": [{"command": "..."}]}]}}`).
-  Events are `PreToolUse`, `PostToolUse`, `PreInvocation`, `PostInvocation`, `Stop`.
-  Handlers receive JSON on stdin and return JSON verdicts on stdout (e.g. `{"decision": "deny"|"allow", "reason": "..."}`
-  for `PreToolUse`, `{"injectSteps": [...]}` for `PreInvocation`, `{"decision": "stop"|"continue"}` for `Stop`).
-  **Commands must be absolute paths** (`python3 <abs-path>`).
-- Server execution: The VS Code extension runs inside `~/.vscode-server`
-  (relocated to local ext4 at `/var/tmp/emanuele-editor-servers/vscode-server`)
-  and launches `/home/itec/emanuele/.gemini/bin/agy`. Legacy standalone trees
-  `~/.antigravity-ide-server` and `~/.antigravity-server` are unused.
+Every path, hook event name and payload shape: `../README.md`, sections
+"Global tool locations per platform" and "Hooks".
 
 ## Knowledge loop (Antigravity)
 
-- Shared queue and skills: `../candidates/`, `../skills/` (`end-of-session`,
-  `evaluate-candidates`, `handoff`), linked under `~/.gemini/config/skills/`.
-- `end-of-session`: commit on invoke, ask before push; optional handoff step.
+Queue layout and how to file a candidate: `../candidates/README.md`. The
+procedures are the `end-of-session`, `evaluate-candidates` and `handoff`
+skills; this platform's live-wiring status is
+`../candidates/pending-verification/antigravity.md`.

@@ -95,7 +95,7 @@ from that single asymmetry:
 |---|---|
 | `plugin.json` | Agent Plugins v1 manifest (closed schema) |
 | `skills/<name>/SKILL.md` | Portable Agent Skills (also farmed by `install.py`) |
-| `mcp.json` | Portable shared MCP servers (Agent Plugins schema). Prefer this over the legacy catalog. |
+| `mcp.json` | Portable shared MCP servers (Agent Plugins schema). |
 | `AGENTS.md`, `harness/`, `agents/`, `workflows/`, `scripts/`, `candidates/`, `CONCEPTS.md`, … | **Host-only** — outside Agent Plugins v1. Documented under `extensions.com.emanuele.coding-agent-config` so the split stays explicit. |
 
 Additive rule: when adding a **shared** skill or MCP server, keep the portable
@@ -144,7 +144,6 @@ flowchart TB
   subgraph scripts[scripts/ (top-level)]
     sc_antigravity[antigravity]
     sc_bootstrap_hostlocal_sh[bootstrap-hostlocal.sh]
-    sc_bootstrap_hostlocal_sh_before_codex_home_fix_20260901[bootstrap-hostlocal.sh.before-codex-home-fix-20260901]
     sc_candidate_reminders_py[candidate-reminders.py]
     sc_claude[claude]
     sc_clean_merged_worktrees_py[clean-merged-worktrees.py]
@@ -156,8 +155,8 @@ flowchart TB
     sc_guard_rm_py[guard-rm.py]
     sc_guard_wait_loop_py[guard-wait-loop.py]
     sc_install_py[install.py]
+    sc_lessons_py[lessons.py]
     sc_lint_plan_waves_py[lint_plan_waves.py]
-    sc_migrate_to_agents_md_py[migrate_to_agents_md.py]
     sc_paper_markers_lint_py[paper-markers-lint.py]
     sc_paper_sync_reminder_py[paper-sync-reminder.py]
     sc_precompact_stub_py[precompact_stub.py]
@@ -166,6 +165,7 @@ flowchart TB
     sc_sync_agent_rules_py[sync_agent_rules.py]
     sc_sync_host_rules_py[sync_host_rules.py]
     sc_test_install_plugin_py[test_install_plugin.py]
+    sc_test_lessons_py[test_lessons.py]
     sc_test_paper_markers_lint_py[test_paper_markers_lint.py]
     sc_test_precompact_stub_py[test_precompact_stub.py]
     sc_test_sync_agent_rules_py[test_sync_agent_rules.py]
@@ -190,10 +190,23 @@ flowchart TB
   project's own `AGENTS.md` (see below). **An edit here is live everywhere at
   once, with no sync step and no copies to go stale.**
 - `harness/<agent>.md` — the mechanics that only make sense for one agent: its
-  tool names, its way of backgrounding a job, where it keeps its own config.
-  This split is what stops `~/.claude/CLAUDE.md`'s "use `Monitor` and
-  `run_in_background`" advice from being handed to Cursor, where neither tool
-  exists.
+  tool names, its way of backgrounding a job, its subagent rungs. This split is
+  what stops `~/.claude/CLAUDE.md`'s "use `Monitor` and `run_in_background`"
+  advice from being handed to Cursor, where neither tool exists. These files
+  are **always-on context on every session of that platform**, so keep them to
+  what changes a decision: paths, payload shapes and hook wiring live in
+  "Global tool locations per platform" and "Hooks" below, and each harness file
+  points there rather than carrying its own copy.
+- `generated/` — never hand-edited; written by `scripts/sync_host_rules.py`.
+  Claude's always-on core plus one deferred file per `scope:` section, and
+  `codex-AGENTS.md`, which concatenates `AGENTS.md` + `host.md` +
+  `harness/codex.md` because Codex reads exactly one always-on file and has no
+  deferred-rule mechanism.
+- `archive/` — finished work kept for its evidence and loaded by nobody: the
+  2026-09-18 orchestrator/host brief wave, and the NFS slowness findings behind
+  the measured numbers in `host.md`. Nothing here is a live rule. Move a thing
+  here rather than deleting it when the *conclusion* already lives in a current
+  file but the measurement behind it is worth keeping.
 - `skills/<name>/SKILL.md` and `agents/<name>.agent.md` — canonical **global**
   tools, real files (skills and subagents have no import syntax, so the content
   itself must exist at whatever path each platform scans). Distributed by the
@@ -216,8 +229,7 @@ flowchart TB
 - `mcp.json` — Agent Plugins portable MCP config (`mcpServers`). `install.py`
   upserts each named server into Cursor, Antigravity and Claude configs
   without removing unrelated entries. Secrets stay in `${env:NAME}`
-  placeholders. Legacy `mcp/catalog.json` is a fallback only if `mcp.json` is
-  absent.
+  placeholders.
 - `scripts/guardlib/` — hook policy: pure functions that return a verdict.
   Shell policies take a command (`wait_loop`, `destructive_rm`, `long_run`);
   `model_family` takes a requested model slug + platform. No stdin, no stdout,
@@ -228,7 +240,12 @@ flowchart TB
 - `scripts/install.py` — validates the Agent Plugins portable core, creates
   and verifies the symlink farm, and upserts shared MCP from `mcp.json`.
 - `scripts/sync_agent_rules.py` — maintains each project's generated rule
-  files. Vendored, not referenced centrally (see below).
+  files. Vendored, not referenced centrally (see below). `verify_tiering.py`
+  is its on-disk gate, and the two checks are not the same:
+  `test_sync_agent_rules.py` proves `split_scoped` loses nothing on a fixture,
+  while `verify_tiering.py` walks the real generated files of every project in
+  `projects.json`, so it is the only one that catches a hand-edited `AGENTS.md`
+  drifting away from stale output.
 
 ### The skeleton + thin-wrapper pattern
 
@@ -453,6 +470,66 @@ Cursor's user-level `hooks.json` is shared across every project and has nowhere
 to put per-project arguments. Claude's existing CLI arguments still win when
 present, so its wiring keeps working unchanged.
 
+### Per-platform hook config shapes
+
+Facts that only matter while editing a hook config, kept here so the always-on
+harness files need not carry them:
+
+- **Claude Code** — `~/.claude/settings.json`, keyed by event name
+  (`PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Stop`, `SessionStart`,
+  `SubagentStop`, `PreCompact`, …), invoking the Claude-dialect entry points
+  under `scripts/`. User- and project-level hooks **both** fire; the more
+  specific level does not override.
+- **Cursor** — `~/.cursor/hooks.json` (paths relative to `~/.cursor/`) and
+  `.cursor/hooks.json` (relative to the project root). Events are lowerCamel
+  (`beforeShellExecution`, `afterFileEdit`, `preToolUse`, `subagentStart`,
+  `stop`, `preCompact`). `ask` works on `beforeShellExecution` but is **not**
+  implemented for `preToolUse` / `subagentStart` (live 2026-07-28, Cursor
+  errors) — use allow/deny there. Verified `beforeShellExecution` payload:
+  top-level `command`, empty `cwd`, project root in `workspace_roots`; the
+  hook covers the agent Shell tool only. `beforeShellExecution` timeout is
+  45 s for NFS. Live 2026-08-31 and 2026-09-01: the irreversible-git guard
+  is a boundary for agent shell commands — commit, push, merge, rebase and
+  `reset --hard` pass, a standalone `git push --force` is denied. The Source
+  Control panel bypasses the hook entirely: `vscode.git` calls `/usr/bin/git`
+  itself, and `git.pushForce` is that extension's command, not this hook
+  (`git.allowForcePush` defaults to false). Opening a folder, `vscode.git`
+  also finds the **parent** repo at `/home/itec/emanuele`, and `git status`
+  there over NFS is why the panel hangs — set
+  `git.openRepositoryInParentFolders` to `never` in the opened workspace.
+- **Antigravity** — `~/.gemini/config/hooks.json` globally,
+  `.agents/hooks.json` per project. The file is a map of *named* hook objects,
+  e.g. `{"shell-guard": {"PreToolUse": [{"matcher": "run_command", "hooks":
+  [{"command": "..."}]}]}}`. Events are `PreToolUse`, `PostToolUse`,
+  `PreInvocation`, `PostInvocation`, `Stop`. Handlers read JSON on stdin and
+  answer on stdout — `{"decision": "deny"|"allow", "reason": "..."}` for
+  `PreToolUse`, `{"injectSteps": [...]}` for `PreInvocation`,
+  `{"decision": "stop"|"continue"}` for `Stop`. **Commands must be absolute
+  paths** (`python3 <abs-path>`).
+
+**The `command`+`args` trap (live 2026-09-01).** Cursor also loads Claude's
+`~/.claude/settings.json` hooks when third-party skills are on. It takes
+`command` and drops `args`, so a Claude entry of `"command": "/usr/bin/env"`
+plus an `args` array runs bare `env`, dumps the environment to stdout, and
+Cursor fail-closes **every** Shell call — `echo` and `git commit` included —
+with `Hook "/usr/bin/env" returned invalid JSON`. Keep `command` a single
+executable string: `/usr/bin/python3 /path/script.py`. To keep bytecode off
+NFS from inside a script, assign `sys.pycache_prefix` before the first project
+import; writing `os.environ["PYTHONPYCACHEPREFIX"]` there is a no-op, because
+the interpreter reads that variable at startup, before any line of the script
+runs (measured 2026-09-01 — the `.pyc` still landed next to the source).
+
+**Continuity hooks, every platform.** SessionStart surfaces pending-verification
+and open candidates (`scripts/candidate-reminders.py`); `stop` gives a medium
+aging nudge; PreCompact writes a resume stub under `var/precompact/`
+(`scripts/precompact_stub.py` — a template only, since the payload carries no
+transcript) and SessionStart re-surfaces a recent stub or a project
+`HANDOFF.md`. Progressive-nudge policy is shared in `scripts/context_nudge.py`;
+Cursor's `stop` does not carry `context_usage_percent`, so medium nudges use a
+stop-count proxy. Prefer handoff before auto-compact — context rot often starts
+around 50% fill. Always-on rule files stay session-stable; volatile reminders
+go through hook output only.
+
 ### Fail-open versus fail-closed
 
 Advisory scripts that only ever print (`session-status.py`,
@@ -476,7 +553,7 @@ in `~/.cursor/hooks.json` (verified 2026-07-25 — see below).
 |---|---|---|---|---|---|
 | Global skills | `~/.claude/skills/<n>/SKILL.md` | reads `~/.cursor/`, `~/.agents/`, `~/.claude/`, `~/.codex/` skills | `~/.gemini/config/skills/<n>/` | `~/.agents/skills/<n>/` | `~/.copilot/skills/<n>/`, `~/.agents/skills/` |
 | Project skills | `.claude/skills/<n>/` | `.cursor/`, `.agents/`, `.claude/`, `.codex/` skills | `.agents/skills/<n>/` | `.agents/skills/<n>/` | `.github/`, `.claude/` or `.agents/skills` |
-| Global agents | `~/.claude/agents/<n>.md` | `~/.cursor/agents/<n>.md` (also reads `~/.claude/`) | not verified | not verified | `~/.copilot/agents/<n>.agent.md` |
+| Global agents | `~/.claude/agents/<n>.md` | `~/.cursor/agents/<n>.md` (also reads `~/.claude/`) | `~/.gemini/config/agents/<n>.md` (farm link) | `$CODEX_HOME/agents/<n>.toml` (generated from the shared agent files) | `~/.copilot/agents/<n>.agent.md` |
 | Project agents | `.claude/agents/<n>.md` | `.cursor/agents/`, `.claude/agents/` | `.agents/agents/<n>.md` | not verified | `.github/agents/<n>.agent.md` |
 | Slash / workflows | skills (`.claude/commands/` legacy) | `~/.cursor/commands/*.md`, `.cursor/commands/*.md` | `~/.gemini/config/global_workflows/`, `.agents/workflows/` | skills with `$` / `/skills` | n/a |
 | Global MCP | `~/.claude.json` → `mcpServers` | `~/.cursor/mcp.json` | `~/.gemini/config/mcp_config.json` | `~/.codex/config.toml` | `~/.copilot/mcp-config.json` |
@@ -505,6 +582,25 @@ Notes:
   AGENTS.md remain host SoT / client extensions — not portable components.
   The symlink farm still distributes skills until platforms load the package
   directory natively.
+- **Claude's user-level prose is one file.** `~/.claude/CLAUDE.md` is the only
+  Claude user-level rules file — there is no `~/CLAUDE.md`. It `@`-imports
+  `generated/claude-host-core.md`, `host.md` and `harness/claude.md`. Each
+  project's `CLAUDE.md` is a thin wrapper importing that project's `AGENTS.md`
+  only, because host rules are already loaded from the user-level file.
+- **Cursor has one extra prose surface.** `.cursor/rules/*.mdc` adds
+  frontmatter control — `alwaysApply`, `globs`, description-based selection —
+  that plain `AGENTS.md` cannot express. `~/.cursor/skills-cursor/` is
+  Cursor's own managed directory: never edit or vendor anything into it.
+- **Antigravity reads the project's root `AGENTS.md` directly** (v1.20.3+;
+  `~/.gemini/AGENTS.md` is a symlink to the host copy), so no generated
+  per-project file is needed. Workspace subagents under `.agents/agents/` are
+  declared with `subagent: true`. Its VS Code extension runs inside
+  `~/.vscode-server` — relocated to local ext4 at
+  `/var/tmp/emanuele-editor-servers/vscode-server` — and launches
+  `/home/itec/emanuele/.gemini/bin/agy`. The legacy standalone trees
+  `~/.antigravity-ide-server` and `~/.antigravity-server` are unused.
+- **One workflows tree, two agents.** `.cursor/commands` is a symlink onto the
+  project workflows directory, so Cursor and Antigravity share one tree.
 - **Auto-memory and statusline** are Claude/Cursor UI chrome, not shared files.
 - **Codex is installed here.** Its active state is host-local under `` (`/var/tmp/emanuele-codex` on this host); global rules and hooks are linked there, while user skills use the documented `~/.agents/skills` path. Run `install.py` after adding a shared skill or changing hosts.
 

@@ -32,8 +32,9 @@ agents are `implementer`, `paper-screener`, `data-condenser`,
 `session` before spawning helpers. There is no report-contract hook on this
 platform yet — the senior re-runs the junior's check itself.
 
-## Knowledge loop
+## Knowledge loop (Codex)
 
-Invoke shared skills with `$name` or let descriptions trigger them. Use `end-of-session` for close-out, `evaluate-candidates` in config sessions, and `handoff` when work moves sessions.
-
-Record unverified behavior in `../candidates/pending-verification/codex.md` and verify it from a fresh Codex session after hook changes.
+Queue layout and how to file a candidate: `../candidates/README.md`. The
+procedures are the `end-of-session`, `evaluate-candidates` and `handoff`
+skills; this platform's live-wiring status is
+`../candidates/pending-verification/codex.md`.

@@ -54,7 +54,7 @@ version of a file a later session already changed, with nothing about the output
 looking wrong.
 
 Harm 2 — "it is most of the NFS walk" — does not survive measurement
-(`FINDINGS-nfs-editor-slowness.md`). Walking is cheap here (~13,000 stats/s);
+(`archive/FINDINGS-nfs-editor-slowness.md`). Walking is cheap here (~13,000 stats/s);
 only `open()` is slow. And no PointStream worktree has ever been opened as an
 editor folder, so leftover worktrees were never in any editor's scope. Removing
 them is tidiness, not a performance fix, and the rule is worded that way.

@@ -76,8 +76,9 @@ trigger a SessionStart reminder.
   throwaway branch cannot put that path onto `beforeShellExecution`. The
   Source Control panel hanging on this workspace is the parent git repo at
   `/home/itec/emanuele` (Git.log: `parent repositories (1)`); opening it
-  runs `git status` on the home tree over NFS. `.vscode/settings.json` now
-  sets `git.openRepositoryInParentFolders` to `never`. `AGENTS.md` had said
+  runs `git status` on the home tree over NFS. Setting
+  `git.openRepositoryInParentFolders` to `never` in the opened workspace
+  stops that. `AGENTS.md` had said
   the boundary is the same wherever you are working; that overstated it
   and is corrected. Also fixed live: `_current_branch` was spawning
   `git rev-parse` on every shell call and could failClosed the hook when
