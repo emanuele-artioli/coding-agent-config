@@ -136,6 +136,11 @@ and a budget. Verify the claim, not the work: re-run the check, do not
 re-read the diff. Never resume a stuck child to change its model, never
 loop, never spawn another vendor's model. Dated API chart: repo README.
 
+A junior needs a runnable check, a page-long prompt, and five or more turns
+of work; below that, work in the senior's own context. A second senior, on
+its own worktree and branch, is for a piece needing repo-wide judgment, no
+check, or a talk with the human: it re-reads the repo, and you talk twice.
+
 ## Plan mode: split complex plans into parallel-agent waves
 
 When a plan has independent pieces, split into workstreams, hand each to

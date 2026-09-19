@@ -131,10 +131,9 @@ global folder:
 
 ### How the tools work together
 
-The **senior** is the interactive session. It holds the goal, the context,
-and the judgment, and it is the only thing that talks to you. Senior
-procedures are **skills** — a skill is a page the senior reads and follows
-itself.
+The **senior** is the interactive session. It holds the goal, the context, and
+the judgment, and it is the only thing that talks to you. Senior procedures are
+**skills**, a page the senior reads and follows itself.
 
 A **junior** is an agent file: a fresh context, a lower effort rung, and a
 turn cap. It cannot see the senior's conversation, so every dispatch carries
@@ -145,7 +144,9 @@ Changed, Check, Not verified, Assumptions.
 The senior then **re-runs the child's check** instead of reading the child's
 work. A `STUCK` or a failed check goes to a *fresh* child on the escalation
 rung — never the same child with a bigger model — and if that one is stuck
-too, the `escalate` skill takes the question to the human.
+too, the `escalate` skill takes the question to the human. A junior costs about
+40k tokens to exist and pays for itself past 100k of senior context and five
+turns of work; a parallel senior session pays for the repository context again.
 
 Code enforces what prose cannot: `scripts/verify_roles.py` checks the
 contracts, the Claude `SubagentStop` hook checks the report headings,
@@ -154,10 +155,9 @@ contracts, the Claude `SubagentStop` hook checks the report headings,
 
 To add a role: write an agent file copying the shape of `implementer`, add a
 row to the routing table in the `session` skill, then run `verify_roles.py`.
-
 Projects that need local metrics or paper paths keep a **thin wrapper**
-(project-specific `description` + pointer at the global body). Edit the
-generic procedure once; it updates everywhere the symlink farm reaches.
+(project-specific `description` + pointer at the global body): edit the
+generic procedure once, and it updates everywhere the symlink farm reaches.
 
 ### 3. Shared hook policy (`guardlib`) + per-platform adapters
 
