@@ -74,7 +74,8 @@ Still needed regardless of IQ:
 ## Deliverable
 
 Write
-`.agent-rules/briefs/2026-09-18-orchestrator-and-host/W4-findings.md`
+`W4-findings.md` (now beside this file under
+`.agent-rules/archive/briefs-2026-09-18-orchestrator-and-host/`)
 (create it) with:
 
 - Per-platform: native vs SoT overlap (short)

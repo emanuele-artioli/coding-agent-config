@@ -21,7 +21,17 @@ Async apply/discard for the central queue. One skill walks both axes.
      a checklist item under
      `candidates/pending-verification/<platform>.md`, and only close what
      *this* platform can verify.
-4. Move resolved files to `candidates/done/` with final `status` in
+4. **`status: recurring` (a `promote-*.md` file) — promote, do not just
+   re-apply.** Pick the **highest** delivery that fits, per the hierarchy in
+   `CONCEPTS.md`: hook/guard → skill → subagent → prose, and never drop to
+   prose for convenience. A hook pick also needs a row in
+   `enforceable-rules.md` (soft first). **Escalate one rung** if the previous
+   status was `applied`: that delivery already failed to prevent the repeat,
+   so prose becomes a hook unless you say why the rung still holds. `axis:
+   project` with both occurrences in one project → that project's own
+   `AGENTS.md` (path from `projects.json`), not the host files; a host-level
+   line needs two different `source_project` values.
+5. Move resolved files to `candidates/done/` with final `status` in
    frontmatter (`applied` / `discarded` / keep `needs_verification` if still
    waiting on another platform — or leave a stub in `open/` linked from
    pending-verification; prefer `done/` with `needs_verification` plus a

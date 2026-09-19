@@ -56,7 +56,7 @@ behind it does not.
 
 This candidate argued from the *walk*: 85% of the inodes an editor walks are
 duplicated mypy cache, and at ~6 opens/second a walk of 79,738 inodes is ~3.7
-hours. Measurement the same day (`FINDINGS-nfs-editor-slowness.md`) shows that
+hours. Measurement the same day (`archive/FINDINGS-nfs-editor-slowness.md`) shows that
 reasoning is wrong in two places:
 
 - **Walking is not the expensive operation.** `readdir`+`stat` runs at ~13,000

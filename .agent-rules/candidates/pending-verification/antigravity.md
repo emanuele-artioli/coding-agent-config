@@ -45,4 +45,8 @@ from an Antigravity session after live verification. Hook commands must be
   Confirmed native `invoke_subagent` tool schema exposes `Model: 'inherit' | 'flash_lite' | 'flash' | 'pro'`
   and `Workspace: 'inherit' | 'branch' | 'share'`. Accepts an array of subagent definitions to launch in parallel
   with workspace isolation, supporting weaker models (`flash_lite`, `flash`) for parallel waves.
-
+- [ ] **Global agents via `~/.gemini/config/agents/` (added 2026-09-19).**
+  `scripts/install.py` now links every `agents/<n>.agent.md` into
+  `~/.gemini/config/agents/<n>.md`. Confirm from an Antigravity session that the
+  seven shared agents are listed and spawnable from a project checkout that has
+  no `.agents/agents/` directory of its own.

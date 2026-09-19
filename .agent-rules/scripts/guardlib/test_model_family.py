@@ -87,8 +87,8 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertIsNotNone(nudge)
         assert nudge is not None
         self.assertIn("sonnet", nudge)
-        self.assertIn("low=opus", nudge)
-        self.assertIn("high=opus", nudge)
+        self.assertIn("junior=opus", nudge)
+        self.assertIn("escalation=opus", nudge)
 
     def test_cursor_live_slug_matches_tier_table(self) -> None:
         self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-medium", "cursor"))
@@ -123,7 +123,7 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertEqual(model_family.allowed_models("claude"), {"opus"})
         self.assertEqual(model_family.allowed_models("antigravity"), {"flash"})
         self.assertEqual(model_family.allowed_models("cursor"), {"grok-4.6"})
-        self.assertEqual(model_family.allowed_models("codex"), {"luna", "astra"})
+        self.assertEqual(model_family.allowed_models("codex"), {"gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-astra"})
 
 
 if __name__ == "__main__":

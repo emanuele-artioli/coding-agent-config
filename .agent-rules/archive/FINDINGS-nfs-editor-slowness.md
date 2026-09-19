@@ -1,8 +1,9 @@
 # Findings — why no editor can open PointStream on this host
 
-Measured 2026-08-31, `gpu5`, by the session driven from
-`.agent-rules/PROMPT-host-slowness-and-queue.md`. Supersedes the hypothesis in
-`pointstream-w8-e/plans/prompts/nfs-editor-slowness.md`.
+Measured 2026-08-31, `gpu5`, by the session driven from the
+host-slowness-and-queue prompt (since retired). Supersedes the hypothesis in
+`pointstream-w8-e/plans/prompts/nfs-editor-slowness.md`. Archived: the
+conclusions are live in `host.md`; this file is the evidence behind them.
 
 ## Verdict
 
