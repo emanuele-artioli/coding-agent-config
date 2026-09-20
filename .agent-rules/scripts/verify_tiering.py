@@ -13,16 +13,16 @@ checks conservation directly: every non-blank line of `AGENTS.md`, outside the
 generated host-rules block, must appear in the core or in exactly one rule
 file, and nothing may appear in both.
 
-    python3 verify_tiering.py            # every project in projects.json
-    python3 verify_tiering.py pointstream presley
+    python3 verify_tiering.py            # this repo (skipped if not tiered)
+    python3 verify_tiering.py /path/to/project
 
-Exit status is 1 if any project fails, so it is usable as a gate. Safe to run
-from any agent on any platform -- it only reads.
+A path without `.claude/project-core.md` is skipped. This host repo is
+not tiered, so a no-arg run exits 0. Exit status is 1 if any checked
+project fails. Safe to run from any agent on any platform -- it only reads.
 """
 
 from __future__ import annotations
 
-import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -32,21 +32,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sync_agent_rules as sync  # noqa: E402
 
 HOST_DIR = Path(__file__).resolve().parent.parent
-PROJECTS_JSON = HOST_DIR / "projects.json"
 
 
 def project_roots(selected: list[str]) -> list[Path]:
-    roots: list[Path] = []
-    if PROJECTS_JSON.is_file():
-        data = json.loads(PROJECTS_JSON.read_text())
-        entries = data.get("projects", data) if isinstance(data, dict) else data
-        for entry in entries:
-            path = entry.get("path") if isinstance(entry, dict) else entry
-            if path:
-                roots.append(Path(path).expanduser())
     if selected:
-        roots = [root for root in roots if root.name in selected]
-    return roots
+        return [Path(name).expanduser() for name in selected]
+    return [HOST_DIR.parent]
 
 
 def meaningful(text: str) -> Counter[str]:
@@ -117,8 +108,8 @@ def check(root: Path) -> list[str] | None:
 def main() -> int:
     roots = project_roots(sys.argv[1:])
     if not roots:
-        print("no projects found (checked projects.json)", file=sys.stderr)
-        return 1
+        print("no projects to check; skip")
+        return 0
 
     failed = 0
     checked = 0

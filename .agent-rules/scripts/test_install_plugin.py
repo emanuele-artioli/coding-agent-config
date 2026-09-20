@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke tests for install.py: portable-core validation and Codex agent TOML."""
+"""Smoke tests for install.py: plugin/MCP absence and Codex agent TOML."""
 
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ def test_validate_plugin_ok() -> None:
     mod = _load_install()
     rows = mod.validate_plugin()
     problems = [f"{label}: {status}" for label, status in rows if mod._plugin_row_is_problem(status)]
-    assert not problems, "portable core invalid:\n  " + "\n  ".join(problems)
+    assert not problems, "plugin validation should be a no-op:\n  " + "\n  ".join(problems)
     labels = {label for label, _ in rows}
-    assert "plugin.json $schema" in labels
-    assert "plugin.json name" in labels
-    assert any(label.startswith("skills/") for label in labels)
+    assert "plugin.json $schema" not in labels
+    assert "plugin.json name" not in labels
+    assert "plugin.json" not in labels
 
 
 def test_load_catalog_from_mcp_json() -> None:
@@ -322,10 +322,11 @@ class CodexInstallerSafetyTest(unittest.TestCase):
         self.mod.CODEX_HOME_SET = True
         self.mod.AGENTS = self.agents
         self.mod.HOST_RULES = self.host / "AGENTS.md"
-        self.mod.HOST_RULES.write_text("portable host rules\n", encoding="utf-8")
-        self.mod.CODEX_HOST_RULES = self.host / "generated" / "codex-AGENTS.md"
-        self.mod.CODEX_HOST_RULES.parent.mkdir()
-        self.mod.CODEX_HOST_RULES.write_text("rules with `../relative`\n", encoding="utf-8")
+        self.mod.HOST_RULES.write_text("portable host rules with `../relative`\n", encoding="utf-8")
+        (self.host / "host.md").write_text("host overlay\n", encoding="utf-8")
+        harness = self.host / "harness"
+        harness.mkdir()
+        (harness / "codex.md").write_text("codex harness\n", encoding="utf-8")
         self.agent = self.agents / "tiny-probe.agent.md"
         self.agent.write_text(AGENT_FIXTURE, encoding="utf-8")
 
@@ -406,19 +407,23 @@ class CodexInstallerSafetyTest(unittest.TestCase):
         self.codex_home = self.mod.CODEX_HOME
         self.mod.CODEX_HOME = Path(self.tmp.name) / "check-codex"
         self.mod.CODEX_HOME.mkdir()
-        self.mod.CODEX_HOST_RULES = self.host / "missing-generated-rules"
         role_dest = self.mod.CODEX_HOME / "agents" / "tiny-probe.toml"
         result = dict(self.mod.apply_codex_agents(check=True))
         self.assertEqual(result["Codex agent tiny-probe.toml"], "missing")
         self.assertFalse(role_dest.parent.exists())
 
     def test_host_overlay_absent_keeps_portable_link_plan(self) -> None:
-        self.mod.CODEX_HOST_RULES = self.host / "does-not-exist"
+        (self.host / "host.md").unlink()
+        (self.host / "harness" / "codex.md").unlink()
         entries = self.mod.codex_host_rules_file()
-        self.assertEqual(entries, [])
+        self.assertEqual(len(entries), 1)
+        dest, content = entries[0]
+        self.assertEqual(dest, self.mod.CODEX_HOME / "AGENTS.md")
+        self.assertIn("portable host rules", content)
+        self.assertNotIn("host overlay", content)
+        self.assertNotIn("codex harness", content)
         rules = [item for item in self.mod.plan() if item.link == self.mod.CODEX_HOME / "AGENTS.md"]
-        self.assertEqual(len(rules), 1)
-        self.assertEqual(rules[0].target, self.mod.HOST_RULES)
+        self.assertEqual(rules, [])
 
 
 

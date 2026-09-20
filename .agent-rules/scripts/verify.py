@@ -327,18 +327,8 @@ def check_shell(fix: bool) -> Result:
 
 def check_generated(fix: bool) -> Result:
     r = Result("generated")
-    script = SCRIPTS / "sync_host_rules.py"
-    if not script.is_file():
-        r.problem(f"missing {script}")
-        return r
-    args = [sys.executable, str(script)] + ([] if fix else ["--check"])
-    out = subprocess.run(args, capture_output=True, text=True, timeout=120)
-    if out.returncode != 0:
-        r.problem((out.stdout + out.stderr).strip()[:400])
-    elif fix:
-        r.fixes.append("regenerated Claude's host-rule split")
-    else:
-        r.note("generated files current")
+    # Claude reads AGENTS.md directly; the generated host-rule split is gone.
+    r.note("no generated Claude split to check")
     return r
 
 

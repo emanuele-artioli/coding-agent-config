@@ -23,9 +23,8 @@ python3 .agent-rules/scripts/install.py
 python3 .agent-rules/scripts/install.py --check
 ```
 
-`install.py` only links into agent directories that already exist, reports
-conflicts instead of clobbering real files, and upserts shared MCP servers
-by name without removing unrelated marketplace entries.
+`install.py` only links into agent directories that already exist and
+reports conflicts instead of clobbering real files.
 
 ## Layout
 
