@@ -324,8 +324,8 @@ class CodexInstallerSafetyTest(unittest.TestCase):
         self.mod.HOST_RULES = self.host / "AGENTS.md"
         self.mod.HOST_RULES.write_text("portable host rules with `../relative`\n", encoding="utf-8")
         (self.host / "host.md").write_text("host overlay\n", encoding="utf-8")
-        harness = self.host / "harness"
-        harness.mkdir()
+        harness = self.host / "harness" / "codex"
+        harness.mkdir(parents=True)
         (harness / "codex.md").write_text("codex harness\n", encoding="utf-8")
         self.agent = self.agents / "tiny-probe.agent.md"
         self.agent.write_text(AGENT_FIXTURE, encoding="utf-8")
@@ -414,7 +414,7 @@ class CodexInstallerSafetyTest(unittest.TestCase):
 
     def test_host_overlay_absent_keeps_portable_link_plan(self) -> None:
         (self.host / "host.md").unlink()
-        (self.host / "harness" / "codex.md").unlink()
+        (self.host / "harness" / "codex" / "codex.md").unlink()
         entries = self.mod.codex_host_rules_file()
         self.assertEqual(len(entries), 1)
         dest, content = entries[0]
@@ -425,6 +425,43 @@ class CodexInstallerSafetyTest(unittest.TestCase):
         rules = [item for item in self.mod.plan() if item.link == self.mod.CODEX_HOME / "AGENTS.md"]
         self.assertEqual(rules, [])
 
+
+class RelinkHostOwnedSymlinkTest(unittest.TestCase):
+    """Layout moves retarget a symlink whose old and new targets are in HOST."""
+
+    def setUp(self) -> None:
+        self.mod = _load_install()
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.host = root / "host"
+        self.host.mkdir()
+        self.mod.HOST = self.host
+        old = self.host / "old"
+        new = self.host / "new"
+        old.mkdir()
+        new.mkdir()
+        (old / "hooks.json").write_text("{}\n", encoding="utf-8")
+        (new / "hooks.json").write_text("{}\n", encoding="utf-8")
+        self.link = root / "hooks.json"
+        self.link.symlink_to(old / "hooks.json")
+        self.item = self.mod.Link(self.link, new / "hooks.json", "layout move")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_retargets_when_both_paths_are_under_host(self) -> None:
+        self.assertEqual(self.item.status(), "wrong")
+        self.assertTrue(self.mod.apply(self.item))
+        self.assertEqual(self.item.status(), "ok")
+        self.assertEqual(self.link.resolve(), (self.host / "new" / "hooks.json").resolve())
+
+    def test_leaves_a_symlink_pointing_outside_host(self) -> None:
+        outside = Path(self.tmp.name) / "elsewhere.json"
+        outside.write_text("{}\n", encoding="utf-8")
+        self.link.unlink()
+        self.link.symlink_to(outside)
+        self.assertFalse(self.mod.apply(self.item))
+        self.assertEqual(self.link.resolve(), outside.resolve())
 
 
 if __name__ == "__main__":

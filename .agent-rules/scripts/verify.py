@@ -52,10 +52,12 @@ from pathlib import Path
 
 HOST_DIR = Path(__file__).resolve().parent.parent
 SCRIPTS = HOST_DIR / "scripts"
+HOOKS = HOST_DIR / "hooks"
+HARNESS = HOST_DIR / "harness"
 AGENTS_MD = HOST_DIR / "AGENTS.md"
 HOME = Path.home()
 
-sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(HOOKS))
 
 OK, WARN, FAIL = "ok", "warn", "fail"
 
@@ -126,7 +128,7 @@ def check_hooks(fix: bool) -> Result:
         capture_output=True,
         text=True,
     ).stdout.strip()
-    expected_hooks = HOST_DIR / "git-hooks"
+    expected_hooks = HOOKS
     if not global_hooks_raw or Path(global_hooks_raw).resolve() != expected_hooks.resolve():
         if fix:
             subprocess.run(
@@ -496,9 +498,9 @@ def check_queue(fix: bool) -> Result:
 # be the adapter for the policy that case exercises -- otherwise a case can
 # only ever "agree", because the script asked was never going to decide it.
 _ADAPTERS = {
-    "claude": (SCRIPTS / "guard-git.py", "claude"),
-    "cursor": (SCRIPTS / "cursor" / "before-shell.py", "cursor"),
-    "antigravity": (SCRIPTS / "antigravity" / "before-shell.py", "antigravity"),
+    "claude": (HOOKS / "guard-git.py", "claude"),
+    "cursor": (HARNESS / "cursor" / "before-shell.py", "cursor"),
+    "antigravity": (HARNESS / "antigravity" / "before-shell.py", "antigravity"),
 }
 
 
@@ -535,7 +537,7 @@ def check_parity(fix: bool) -> Result:
     cases.append((_heredoc_case(), False, "guard-git.py"))
     cases.append((_wait_loop_heredoc_case(), False, "guard-wait-loop.py"))
     for command, must_deny, claude_script in cases:
-        adapters = {**_ADAPTERS, "claude": (SCRIPTS / claude_script, "claude")}
+        adapters = {**_ADAPTERS, "claude": (HOOKS / claude_script, "claude")}
         verdicts = {
             name: _ask_adapter(path, dialect, command)
             for name, (path, dialect) in adapters.items()

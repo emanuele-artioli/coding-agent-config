@@ -11,7 +11,7 @@ from an Antigravity session after live verification. Hook commands must be
 - [x] Confirm global skills resolve under `~/.gemini/config/skills/`
 - [x] Confirm `pending-verification` SessionStart reminder is visible
 - [x] Wire model-family gate in `~/.gemini/config/hooks.json` with an **absolute** path, e.g.
-  `python3 /home/itec/emanuele/.agent-rules/scripts/antigravity/guard-model-family.py`
+  `python3 /home/itec/emanuele/.agent-rules/harness/antigravity/guard-model-family.py`
   on `PreToolUse` for the spawn tool that carries `model` (verified in Antigravity session;
   tools do not expose `model` parameter in schema, so subagents omit `model` and inherit Gemini parent session by construction)
 - [x] Live deny test: off-family model → non-zero exit / blocked; omit or `gemini-*` → allow
@@ -23,7 +23,7 @@ from an Antigravity session after live verification. Hook commands must be
   context. Verified live that generated `.claude/` files are not double-read,
   and host rules in `GEMINI.md` / `AGENTS.md` load cleanly without missing lines.
 - [x] **Effort-tier nudge (added 2026-07-28 from a Claude session — verified live in Antigravity).**
-  `scripts/antigravity/guard-model-family.py` logs (stderr, non-blocking) an
+  `harness/antigravity/guard-model-family.py` logs (stderr, non-blocking) an
   effort-tier nudge when a model is in-family but off the tier table.
   Confirmed live: stderr is captured in harness logs on exit 0. Antigravity's
   hook API supports binary exit status (0 = allow, non-zero = block) without an
@@ -35,7 +35,7 @@ from an Antigravity session after live verification. Hook commands must be
   harness/session level, so `effort` in `effort-models.json` is confirmed as
   informational metadata rather than an invocable tool parameter.
 - [x] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup` — verified live in Antigravity).**
-  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via global `core.hooksPath`
+  Host-wide git post-merge hook (`~/.agent-rules/hooks/post-merge`) wired via global `core.hooksPath`
   and `git clean-merged-worktrees` CLI on PATH (`~/bin/git-clean-merged-worktrees`). Verified with 105 tests
   (9 in `test_worktree_cleanup.py`): automated cleanup triggers on git merge/pull, chains to repo-local
   `.git/hooks/post-merge` (fixed path resolution via `git rev-parse --git-common-dir`), safely deletes
@@ -50,7 +50,7 @@ from an Antigravity session after live verification. Hook commands must be
   NOT discover subagents from `~/.gemini/config/agents/`. Subagent discovery is strictly project-local
   under `{workspace}/.agents/agents/*.md` and requires `subagent: true` in the YAML frontmatter.
   Alternatively, dynamic subagents can be created at runtime using the native `define_subagent` tool.
-- [x] **Explicit closeout adapter (added 2026-09-20 — verified live in Antigravity).** `scripts/antigravity/stop.py`
+- [x] **Explicit closeout adapter (added 2026-09-20 — verified live in Antigravity).** `harness/antigravity/stop.py`
   calls `closeout_adapter.capture_payload` and `emit_diagnostics` for explicit closeout boundaries and
   outputs `{}` on stdout per the Antigravity hook specification. Verified live that ordinary Stop and re-entry
   remain no-ops, explicit closeouts write isolated deterministic receipts under `<state_root>/.closeout/receipts/`,

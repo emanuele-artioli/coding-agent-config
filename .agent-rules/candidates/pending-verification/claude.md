@@ -3,23 +3,23 @@
 Items that were authored or documented from another platform. Close each only
 from a Claude Code session after live verification.
 
-- [x] Wire SessionStart reminder: `scripts/claude/session-start.py` (thin
+- [x] Wire SessionStart reminder: `harness/claude/session-start.py` (thin
   adapter over `candidate-reminders.py`) in `~/.claude/settings.json`, direct
   executable (fail-open). 2026-07-28: driven with a realistic stdin payload
   (`session_id`/`cwd`/`hook_event_name`/`source`) — printed the 8-open-item
   reminder to stdout (exit 0, per docs this is injected straight into
   context) and appended a real line to `~/.claude/session-start.log`.
 - [x] Wire Stop nudge toward `end-of-session` (fail-open, direct executable):
-  `scripts/claude/stop.py`. 2026-07-28: driven with sample payloads —
+  `harness/claude/stop.py`. 2026-07-28: driven with sample payloads —
   dirty-tree hint fired correctly (repo was dirty), `stop_hook_active: true`
   correctly short-circuited (no recursion), always exits 0 (Stop's exit 2
   would otherwise block Claude from stopping).
 - [x] Wire UserPromptSubmit task-change detection (log-only, per locked
-  decision — `CONTEXT_NUDGE_BLOCK_SOFT` unset): `scripts/claude/user-prompt-submit.py`.
+  decision — `CONTEXT_NUDGE_BLOCK_SOFT` unset): `harness/claude/user-prompt-submit.py`.
   2026-07-28: normal prompt and a task-change-phrased prompt below the soft
   stop-count threshold both correctly produced no nudge, exit 0.
 - [x] Wire PreCompact strong handoff / end-of-session nudge:
-  `scripts/claude/pre-compact.py`. 2026-07-28: sample `PreCompact` payload
+  `harness/claude/pre-compact.py`. 2026-07-28: sample `PreCompact` payload
   produced the strong nudge on stdout, exit 0 (docs: PreCompact has no
   fill-percentage field, confirmed absent from stdin — message is
   unconditional here, unlike the Cursor fill-% probe).
@@ -36,7 +36,7 @@ from a Claude Code session after live verification.
   three (plus `results-report`, `reviewer-response`, `test-design`,
   `update-paper`) as live symlinks into `.agent-rules/skills/`, not broken.
 - [x] Wire model-family gate: `PreToolUse` matcher `Agent|Task` →
-  `python3 /home/itec/emanuele/.agent-rules/scripts/guard-model-family.py`
+  `python3 /home/itec/emanuele/.agent-rules/hooks/guard-model-family.py`
   in `~/.claude/settings.json` (fail-closed via `python3 <path>`; adapter
   authored from Cursor, wiring done from Claude).
 - [x] Live deny test: spawn `Agent` with an off-family model (e.g. `grok-*`)
@@ -59,7 +59,7 @@ from a Claude Code session after live verification.
 - [x] **Effort-tier nudge (added 2026-07-28).** `guard-model-family.py` now
   also emits `hookSpecificOutput.permissionDecision: "ask"` (not deny) when
   an `Agent` spawn's `model` is in-family (`sonnet`/`opus`/`haiku`/`fable`)
-  but not one of the tier-mapped models in `../effort-models.json` for
+  but not one of the tier-mapped models in `../harness/effort-models.json` for
   claude (script-level verified with a synthetic `{"model": "haiku"}`
   payload — correctly emitted `ask` with the tier table; `{"model":
   "sonnet"}` correctly emitted nothing). 2026-07-28: closed live — spawned a
@@ -105,7 +105,7 @@ from a Claude Code session after live verification.
   (verified: bytecode now lands under `/var/tmp/emanuele-pycache`, nothing
   next to the source), and the wording corrected in both harness files.
 - [ ] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup`).**
-  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via `core.hooksPath`
+  Host-wide git post-merge hook (`~/.agent-rules/hooks/post-merge`) wired via `core.hooksPath`
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm from a Claude Code session that executing
   `git merge`, `git pull`, or `gh pr merge` executes post-merge cleanup, deletes clean fully-merged linked worktrees
   and local branches, and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
@@ -115,7 +115,7 @@ from a Claude Code session after live verification.
   `implementer` and the other junior files carry `effort: low`, `stuck-escalation`
   carries `effort: xhigh`. Confirm from a fresh Claude session that (a) `implementer`
   is spawnable by name, (b) the harness reports the child at low effort, (c) the
-  `SubagentStop` hook `scripts/claude/subagent-stop.py` injects a system message
+  `SubagentStop` hook `harness/claude/subagent-stop.py` injects a system message
   when a child's last message lacks the report headings.
   2026-09-18, same session that authored it: (a) closed live, `implementer`
   was spawned by name and completed a bounded task; it became available
@@ -144,7 +144,7 @@ from a Claude Code session after live verification.
   cache_read` from its transcript; expect at most 19k (tools and rules
   dropped) or at most 11k (skill listing dropped too). Above 30k means a
   field did not take; check the snapshot's `tools` array length (was 22).
-- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/claude/stop.py`
+- [ ] **Explicit closeout adapter (added 2026-09-20).** `harness/claude/stop.py`
   now calls the shared adapter only when the payload contains an explicit
   `closeout` boundary and stable event identity; ordinary Stop and re-entry
   remain advisory no-ops. Confirm from a fresh Claude session that the Stop

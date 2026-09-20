@@ -9,7 +9,7 @@ Unchecked items trigger the Codex SessionStart reminder.
 - [ ] Confirm whether Codex TOML roles can faithfully map the shared Markdown `gpu-job-runner` and `paper-editor` agents before claiming subagent parity.
 - [ ] Confirm the desktop app reloads changed global skills and hooks without restarting the remote app server.
 - [ ] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup`).**
-  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via `core.hooksPath`
+  Host-wide git post-merge hook (`~/.agent-rules/hooks/post-merge`) wired via `core.hooksPath`
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm from a Codex session that git merge/pull operations
   safely trigger post-merge cleanup of merged worktrees while preserving dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
 - [ ] **Shared agents as `$CODEX_HOME/agents/*.toml` and AGENTS concatenation (added 2026-09-19).**
@@ -17,7 +17,7 @@ Unchecked items trigger the Codex SessionStart reminder.
   `$CODEX_HOME/agents/`, with `model` / `model_reasoning_effort` from
   `effort-models.json` (junior for all, escalation for `stuck-escalation`), and
   writes `$CODEX_HOME/AGENTS.md` at install time from `AGENTS.md` + `host.md` +
-  `harness/codex.md`.
+  `harness/codex/codex.md`.
   Confirm from a Codex session that the generated TOML files load, that
   `implementer` spawns on Luna max and `stuck-escalation` on Astra, and
   that `$CODEX_HOME/AGENTS.md` now carries the Codex harness section.
@@ -26,7 +26,7 @@ Unchecked items trigger the Codex SessionStart reminder.
   generated `agents/*.toml`. Once the generated ones spawn, remove those three
   tables so there is one ladder at user level; PointStream's project copy was
   deleted on 2026-09-19 for the same reason.
-- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/codex/stop.py`
+- [ ] **Explicit closeout adapter (added 2026-09-20).** `harness/codex/stop.py`
   now calls the shared adapter only for an explicit `closeout` boundary and
   stable event identity; ordinary Stop and re-entry remain advisory no-ops.
   Confirm from a fresh Codex session that the Stop payload exposes those fields,

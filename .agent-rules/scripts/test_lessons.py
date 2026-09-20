@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for scripts/lessons.py — temp queues only, never the real one."""
+"""Unit tests for hooks/lessons.py — temp queues only, never the real one."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pathlib import Path
 from unittest import mock
 
 _SPEC = importlib.util.spec_from_file_location(
-    "lessons", Path(__file__).resolve().parent / "lessons.py"
+    "lessons", Path(__file__).resolve().parent.parent / "hooks" / "lessons.py"
 )
 lessons = importlib.util.module_from_spec(_SPEC)
 assert _SPEC and _SPEC.loader

@@ -7,15 +7,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-wait-loop.py"
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/hooks/guard-wait-loop.py"
           },
           {
             "type": "command",
-            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-git.py"
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/hooks/guard-git.py"
           },
           {
             "type": "command",
-            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-rm.py"
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/hooks/guard-rm.py"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/guard-model-family.py"
+            "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/hooks/guard-model-family.py"
           }
         ]
       }
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/session-start.py"
+            "command": "/home/itec/emanuele/.agent-rules/harness/claude/session-start.py"
           }
         ]
       }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/stop.py"
+            "command": "/home/itec/emanuele/.agent-rules/harness/claude/stop.py"
           }
         ]
       }
@@ -54,7 +54,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/user-prompt-submit.py"
+            "command": "/home/itec/emanuele/.agent-rules/harness/claude/user-prompt-submit.py"
           }
         ]
       }
@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/pre-compact.py"
+            "command": "/home/itec/emanuele/.agent-rules/harness/claude/pre-compact.py"
           }
         ]
       }
@@ -74,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/subagent-stop.py"
+            "command": "/home/itec/emanuele/.agent-rules/harness/claude/subagent-stop.py"
           }
         ]
       }

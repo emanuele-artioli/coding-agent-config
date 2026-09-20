@@ -319,7 +319,7 @@ def cursor_rule(_harness: str) -> str:
         "not in this repo. Read both now if they are not already in context,\n"
         "and follow them for the rest of the session:\n\n"
         f"- `{HOST_RULES}`\n"
-        f"- `{HOST_DIR}/harness/cursor.md`\n\n"
+        f"- `{HOST_DIR}/harness/cursor/cursor.md`\n\n"
         "They are not copied here on purpose: a copy is a second source of\n"
         "truth that goes stale without saying so.\n"
     )

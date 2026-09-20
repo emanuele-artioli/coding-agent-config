@@ -18,8 +18,8 @@ from pathlib import Path
 # Keep bytecode off NFS
 sys.pycache_prefix = os.environ.get("PYTHONPYCACHEPREFIX") or "/var/tmp/emanuele-pycache"
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Add hooks directory so guardlib imports resolve
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 
 from guardlib import worktree_cleanup  # noqa: E402
 
