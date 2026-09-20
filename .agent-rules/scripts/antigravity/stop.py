@@ -73,6 +73,7 @@ def main() -> int:
     except Exception as exc:  # pragma: no cover - defensive hook fail-open
         print(f"antigravity/closeout: adapter exception ({type(exc).__name__}); skipped", file=sys.stderr)
 
+    print("{}", file=sys.stdout)
     return 0
 
 

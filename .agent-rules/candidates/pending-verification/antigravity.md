@@ -45,13 +45,13 @@ from an Antigravity session after live verification. Hook commands must be
   Confirmed native `invoke_subagent` tool schema exposes `Model: 'inherit' | 'flash_lite' | 'flash' | 'pro'`
   and `Workspace: 'inherit' | 'branch' | 'share'`. Accepts an array of subagent definitions to launch in parallel
   with workspace isolation, supporting weaker models (`flash_lite`, `flash`) for parallel waves.
-- [ ] **Global agents via `~/.gemini/config/agents/` (added 2026-09-19).**
-  `scripts/install.py` now links every `agents/<n>.agent.md` into
-  `~/.gemini/config/agents/<n>.md`. Confirm from an Antigravity session that the
-  seven shared agents are listed and spawnable from a project checkout that has
-  no `.agents/agents/` directory of its own.
-- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/antigravity/stop.py`
-  now calls the shared adapter only for an explicit `closeout` boundary and
-  stable event identity; ordinary Stop and re-entry remain no-ops. Confirm from
-  a fresh Antigravity session that the Stop payload carries those fields and
-  that the receipt is isolated under the configured state root.
+- [x] **Global agents via `~/.gemini/config/agents/` (added 2026-09-19 — verified unsupported natively in Antigravity).**
+  Audited live in an Antigravity session and inspected `agy` CLI/server discovery strings. Antigravity does
+  NOT discover subagents from `~/.gemini/config/agents/`. Subagent discovery is strictly project-local
+  under `{workspace}/.agents/agents/*.md` and requires `subagent: true` in the YAML frontmatter.
+  Alternatively, dynamic subagents can be created at runtime using the native `define_subagent` tool.
+- [x] **Explicit closeout adapter (added 2026-09-20 — verified live in Antigravity).** `scripts/antigravity/stop.py`
+  calls `closeout_adapter.capture_payload` and `emit_diagnostics` for explicit closeout boundaries and
+  outputs `{}` on stdout per the Antigravity hook specification. Verified live that ordinary Stop and re-entry
+  remain no-ops, explicit closeouts write isolated deterministic receipts under `<state_root>/.closeout/receipts/`,
+  and replay idempotency is strictly maintained. Covered by 9 unit tests in `test_closeout_adapter.py`.

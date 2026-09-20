@@ -59,6 +59,12 @@ def main() -> int:
 
     for line in lines:
         print(line, file=sys.stderr)
+
+    if lines:
+        inject_steps = [{"ephemeralMessage": line} for line in lines]
+        json.dump({"injectSteps": inject_steps}, sys.stdout)
+    else:
+        print("{}", file=sys.stdout)
     return 0
 
 
