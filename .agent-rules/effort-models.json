@@ -51,16 +51,17 @@
     "cursor": {
       "junior": {
         "model": "grok-4.6",
-        "effort": "medium",
-        "verified": true,
-        "effort_settable": false
+        "effort": "low",
+        "verified": false,
+        "effort_settable": false,
+        "note": "generated slug cursor-grok-4.6-low; Task has no separate effort field"
       },
       "senior": {
         "model": "grok-4.6",
-        "effort": "medium",
-        "verified": true,
+        "effort": "high",
+        "verified": false,
         "effort_settable": false,
-        "note": "interactive session"
+        "note": "interactive session; set Grok 4.6 high in the Cursor UI, this file cannot override it"
       },
       "escalation": {
         "model": "grok-4.6",

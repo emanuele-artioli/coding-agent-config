@@ -94,7 +94,7 @@ message, per the host-wide plan-mode rule; keep sequential work in one agent.
 Read skill `session` before the first `Task` spawn. If the project
 `AGENTS.md` names its own ladder, follow that. Spawn juniors by
 `subagent_type`. Generated `~/.cursor/agents/<n>.md` files carry the
-in-family slug (`cursor-grok-4.6-medium`, escalation `-high`). Do **not**
+in-family slug (`cursor-grok-4.6-low`, escalation `-high`). Do **not**
 rely on the shared source `model: opus` — live 2026-09-20 that value is
 resolved to `claude-opus-5-thinking-high` at `subagentStart` even when the
 Task call passed `inherit`, and the family gate denies the spawn. An
@@ -103,13 +103,14 @@ types, but a custom agent's file model still wins at `subagentStart`.
 Custom subagent files use YAML frontmatter; bracket options
 (`composer-2.5[fast=false]`) work there, while the Task `model` enum only
 accepts exact live slugs. Cursor has no separate subagent `effort` field —
-the slug is the effort (`cursor-grok-4.6-medium` or `-high`). Escalate with
+the slug is the effort (`cursor-grok-4.6-low` or `-high`). Escalate with
 a fresh `stuck-escalation` child after `STUCK: out of ideas.` or a failed
 check, not by resuming the previous child.
 
 Global SoT agents live in `../agents/<name>.agent.md`. `../scripts/install.py`
 writes Cursor-native copies into `~/.cursor/agents/<name>.md` (ownership
-markers, in-family `model`, Claude-only fields omitted). Shared project
+markers, in-family `model` slug `cursor-grok-4.6-low` for juniors and
+`cursor-grok-4.6-high` for escalation, Claude-only fields omitted). Shared project
 agents stay real under `.claude/agents/` with `.cursor/agents` → symlink
 when that tree exists. A project-only ladder may be real files in
 `.cursor/agents/` (Cursor's native path; no `.claude` copy required).
@@ -120,11 +121,11 @@ slug is the effort; keep the prompt body tool-agnostic.
 ## Rungs (subagent spawns only)
 
 The interactive model is whatever the user set in the Cursor UI; that
-session is the senior. Mapped rungs (`effort-models.json`): junior and
-senior are `cursor-grok-4.6-medium`, escalation is the `-high` slug. There
-is no effort field here — the slug is the effort, and `-high` is optional
-thinking, not a different model family. Omit `model` when the junior should
-match the senior. Do not pin versioned slugs in host prompts. This never
+session is the senior. Set it to Grok 4.6 high. Mapped rungs
+(`effort-models.json`): junior is `cursor-grok-4.6-low`, escalation is
+`cursor-grok-4.6-high`. There is no effort field here — the slug is the
+effort. Spawn by `subagent_type` and omit Task `model` so the generated
+file slug applies. Do not pin versioned slugs in host prompts. This never
 overrides the user's session model.
 
 Never pass Claude / GPT (or other off-family) models because a skill table
@@ -138,8 +139,8 @@ a model is in-family but off the rung table it still returns
 2026-07-28: `{"permission": "ask"}` on this hook is rejected by Cursor
 ("ask … for preToolUse hooks is not yet implemented") — so do not use ask
 here until that lands. `ask` remains valid for `beforeShellExecution`.
-Rung matching accepts Cursor’s live slugs (`cursor-grok-4.6-medium` ≡
-`grok-4.6`); product variants like `composer-2.5-fast` / `grok-4.6-fast`
+Rung matching accepts Cursor’s live slugs (`cursor-grok-4.6-low` ≡
+`grok-4.6` plus the effort suffix); product variants like `composer-2.5-fast` / `grok-4.6-fast`
 still nudge. Composer stays in-family for the hard gate but is off the
 rung table. Cursor also loads Claude's `~/.claude/settings.json` hooks:
 `guard-model-family.py` must no-op on Cursor-shaped payloads

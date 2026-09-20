@@ -91,7 +91,7 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertIn("escalation=opus", nudge)
 
     def test_cursor_live_slug_matches_tier_table(self) -> None:
-        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-medium", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-low", "cursor"))
         self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-high", "cursor"))
         self.assertIsNone(model_family.tier_nudge("grok-4.6", "cursor"))
 

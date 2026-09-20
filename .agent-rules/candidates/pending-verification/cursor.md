@@ -128,7 +128,7 @@ trigger a SessionStart reminder.
   `implementer` with omitted or `inherit` Task `model` still hit
   `subagentStart` `requested_model: claude-opus-5-thinking-high` and was
   denied. Built-in `generalPurpose` with `inherit` spawned. Installer now
-  generates `~/.cursor/agents/*.md` with `cursor-grok-4.6-medium` /
+  generates `~/.cursor/agents/*.md` with `cursor-grok-4.6-low` /
   `-high` rather than symlinking the Claude source.
 - [x] **Imported Claude family gate (2026-09-20).** Cursor loads
   `~/.claude/settings.json` `PreToolUse` / `Agent|Task`. An explicit

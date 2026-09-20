@@ -573,7 +573,7 @@ Notes:
   real directory under `.claude/skills/` plus a symlink covers them.
 - **Cursor agents and commands are first-class in the farm.** Global agents
   are generated into `~/.cursor/agents/` with an in-family `model` slug
-  (the shared source `model: opus` is applied by Cursor and denied);
+  (`cursor-grok-4.6-low` for juniors; the shared source `model: opus` is applied by Cursor and denied);
   global workflows link into `~/.cursor/commands/`.
   Skills still also reach Cursor via `~/.claude/skills/` (no Cursor-specific
   skill copy needed).
