@@ -56,7 +56,10 @@ def test_codex_hooks_manifest_is_valid_and_complete() -> None:
         for entry in entries:
             for hook in entry["hooks"]:
                 command = hook["command"]
-                assert command.startswith("/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/codex/")
+                prefix, script = command.split(" ", 1)
+                assert prefix == "/usr/bin/python3"
+                assert Path(script).is_absolute()
+                assert "/.agent-rules/harness/codex/" in script
 
 
 AGENT_FIXTURE = """---
