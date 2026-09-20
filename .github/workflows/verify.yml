@@ -39,6 +39,15 @@ jobs:
       - name: Generated rule files match AGENTS.md
         run: python3 .agent-rules/scripts/sync_host_rules.py --check
 
+      - name: Role, installer, and knowledge contracts
+        run: |
+          python3 .agent-rules/scripts/verify_roles.py
+          python3 .agent-rules/scripts/test_install_plugin.py
+          python3 .agent-rules/scripts/test_lessons.py
+          python3 .agent-rules/scripts/test_paper_markers_lint.py
+          python3 .agent-rules/scripts/test_sync_agent_rules.py
+          python3 .agent-rules/scripts/test_precompact_stub.py
+
       - name: Measured claims carry a date
         run: python3 .agent-rules/scripts/verify.py --only claims
 
