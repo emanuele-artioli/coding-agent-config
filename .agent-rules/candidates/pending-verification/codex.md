@@ -16,7 +16,8 @@ Unchecked items trigger the Codex SessionStart reminder.
   `scripts/install.py` now generates one TOML per shared agent under
   `$CODEX_HOME/agents/`, with `model` / `model_reasoning_effort` from
   `effort-models.json` (junior for all, escalation for `stuck-escalation`), and
-  links `generated/codex-AGENTS.md` as `$CODEX_HOME/AGENTS.md` when it exists.
+  writes `$CODEX_HOME/AGENTS.md` at install time from `AGENTS.md` + `host.md` +
+  `harness/codex.md`.
   Confirm from a Codex session that the generated TOML files load, that
   `implementer` spawns on Luna max and `stuck-escalation` on Astra, and
   that `$CODEX_HOME/AGENTS.md` now carries the Codex harness section.

@@ -23,7 +23,7 @@ WAVE_HEADING_RE = re.compile(r"(?im)^#{1,6}\s+.*\bwaves?\b")
 
 ADVISORY = (
     "plan-waves: add a waves section (or mermaid/table under a waves heading) "
-    "or write `skipped: sequential/small` — see AGENTS.md / enforceable-rules.md"
+    "or write `skipped: sequential/small` — see AGENTS.md"
 )
 
 

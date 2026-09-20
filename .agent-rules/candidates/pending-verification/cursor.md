@@ -45,10 +45,10 @@ trigger a SessionStart reminder.
   not a missing `effort` field.
 - [x] **Read-before-edit cost of large files (added 2026-08-31, closed 2026-09-01).**
   Cursor is **not** Claude here, so do not promote that rule to `AGENTS.md`.
-  (a) `StrReplace` on `projects.json` with no prior `Read` this conversation
+  (a) `StrReplace` on a small JSON file with no prior `Read` this conversation
   did **not** refuse for lack of a read; it searched the file and returned
   "string to replace was not found." (b) A default `Read` of a 508-line
-  file (`CONCEPTS.md`) returned the whole file; so did 35-line and 573-line
+  catalog returned the whole file; so did 35-line and 573-line
   files. There is no 2000-line default page. (c) There **is** a per-call
   cap: `Read` of vscode.git `dist/main.js` (453,563 characters) failed with
   "exceeds maximum allowed characters (100000)" and asked for `offset` /

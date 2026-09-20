@@ -8,9 +8,9 @@ name: verify
 # assert *this host's* live state (hooks, hostlocal, shell, measurements) are
 # meaningless on a runner and would fail for the wrong reason. What CI can do
 # is guard the parts that are pure logic — the guard policies, their agreement
-# across the three harness adapters, and whether generated files still match
-# the AGENTS.md they derive from. Those are exactly the parts a pull request
-# can break, and the host-state checks are covered at SessionStart instead.
+# across the three harness adapters, and the installer/role contracts. Those
+# are exactly the parts a pull request can break, and the host-state checks
+# are covered at SessionStart instead.
 
 on:
   push:
@@ -35,9 +35,6 @@ jobs:
         # platform where the guard quietly stopped applying is the one nobody
         # is looking at.
         run: python3 .agent-rules/scripts/verify.py --only parity
-
-      - name: Generated rule files match AGENTS.md
-        run: python3 .agent-rules/scripts/sync_host_rules.py --check
 
       - name: Role, installer, and knowledge contracts
         run: |

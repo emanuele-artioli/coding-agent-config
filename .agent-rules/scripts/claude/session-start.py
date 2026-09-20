@@ -81,25 +81,6 @@ def _verify_lines() -> list[str]:
     return ["Config check found problems (python3 .agent-rules/scripts/verify.py):", text]
 
 
-def _refresh_host_rules() -> None:
-    """Regenerate Claude's split copy of AGENTS.md before the session reads it.
-
-    `~/.claude/CLAUDE.md` imports a *generated* core, which is the one way this
-    layout could bite: edit AGENTS.md, forget to sync, and every later session
-    quietly reads yesterday's rules. Regenerating here bounds that to a single
-    session. Failures are swallowed on purpose — a rules-formatting problem
-    must never be the reason a session cannot start.
-    """
-    try:
-        subprocess.run(
-            [sys.executable, str(Path(__file__).resolve().parent.parent / "sync_host_rules.py")],
-            capture_output=True,
-            timeout=30,
-        )
-    except (OSError, subprocess.SubprocessError):
-        pass
-
-
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -108,7 +89,6 @@ def main() -> int:
     if not isinstance(payload, dict):
         payload = {}
 
-    _refresh_host_rules()
     lines_from_verify = _verify_lines()
 
     cwd = payload.get("cwd")
