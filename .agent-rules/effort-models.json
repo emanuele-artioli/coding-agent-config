@@ -51,16 +51,17 @@
     "cursor": {
       "junior": {
         "model": "grok-4.6",
-        "effort": "medium",
-        "verified": true,
-        "effort_settable": false
+        "effort": "low",
+        "verified": false,
+        "effort_settable": false,
+        "note": "generated slug cursor-grok-4.6-low; Task has no separate effort field"
       },
       "senior": {
         "model": "grok-4.6",
-        "effort": "medium",
-        "verified": true,
+        "effort": "high",
+        "verified": false,
         "effort_settable": false,
-        "note": "interactive session"
+        "note": "interactive session; set Grok 4.6 high in the Cursor UI, this file cannot override it"
       },
       "escalation": {
         "model": "grok-4.6",
@@ -68,6 +69,23 @@
         "verified": true,
         "effort_settable": false,
         "note": "effort is the slug suffix: cursor-grok-4.6-high"
+      },
+      "capabilities": {
+        "native_format": "markdown",
+        "supported_fields": [
+          "name",
+          "description",
+          "model"
+        ],
+        "omitted_source_fields": [
+          "tools",
+          "omitClaudeMd",
+          "maxTurns",
+          "effort"
+        ],
+        "diagnostic_mode": "html_comments",
+        "verified": false,
+        "note": "Claude agent frontmatter is source metadata; generated Cursor files carry an in-family slug. Live 2026-09-20: source model opus is applied at subagentStart and denied."
       }
     },
     "codex": {

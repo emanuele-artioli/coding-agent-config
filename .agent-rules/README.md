@@ -149,6 +149,8 @@ flowchart TB
     sc_candidate_reminders_py[candidate-reminders.py]
     sc_claude[claude]
     sc_clean_merged_worktrees_py[clean-merged-worktrees.py]
+    sc_closeout_py[closeout.py]
+    sc_closeout_adapter_py[closeout_adapter.py]
     sc_codex[codex]
     sc_context_nudge_py[context_nudge.py]
     sc_guard_git_py[guard-git.py]
@@ -166,6 +168,9 @@ flowchart TB
     sc_session_status_py[session-status.py]
     sc_sync_agent_rules_py[sync_agent_rules.py]
     sc_sync_host_rules_py[sync_host_rules.py]
+    sc_test_closeout_py[test_closeout.py]
+    sc_test_closeout_adapter_py[test_closeout_adapter.py]
+    sc_test_guard_model_family_py[test_guard_model_family.py]
     sc_test_install_plugin_py[test_install_plugin.py]
     sc_test_lessons_py[test_lessons.py]
     sc_test_paper_markers_lint_py[test_paper_markers_lint.py]
@@ -555,7 +560,7 @@ in `~/.cursor/hooks.json` (verified 2026-07-25 — see below).
 |---|---|---|---|---|---|
 | Global skills | `~/.claude/skills/<n>/SKILL.md` | reads `~/.cursor/`, `~/.agents/`, `~/.claude/`, `~/.codex/` skills | `~/.gemini/config/skills/<n>/` | `~/.agents/skills/<n>/` | `~/.copilot/skills/<n>/`, `~/.agents/skills/` |
 | Project skills | `.claude/skills/<n>/` | `.cursor/`, `.agents/`, `.claude/`, `.codex/` skills | `.agents/skills/<n>/` | `.agents/skills/<n>/` | `.github/`, `.claude/` or `.agents/skills` |
-| Global agents | `~/.claude/agents/<n>.md` | `~/.cursor/agents/<n>.md` (also reads `~/.claude/`) | `~/.gemini/config/agents/<n>.md` (farm link) | `$CODEX_HOME/agents/<n>.toml` (generated from the shared agent files) | `~/.copilot/agents/<n>.agent.md` |
+| Global agents | `~/.claude/agents/<n>.md` | `~/.cursor/agents/<n>.md` (generated from the shared agent files) | `~/.gemini/config/agents/<n>.md` (farm link) | `$CODEX_HOME/agents/<n>.toml` (generated from the shared agent files) | `~/.copilot/agents/<n>.agent.md` |
 | Project agents | `.claude/agents/<n>.md` | `.cursor/agents/`, `.claude/agents/` | `.agents/agents/<n>.md` | not verified | `.github/agents/<n>.agent.md` |
 | Slash / workflows | skills (`.claude/commands/` legacy) | `~/.cursor/commands/*.md`, `.cursor/commands/*.md` | `~/.gemini/config/global_workflows/`, `.agents/workflows/` | skills with `$` / `/skills` | n/a |
 | Global MCP | `~/.claude.json` → `mcpServers` | `~/.cursor/mcp.json` | `~/.gemini/config/mcp_config.json` | `~/.codex/config.toml` | `~/.copilot/mcp-config.json` |
@@ -567,7 +572,9 @@ Notes:
   Cursor, Codex, Copilot and Antigravity all read it; only Claude does not. One
   real directory under `.claude/skills/` plus a symlink covers them.
 - **Cursor agents and commands are first-class in the farm.** Global agents
-  link into `~/.cursor/agents/`; global workflows into `~/.cursor/commands/`.
+  are generated into `~/.cursor/agents/` with an in-family `model` slug
+  (`cursor-grok-4.6-low` for juniors; the shared source `model: opus` is applied by Cursor and denied);
+  global workflows link into `~/.cursor/commands/`.
   Skills still also reach Cursor via `~/.claude/skills/` (no Cursor-specific
   skill copy needed).
 - **No platform's global folder is shared verbatim by another** — each wants

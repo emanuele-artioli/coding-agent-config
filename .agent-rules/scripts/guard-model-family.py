@@ -30,12 +30,31 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from guardlib import model_family  # noqa: E402
 
 _SPAWN_TOOLS = frozenset({"Agent", "Task"})
+_CURSOR_EVENTS = frozenset({"preToolUse", "subagentStart", "subagentStop"})
+
+
+def _is_cursor_payload(payload: dict) -> bool:
+    """Cursor also loads ~/.claude/settings.json hooks.
+
+    Live 2026-09-20: an in-family `cursor-grok-4.6-high` Task spawn was
+    denied by this Claude adapter because Cursor imported it. Cursor has
+    its own `before-task.py`; this script must not apply Claude's family
+    gate to a Cursor-shaped payload.
+    """
+    if payload.get("cursor_version") is not None:
+        return True
+    event = payload.get("hook_event_name") or payload.get("hookEventName")
+    return event in _CURSOR_EVENTS
 
 
 def main() -> None:
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
+        sys.exit(0)
+    if not isinstance(payload, dict):
+        sys.exit(0)
+    if _is_cursor_payload(payload):
         sys.exit(0)
 
     tool = payload.get("tool_name")

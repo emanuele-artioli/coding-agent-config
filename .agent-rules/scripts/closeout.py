@@ -109,7 +109,7 @@ class Observation:
     axis: str = "project"
     summary: str = ""
     project: str = "."
-    platform: str = "codex"
+    platform: str = ""
     evidence: str | None = None
     event_id: str | None = None
     keywords: tuple[str, ...] = ()

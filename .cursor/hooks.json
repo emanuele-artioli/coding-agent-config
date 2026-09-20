@@ -46,6 +46,12 @@
         "timeout": 45,
         "failClosed": true
       }
+    ],
+    "subagentStop": [
+      {
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/subagent-stop.py",
+        "timeout": 15
+      }
     ]
   }
 }

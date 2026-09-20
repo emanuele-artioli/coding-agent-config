@@ -33,8 +33,9 @@ entries are never removed. Secrets: `${env:NAME}` placeholders, never
 plaintext.
 
 Shared subagents reach Codex as generated `$CODEX_HOME/agents/<n>.toml`
-files (written, not linked: Codex wants model and effort inline), with the
-rungs read from `effort-models.json`.
+files and Cursor as generated `~/.cursor/agents/<n>.md` files (written, not
+linked: each wants model inline), with the rungs read from
+`effort-models.json`.
 """
 
 from __future__ import annotations
@@ -363,15 +364,9 @@ def plan() -> list[Link]:
                     create_parents=True,
                 )
             )
-            links.append(
-                Link(
-                    HOME / ".cursor" / "agents" / f"{stem}.md",
-                    agent,
-                    "Cursor native global agents path",
-                    requires=HOME / ".cursor",
-                    create_parents=True,
-                )
-            )
+            # Cursor native agents are generated files, not source symlinks.
+            # `model: opus` on the shared markdown is applied at subagentStart
+            # and denied by the Cursor family gate. See apply_cursor_agents().
             links.append(
                 Link(
                     HOME / ".gemini" / "config" / "agents" / f"{stem}.md",
@@ -779,6 +774,264 @@ def apply_codex_agents(*, check: bool) -> list[tuple[str, str]]:
 
 
 # ---------------------------------------------------------------------------
+# Cursor native agent markdown
+# ---------------------------------------------------------------------------
+#
+# Cursor reads `~/.cursor/agents/<name>.md`. The shared source files carry
+# Claude frontmatter (`model: opus`, `tools:`, `omitClaudeMd`, `maxTurns`).
+# Live 2026-09-20: that `model: opus` is resolved to
+# `claude-opus-5-thinking-high` at `subagentStart` even when the Task call
+# passed `inherit`, and the Cursor family gate denies the spawn. So Cursor
+# gets generated markdown with an in-family slug, written rather than
+# linked, with the same ownership/conflict rules as Codex TOML.
+
+CURSOR_OWNER_MARKER = "<!-- coding-agent-config installer ownership: cursor-v1 -->"
+CURSOR_DIGEST_PREFIX = "<!-- coding-agent-config installer digest: sha256:"
+CURSOR_REQUIRED_RUNG_METADATA = {
+    "junior": {"model": "grok-4.6", "effort": "low"},
+    "escalation": {"model": "grok-4.6", "effort": "high"},
+}
+CURSOR_CLAUDE_ONLY_FIELDS = ("tools", "omitClaudeMd", "maxTurns", "effort")
+CURSOR_SUPPORTED_FIELDS = ("name", "description", "model")
+
+
+def cursor_rungs() -> dict[str, dict]:
+    """The `cursor` platform block of effort-models.json."""
+    if not EFFORT_MODELS.is_file():
+        return {}
+    data = json.loads(EFFORT_MODELS.read_text(encoding="utf-8"))
+    platforms = data.get("platforms")
+    if not isinstance(platforms, dict):
+        return {}
+    cursor = platforms.get("cursor")
+    return cursor if isinstance(cursor, dict) else {}
+
+
+def validate_cursor_rungs(rungs: dict[str, dict]) -> list[str]:
+    """Return errors for stale or unsafe Cursor role metadata."""
+    issues: list[str] = []
+    for rung, expected in CURSOR_REQUIRED_RUNG_METADATA.items():
+        spec = rungs.get(rung)
+        if not isinstance(spec, dict):
+            issues.append(f"missing platforms.cursor.{rung} metadata")
+            continue
+        for key, value in expected.items():
+            actual = spec.get(key)
+            if actual != value:
+                issues.append(
+                    f"platforms.cursor.{rung}.{key}={actual!r}; expected {value!r}"
+                )
+    capabilities = rungs.get("capabilities")
+    if not isinstance(capabilities, dict):
+        issues.append("missing platforms.cursor.capabilities metadata")
+    else:
+        supported = capabilities.get("supported_fields")
+        if supported != list(CURSOR_SUPPORTED_FIELDS):
+            issues.append(
+                "platforms.cursor.capabilities.supported_fields does not match "
+                "the native Cursor renderer"
+            )
+        omitted = capabilities.get("omitted_source_fields")
+        if not isinstance(omitted, list) or any(
+            field not in omitted for field in CURSOR_CLAUDE_ONLY_FIELDS
+        ):
+            issues.append(
+                "platforms.cursor.capabilities.omitted_source_fields must include "
+                "tools, omitClaudeMd, maxTurns, effort"
+            )
+        if capabilities.get("diagnostic_mode") != "html_comments":
+            issues.append(
+                "platforms.cursor.capabilities.diagnostic_mode must be 'html_comments'"
+            )
+    return issues
+
+
+def cursor_model_slug(spec: dict) -> str:
+    """Compose the live Cursor Task slug from rung model + effort."""
+    model = str(spec.get("model") or "").strip()
+    effort = str(spec.get("effort") or "").strip()
+    if not model:
+        return ""
+    if model.startswith("cursor-") or model in {"inherit", "inherit-parent", "auto"}:
+        return model
+    if effort:
+        return f"cursor-{model}-{effort}"
+    return f"cursor-{model}"
+
+
+def _yaml_flow_scalar(value: str) -> str:
+    """A double-quoted YAML scalar safe for one-line frontmatter values."""
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
+
+def _cursor_capabilities(rungs: dict[str, dict]) -> dict:
+    capabilities = rungs.get("capabilities")
+    return capabilities if isinstance(capabilities, dict) else {}
+
+
+def cursor_role_diagnostics(agent: Path, rungs: dict[str, dict]) -> list[str]:
+    """Describe source controls omitted from a Cursor artifact."""
+    fm, _ = _split_frontmatter(agent)
+    capabilities = _cursor_capabilities(rungs)
+    omitted = capabilities.get("omitted_source_fields")
+    if not isinstance(omitted, list):
+        omitted = list(CURSOR_CLAUDE_ONLY_FIELDS)
+    omitted_names = ", ".join(str(field) for field in omitted)
+    present = [field for field in omitted if field in fm]
+    present_note = (
+        "present in this source: " + ", ".join(str(field) for field in present)
+        if present
+        else "none are present in this source"
+    )
+    return [
+        "Cursor capability diagnostics: omitted Claude-only source controls: "
+        f"{omitted_names} ({present_note}).",
+        "Cursor capability diagnostics: source model/effort are overridden by "
+        "the validated platforms.cursor rung metadata.",
+    ]
+
+
+def _owned_cursor_text(payload: str) -> str:
+    """Insert ownership comments after YAML frontmatter."""
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    markers = (
+        f"{CURSOR_OWNER_MARKER}\n"
+        f"{CURSOR_DIGEST_PREFIX}{digest} -->\n"
+    )
+    if payload.startswith("---"):
+        end = payload.find("\n---\n")
+        if end >= 0:
+            head = payload[: end + 5]
+            rest = payload[end + 5 :]
+            if rest.startswith("\n"):
+                rest = rest[1:]
+            return head + "\n" + markers + rest
+    return markers + payload
+
+
+def _cursor_ownership(text: str) -> str | None:
+    """Return ``managed``, ``modified``, or ``None`` for legacy text."""
+    owner = CURSOR_OWNER_MARKER
+    digest_re = re.compile(
+        re.escape(CURSOR_DIGEST_PREFIX) + r"([0-9a-f]{64}) -->"
+    )
+    if owner not in text:
+        return None
+    match = digest_re.search(text)
+    if match is None:
+        return "modified"
+    payload = text.replace(owner + "\n", "", 1)
+    payload = payload.replace(match.group(0) + "\n", "", 1)
+    expected = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return "managed" if match.group(1) == expected else "modified"
+
+
+def render_cursor_agent(agent: Path, rungs: dict[str, dict]) -> str:
+    """Render one shared agent file as Cursor-native markdown."""
+    issues = validate_cursor_rungs(rungs)
+    if issues:
+        raise ValueError("invalid Cursor role metadata: " + "; ".join(issues))
+    fm, body = _split_frontmatter(agent)
+    stem = agent.name.removesuffix(".agent.md")
+    name = fm.get("name") or stem
+    rung = _role_rung(agent, fm)
+    spec = rungs.get(rung) or {}
+    slug = cursor_model_slug(spec)
+    description = fm.get("description", "").replace("\n", " ").strip()
+    diagnostics = cursor_role_diagnostics(agent, rungs)
+    diag_block = "".join(f"<!-- {diagnostic} -->\n" for diagnostic in diagnostics)
+    payload = (
+        "---\n"
+        f"name: {name}\n"
+        f"description: {_yaml_flow_scalar(description)}\n"
+        f"model: {slug}\n"
+        "---\n\n"
+        f"{diag_block}\n"
+        f"{body}"
+    )
+    return _owned_cursor_text(payload)
+
+
+def cursor_agent_files() -> list[tuple[Path, str]]:
+    """(destination path, rendered content) for every shared agent."""
+    if not AGENTS.is_dir():
+        return []
+    rungs = cursor_rungs()
+    issues = validate_cursor_rungs(rungs)
+    if issues:
+        raise ValueError("invalid Cursor role metadata: " + "; ".join(issues))
+    dest_dir = HOME / ".cursor" / "agents"
+    out: list[tuple[Path, str]] = []
+    for agent in sorted(AGENTS.glob("*.agent.md")):
+        stem = agent.name.removesuffix(".agent.md")
+        out.append((dest_dir / f"{stem}.md", render_cursor_agent(agent, rungs)))
+    return out
+
+
+def _known_cursor_symlink_target(dest: Path) -> Path | None:
+    """Return the exact legacy target that this destination may replace."""
+    agents_dir = HOME / ".cursor" / "agents"
+    if dest.parent == agents_dir and dest.suffix == ".md":
+        source = AGENTS / f"{dest.stem}.agent.md"
+        return source if source.is_file() else None
+    return None
+
+
+def apply_cursor_agents(*, check: bool) -> list[tuple[str, str]]:
+    """Write (or check) generated Cursor agent markdown files."""
+    cursor_home = HOME / ".cursor"
+    if not cursor_home.is_dir():
+        return [("Cursor shared agents (*.md)", "skipped")]
+    results: list[tuple[str, str]] = []
+    try:
+        generated = cursor_agent_files()
+    except ValueError as exc:
+        return [("Cursor role model metadata", f"conflict: {exc}")]
+    for dest, content in generated:
+        label = f"Cursor agent {dest.name}"
+        known_symlink = False
+        if dest.is_symlink():
+            managed_target = _known_cursor_symlink_target(dest)
+            try:
+                exact = (
+                    managed_target is not None
+                    and dest.resolve() == managed_target.resolve()
+                )
+            except OSError:
+                exact = False
+            if not exact or check:
+                results.append((label, "conflict"))
+                continue
+            known_symlink = True
+        if dest.exists() and not dest.is_file():
+            results.append((label, "conflict"))
+            continue
+        current = dest.read_text(encoding="utf-8") if dest.is_file() else None
+        if current == content:
+            if dest.is_symlink():
+                _atomic_write_text(dest, content)
+                results.append((label, "updated"))
+            else:
+                results.append((label, "ok"))
+            continue
+        if check:
+            results.append((label, "stale" if current is not None else "missing"))
+            continue
+        if current is not None and not known_symlink and _cursor_ownership(current) != "managed":
+            results.append((label, "conflict"))
+            continue
+        _atomic_write_text(dest, content)
+        results.append((label, "updated" if current is not None else "created"))
+    return results
+
+
+# ---------------------------------------------------------------------------
 # MCP catalog → per-platform configs
 # ---------------------------------------------------------------------------
 
@@ -957,6 +1210,12 @@ def main() -> int:
         if state in {"missing", "wrong", "conflict"}:
             problems += 1
         print(f"{state:9} {str(item.link):{width}}  {item.why}")
+
+    print()
+    for label, status in apply_cursor_agents(check=args.check):
+        print(f"{status:9} {label}")
+        if status in {"missing", "stale", "conflict"}:
+            problems += 1
 
     print()
     for label, status in apply_codex_agents(check=args.check):

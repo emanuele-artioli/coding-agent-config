@@ -124,7 +124,7 @@ def allowed_models(platform: str) -> set[str]:
 
 
 # Effort/thinking qualifiers Cursor appends to a base tier model
-# (`cursor-grok-4.6-medium`). `-fast` and other product variants are NOT in
+# (`cursor-grok-4.6-low`). `-fast` and other product variants are NOT in
 # this set — those stay off-tier so the nudge still fires.
 _TIER_EFFORT_SUFFIXES = frozenset(
     {
@@ -146,7 +146,7 @@ def matches_tier_model(requested: str, tier_model: str) -> bool:
     """Whether `requested` is the tier-mapped model, allowing Cursor naming.
 
     `effort-models.json` keeps short names (`grok-4.6`, `composer-2.5`); live
-    Cursor Task spawns often pass `cursor-grok-4.6-medium`. Accept optional
+    Cursor Task spawns often pass `cursor-grok-4.6-low`. Accept optional
     `cursor-` prefix and an effort/thinking suffix from
     `_TIER_EFFORT_SUFFIXES`. Product variants like `grok-4.6-fast` /
     `composer-2.5-fast` do not match.

@@ -106,13 +106,34 @@ trigger a SessionStart reminder.
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm that merging/pulling a branch in Cursor
   automatically triggers post-merge cleanup, deletes clean fully-merged linked worktrees and local branches,
   and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
-- [ ] **subagentStop report-contract adapter (added 2026-09-18).**
-  `scripts/cursor/subagent-stop.py` is authored, not wired. From a Cursor session:
-  add a `subagentStop` entry in `~/.cursor/hooks.json`, confirm the payload field
-  that carries the child's final message, and confirm the advisory output reaches
-  the parent.
-- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/cursor/stop.py`
-  now calls the shared adapter only for an explicit `closeout` boundary and
-  stable event identity; ordinary Stop, progress, questions, and re-entry are
-  no-ops. Confirm from a fresh Cursor session that the native `stop` payload
-  preserves those fields and that the isolated receipt is written.
+- [ ] **subagentStop report-contract adapter (added 2026-09-18, re-probed 2026-09-20).**
+  Adapter is authored and now listed in `.cursor/hooks.json`. This session added
+  `subagentStop` to the live user hooks file; no payload was written to
+  `~/.cursor/subagent-stop.log` (Cursor did not reload extra hook events in-session).
+  Confirm from a restarted Cursor session that the payload field carrying the
+  child's final message is one of the logged string keys, and that a missing
+  report-contract heading reaches the parent as stderr / Hooks-channel text.
+- [x] **Explicit closeout adapter (added 2026-09-20, probed 2026-09-20).**
+  Native `stop` payloads have `status`, `loop_count`, token counts, `model` /
+  `model_id` / `model_params`, and **no** `closeout` / `boundary_kind` /
+  `context_usage_percent`. Ordinary Stop is a no-op (`ordinary Stop is not
+  captured`). Synthetic payloads through `scripts/cursor/stop.py` with
+  `CLOSEOUT_STATE_ROOT` wrote an isolated receipt under
+  `.closeout/receipts/<id>--<id>.json`; replay of the same ids did not
+  duplicate; `progress` / `question` / `stop_hook_active` skipped. Native
+  Cursor never injects those explicit fields — closeout still needs a skill
+  or nested `closeout` object. Observation `platform` now inherits the
+  harness (`cursor`) instead of defaulting to `codex`.
+- [x] **Shared `model: opus` is applied and denied (2026-09-20).**
+  `implementer` with omitted or `inherit` Task `model` still hit
+  `subagentStart` `requested_model: claude-opus-5-thinking-high` and was
+  denied. Built-in `generalPurpose` with `inherit` spawned. Installer now
+  generates `~/.cursor/agents/*.md` with `cursor-grok-4.6-low` /
+  `-high` rather than symlinking the Claude source.
+- [x] **Imported Claude family gate (2026-09-20).** Cursor loads
+  `~/.claude/settings.json` `PreToolUse` / `Agent|Task`. An explicit
+  `cursor-grok-4.6-high` Task was allowed by `before-task.py` then denied
+  by `guard-model-family.py` as off-family for Claude. That adapter now
+  no-ops on Cursor-shaped payloads (`cursor_version` or `preToolUse`).
+  Live `~/.claude/settings.json` still points at the home checkout copy
+  until this branch is installed there.
