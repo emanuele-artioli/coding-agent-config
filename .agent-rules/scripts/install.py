@@ -30,7 +30,11 @@ MCP configs are different: they are JSON files that may already hold
 marketplace or personal servers. Shared servers are authored in portable
 `mcp.json` (Agent Plugins schema) and upserted by name only — unrelated
 entries are never removed. Secrets: `${env:NAME}` placeholders, never
-plaintext. Legacy `mcp/catalog.json` is a fallback if `mcp.json` is absent.
+plaintext.
+
+Shared subagents reach Codex as generated `$CODEX_HOME/agents/<n>.toml`
+files (written, not linked: Codex wants model and effort inline), with the
+rungs read from `effort-models.json`.
 """
 
 from __future__ import annotations
@@ -52,8 +56,12 @@ AGENTS = HOST / "agents"
 WORKFLOWS = HOST / "workflows"
 PLUGIN_JSON = HOST / "plugin.json"
 MCP_JSON = HOST / "mcp.json"
-MCP_CATALOG = HOST / "mcp" / "catalog.json"
 HOST_RULES = HOST / "AGENTS.md"
+# Codex reads one concatenated AGENTS.md; sync_host_rules.py may generate a
+# Codex-flavoured copy. Fall back to the plain host rules until it exists.
+CODEX_HOST_RULES = HOST / "generated" / "codex-AGENTS.md"
+EFFORT_MODELS = HOST / "effort-models.json"
+CODEX_HOME_SET = "CODEX_HOME" in os.environ
 
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
@@ -208,26 +216,19 @@ def _ap_server_to_catalog(spec: dict) -> dict:
 
 
 def load_catalog() -> dict[str, dict]:
-    """Shared MCP servers: prefer portable mcp.json, else legacy catalog.json."""
-    if MCP_JSON.is_file():
-        data = json.loads(MCP_JSON.read_text(encoding="utf-8"))
-        servers = data.get("mcpServers") or {}
-        if not isinstance(servers, dict):
-            raise ValueError(f"{MCP_JSON}: 'mcpServers' must be an object")
-        out: dict[str, dict] = {}
-        for name, spec in servers.items():
-            if not isinstance(spec, dict):
-                raise ValueError(f"{MCP_JSON}: server {name!r} must be an object")
-            out[str(name)] = _ap_server_to_catalog(spec)
-        return out
-
-    if not MCP_CATALOG.is_file():
+    """Shared MCP servers, from the portable `mcp.json`."""
+    if not MCP_JSON.is_file():
         return {}
-    data = json.loads(MCP_CATALOG.read_text(encoding="utf-8"))
-    servers = data.get("servers") or {}
+    data = json.loads(MCP_JSON.read_text(encoding="utf-8"))
+    servers = data.get("mcpServers") or {}
     if not isinstance(servers, dict):
-        raise ValueError(f"{MCP_CATALOG}: 'servers' must be an object")
-    return {str(k): v for k, v in servers.items() if isinstance(v, dict)}
+        raise ValueError(f"{MCP_JSON}: 'mcpServers' must be an object")
+    out: dict[str, dict] = {}
+    for name, spec in servers.items():
+        if not isinstance(spec, dict):
+            raise ValueError(f"{MCP_JSON}: server {name!r} must be an object")
+        out[str(name)] = _ap_server_to_catalog(spec)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -279,14 +280,17 @@ def plan() -> list[Link]:
             requires=HOME / ".gemini",
         )
     )
-    links.append(
-        Link(
-            CODEX_HOME / "AGENTS.md",
-            HOST_RULES,
-            "Codex global scope",
-            requires=CODEX_HOME,
+    if not CODEX_HOST_RULES.is_file():
+        # No generated concatenation yet: fall back to the portable source.
+        # When it exists, apply_codex_agents() writes the absolutised copy.
+        links.append(
+            Link(
+                CODEX_HOME / "AGENTS.md",
+                HOST_RULES,
+                "Codex global scope",
+                requires=CODEX_HOME,
+            )
         )
-    )
 
     links.append(
         Link(
@@ -368,6 +372,15 @@ def plan() -> list[Link]:
             )
             links.append(
                 Link(
+                    HOME / ".gemini" / "config" / "agents" / f"{stem}.md",
+                    agent,
+                    "Antigravity global agents",
+                    requires=HOME / ".gemini" / "config",
+                    create_parents=True,
+                )
+            )
+            links.append(
+                Link(
                     HOME / ".copilot" / "agents" / agent.name,
                     agent,
                     "Copilot CLI personal agents",
@@ -419,6 +432,144 @@ def apply(item: Link) -> None:
     if item.link.is_symlink():
         item.link.unlink()
     item.link.symlink_to(relative_target(item.link, item.target))
+
+
+# ---------------------------------------------------------------------------
+# Shared subagents → generated Codex agent TOML
+# ---------------------------------------------------------------------------
+#
+# Codex has no agent-file format that can be symlinked: it wants a TOML file
+# per agent under `$CODEX_HOME/agents/`, carrying the model and reasoning
+# effort inline. So these are *written*, not linked, and `--check` compares
+# the rendered text with what is on disk. The rungs come from
+# `effort-models.json` so this host has one map, not two.
+
+# Every shared agent is a junior rung except the escalation one.
+CODEX_ESCALATION_AGENTS = {"stuck-escalation"}
+
+
+def _split_frontmatter(path: Path) -> tuple[dict[str, str], str]:
+    """Return (frontmatter mapping, body text after the closing fence)."""
+    text = path.read_text(encoding="utf-8")
+    fm = _frontmatter(path)
+    if not text.startswith("---"):
+        return fm, text.strip() + "\n"
+    end = text.find("\n---", 3)
+    if end < 0:
+        return fm, text.strip() + "\n"
+    rest = text[end + 4 :]
+    _, _, body = rest.partition("\n")
+    return fm, body.strip() + "\n"
+
+
+def _toml_basic(value: str) -> str:
+    """A TOML single-line basic string."""
+    out = value.replace("\\", "\\\\").replace('"', '\\"')
+    out = out.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
+    return f'"{out}"'
+
+
+def _toml_multiline(value: str) -> str:
+    """A TOML multi-line basic string, safe for prose with quotes."""
+    out = value.replace("\\", "\\\\").replace('"""', '\\"\\"\\"')
+    if out.endswith('"'):
+        out = out[:-1] + '\\"'
+    return '"""\n' + out + '"""'
+
+
+def codex_rungs() -> dict[str, dict]:
+    """The `codex` platform block of effort-models.json."""
+    if not EFFORT_MODELS.is_file():
+        return {}
+    data = json.loads(EFFORT_MODELS.read_text(encoding="utf-8"))
+    platforms = data.get("platforms")
+    if not isinstance(platforms, dict):
+        return {}
+    codex = platforms.get("codex")
+    return codex if isinstance(codex, dict) else {}
+
+
+def render_codex_agent(agent: Path, rungs: dict[str, dict]) -> str:
+    """Render one shared agent file as a Codex agent TOML."""
+    fm, body = _split_frontmatter(agent)
+    stem = agent.name.removesuffix(".agent.md")
+    name = fm.get("name") or stem
+    rung = "escalation" if stem in CODEX_ESCALATION_AGENTS else "junior"
+    spec = rungs.get(rung) or {}
+    model = spec.get("model", "")
+    effort = spec.get("effort", "")
+    return (
+        f"# Generated by scripts/install.py from agents/{agent.name}\n"
+        f"# Rung: {rung} (effort-models.json → platforms.codex.{rung})\n"
+        "# Edit the agent file, not this one.\n"
+        f"name = {_toml_basic(name)}\n"
+        f"description = {_toml_basic(fm.get('description', ''))}\n"
+        f"developer_instructions = {_toml_multiline(body)}\n"
+        f"model = {_toml_basic(model)}\n"
+        f"model_reasoning_effort = {_toml_basic(effort)}\n"
+    )
+
+
+def codex_host_rules_file() -> list[tuple[Path, str]]:
+    """`$CODEX_HOME/AGENTS.md` with in-tree pointers made absolute.
+
+    `generated/codex-AGENTS.md` stays portable so every checkout produces the
+    same bytes and CI can check it. Codex reads its copy from outside the
+    repo, where `` `../ `` resolves to nothing, so the absolute form is
+    written here rather than generated into the tree.
+    """
+    if not CODEX_HOST_RULES.is_file():
+        return []
+    body = CODEX_HOST_RULES.read_text(encoding="utf-8")
+    return [(CODEX_HOME / "AGENTS.md", body.replace("`../", f"`{HOST}/"))]
+
+
+def codex_agent_files() -> list[tuple[Path, str]]:
+    """(destination path, rendered content) for every shared agent."""
+    if not AGENTS.is_dir():
+        return []
+    rungs = codex_rungs()
+    out: list[tuple[Path, str]] = []
+    for agent in sorted(AGENTS.glob("*.agent.md")):
+        stem = agent.name.removesuffix(".agent.md")
+        out.append((CODEX_HOME / "agents" / f"{stem}.toml", render_codex_agent(agent, rungs)))
+    return out
+
+
+def apply_codex_agents(*, check: bool) -> list[tuple[str, str]]:
+    """Write (or check) the generated Codex agent TOML files."""
+    if not CODEX_HOME_SET or not CODEX_HOME.is_dir():
+        return [("Codex shared agents (*.toml)", "skipped")]
+    results: list[tuple[str, str]] = []
+    for dest, content in codex_host_rules_file() + codex_agent_files():
+        label = (
+            "Codex host rules AGENTS.md"
+            if dest.name == "AGENTS.md"
+            else f"Codex agent {dest.name}"
+        )
+        if dest.is_symlink():
+            # A farm link we made earlier for this path; the content is
+            # written now, so retire the link. Anything else is a conflict.
+            target = dest.resolve()
+            if not check and (target == HOST_RULES or HOST in target.parents):
+                dest.unlink()
+            else:
+                results.append((label, "conflict" if check else "conflict"))
+                continue
+        if dest.exists() and not dest.is_file():
+            results.append((label, "conflict"))
+            continue
+        current = dest.read_text(encoding="utf-8") if dest.is_file() else None
+        if current == content:
+            results.append((label, "ok"))
+            continue
+        if check:
+            results.append((label, "stale" if current is not None else "missing"))
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+        results.append((label, "updated" if current is not None else "created"))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -598,6 +749,12 @@ def main() -> int:
         if state in {"missing", "wrong", "conflict"}:
             problems += 1
         print(f"{state:9} {str(item.link):{width}}  {item.why}")
+
+    print()
+    for label, status in apply_codex_agents(check=args.check):
+        print(f"{status:9} {label}")
+        if status in {"missing", "stale", "conflict"}:
+            problems += 1
 
     print()
     for label, status in apply_mcp(check=args.check):

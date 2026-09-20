@@ -1,4 +1,0 @@
-{
-  "_comment": "DEPRECATED as SoT. Shared MCP servers now live in the Agent Plugins portable file ../mcp.json (schema https://agent-plugins.org/schemas/1.0.0/mcp.schema.json). install.py reads mcp.json first; this file is only a fallback if mcp.json is missing. Secrets: use ${env:NAME} placeholders, never plaintext.",
-  "servers": {}
-}

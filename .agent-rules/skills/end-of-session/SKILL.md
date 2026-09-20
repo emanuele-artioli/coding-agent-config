@@ -33,6 +33,18 @@ Follow the schema in `candidates/README.md`. Do not create “nothing to
 surface” files. A one-line verbal note (“nothing on either axis”) is enough
 if useful.
 
+**Before writing, check whether this already happened once.** Run
+`python3 <config>/.agent-rules/scripts/lessons.py match "<your one-line
+summary>"`. Scores are a recall aid — a restatement in other words scores
+zero, so read the printed list too.
+
+- Earlier entry found → do **not** file a new candidate. Run `lessons.py
+  record <id> --project <path> --platform <name>`, fill the appended
+  occurrence stub (what happened this time, and why the earlier entry did
+  not prevent it), and name the delivery you would pick. Twice is a rule.
+- Nothing matches → new candidate, **with `keywords:`** so the next session
+  can find it.
+
 ### 3. Other close-out checks (advisory)
 
 - If the project has outputs + paper dirs (or a wired paper-sync hook),

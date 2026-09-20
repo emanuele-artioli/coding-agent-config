@@ -68,6 +68,16 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/itec/emanuele/.agent-rules/scripts/claude/subagent-stop.py"
+          }
+        ]
+      }
     ]
   },
   "effortLevel": "medium",

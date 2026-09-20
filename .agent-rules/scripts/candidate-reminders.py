@@ -32,6 +32,20 @@ def _open_count() -> int:
     return n
 
 
+def _promote_count() -> int:
+    """Count `promote-*.md` by name only — no open(), which NFS charges for."""
+    n = 0
+    for directory in OPEN_DIRS:
+        if not directory.is_dir():
+            continue
+        n += sum(
+            1
+            for p in directory.iterdir()
+            if p.suffix == ".md" and p.name.startswith("promote-")
+        )
+    return n
+
+
 def _pending_open(platform: str) -> int:
     path = PENDING / f"{platform}.md"
     if not path.is_file():
@@ -43,7 +57,7 @@ def _pending_open(platform: str) -> int:
     return sum(1 for line in text.splitlines() if line.strip().startswith("- [ ]"))
 
 
-def messages(platform: str = "cursor", *, cwd: Path | None = None) -> list[str]:
+def messages(platform: str = "cursor", cwd: Path | str | None = None) -> list[str]:
     """Return advisory lines for SessionStart (may be empty)."""
     out: list[str] = []
     pending = _pending_open(platform)
@@ -55,13 +69,21 @@ def messages(platform: str = "cursor", *, cwd: Path | None = None) -> list[str]:
         )
 
     opened = _open_count()
-    here = (cwd or Path.cwd()).resolve()
+    here = Path(cwd or Path.cwd()).resolve()
     # coding-agent-config on this host is $HOME (contains .agent-rules/).
     in_config = here == HOME or here == HOST or HOST in here.parents
     if opened and in_config:
         out.append(
             f"Knowledge loop — {opened} open candidate(s) under "
             f"{CANDIDATES / 'open'}. Consider the evaluate-candidates skill."
+        )
+
+    promote = _promote_count()
+    if promote and in_config:
+        out.append(
+            f"Knowledge loop — {promote} lesson(s) seen twice are waiting to be "
+            "promoted (promote-*.md). Twice is a rule: evaluate-candidates, "
+            "`recurring` branch."
         )
     return out
 

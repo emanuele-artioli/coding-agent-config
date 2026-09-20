@@ -89,11 +89,11 @@ def inspect(requested_model: str | None, platform: str) -> str | None:
     return reason(platform, normalized)
 
 
-# --- Effort tier (low/medium/high -> model), for SUBAGENT spawns only ------
+# --- Rung (junior/senior/escalation -> model), for SUBAGENT spawns only ------
 #
 # Separate, softer concern from the family gate above: within an already
-# in-family model, is it one of the three models this host has mapped to an
-# effort tier for that platform? Never merged into inspect()/reason() —
+# in-family model, is it one of the models this host has mapped to a
+# rung (junior/senior/escalation) for that platform? Never merged into inspect()/reason() —
 # family mismatch is a hard deny, tier mismatch is a nudge a caller can
 # override. See ../../effort-models.json for the data and its unverified
 # `effort` fields.
@@ -182,10 +182,10 @@ def is_tier_mapped(requested_model: str | None, platform: str) -> bool:
 
 
 def tier_table(platform: str) -> str:
-    """Formatted low/medium/high -> model summary for nudge messages."""
+    """Formatted junior/senior/escalation -> model summary for nudge messages."""
     tiers = _load_effort_table().get(platform, {})
     parts = []
-    for tier in ("low", "medium", "high"):
+    for tier in ("junior", "senior", "escalation"):
         spec = tiers.get(tier)
         if isinstance(spec, dict) and isinstance(spec.get("model"), str):
             parts.append(f"{tier}={spec['model']}")
@@ -213,8 +213,8 @@ def tier_nudge(requested_model: str | None, platform: str) -> str | None:
     if not table:
         return None
     return (
-        f"`{requested_model}` isn't one of this host's mapped effort tiers "
+        f"`{requested_model}` isn't one of this host's mapped rungs "
         f"for {platform} ({table}). If this was a deliberate choice, carry "
-        f"on; otherwise pick the tier-mapped model for the effort this "
-        f"subagent's task needs from `effort-models.json`."
+        f"on; otherwise pick the rung this subagent's task needs "
+        f"(junior / escalation) from `effort-models.json`."
     )
