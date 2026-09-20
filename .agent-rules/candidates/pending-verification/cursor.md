@@ -111,3 +111,8 @@ trigger a SessionStart reminder.
   add a `subagentStop` entry in `~/.cursor/hooks.json`, confirm the payload field
   that carries the child's final message, and confirm the advisory output reaches
   the parent.
+- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/cursor/stop.py`
+  now calls the shared adapter only for an explicit `closeout` boundary and
+  stable event identity; ordinary Stop, progress, questions, and re-entry are
+  no-ops. Confirm from a fresh Cursor session that the native `stop` payload
+  preserves those fields and that the isolated receipt is written.

@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from context_nudge import medium_aging_message  # noqa: E402
+from closeout_adapter import capture_payload, emit_diagnostics  # noqa: E402
 
 
 def _git_dirty() -> bool:
@@ -74,6 +75,13 @@ def main() -> int:
             "(commit on invoke, ask before push).",
             file=sys.stderr,
         )
+
+    # Closeout is a conservative backstop: only an explicit boundary in the
+    # payload can write operational state, and adapter failures stay advisory.
+    try:
+        emit_diagnostics(capture_payload(payload, "claude"), "claude")
+    except Exception as exc:  # pragma: no cover - defensive hook fail-open
+        print(f"claude/closeout: adapter exception ({type(exc).__name__}); skipped", file=sys.stderr)
 
     # Plan-wave linting is Cursor-only for now (`.cursor/plans/*.plan.md`
     # files); Claude's plan mode has no persisted-file equivalent to lint.

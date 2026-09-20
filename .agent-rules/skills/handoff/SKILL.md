@@ -17,6 +17,12 @@ handoff at a natural boundary once nudges say the session is warm. Mid-task
 forced handoff at ~50% is still wrong — finish the current unit of work, then
 hand off.
 
+An explicit handoff is also a completion boundary for the shared closeout
+routine. Record the handoff with `scripts/closeout.py` using its stable event
+identity before writing `HANDOFF.md`; the receipt is operational state and
+does not replace the handoff document. Repeating the same handoff must not
+create a second lesson occurrence.
+
 ## Where it goes
 
 Write `HANDOFF.md` at the root of the primary repo the work is in (or a
