@@ -24,6 +24,13 @@ assert _SPEC and _SPEC.loader
 _SPEC.loader.exec_module(_mod)
 messages = _mod.messages
 
+_STATUS = _HOST / "hooks" / "session-status.py"
+_STATUS_SPEC = importlib.util.spec_from_file_location("session_status", _STATUS)
+_status_mod = importlib.util.module_from_spec(_STATUS_SPEC)
+assert _STATUS_SPEC and _STATUS_SPEC.loader
+_STATUS_SPEC.loader.exec_module(_status_mod)
+status_lines = _status_mod.status_lines
+
 from precompact_stub import resume_messages  # noqa: E402
 
 PROBE_LOG = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "session-start.log"
@@ -71,7 +78,8 @@ def main() -> int:
         payload = {}
 
     cwd = _cwd(payload)
-    lines = messages("codex", cwd=cwd)
+    lines = status_lines(cwd)
+    lines.extend(messages("codex", cwd=cwd))
     lines.extend(resume_messages(cwd))
     for line in lines:
         print(line, file=sys.stderr)

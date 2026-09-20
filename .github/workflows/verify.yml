@@ -50,6 +50,8 @@ jobs:
           python3 .agent-rules/harness/antigravity/test_before_shell.py
           python3 .agent-rules/harness/antigravity/test_guard_model_family.py
           python3 .agent-rules/harness/cursor/test_subagent_stop.py
+          python3 .agent-rules/harness/cursor/test_session_start.py
+          python3 .agent-rules/hooks/test_session_status.py
 
       - name: Measured claims carry a date
         run: python3 .agent-rules/scripts/verify.py --only claims
