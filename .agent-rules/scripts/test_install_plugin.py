@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -42,6 +43,20 @@ def test_load_catalog_from_mcp_json() -> None:
     mod = _load_install()
     catalog = mod.load_catalog()
     assert catalog == {}
+
+
+def test_codex_hooks_manifest_is_valid_and_complete() -> None:
+    manifest_path = ROOT.parent / "harness" / "codex" / "codex-hooks.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    expected_events = {"SessionStart", "PreToolUse", "UserPromptSubmit", "PreCompact", "Stop"}
+    assert set(manifest["hooks"]) == expected_events
+    for event in expected_events:
+        entries = manifest["hooks"][event]
+        assert entries
+        for entry in entries:
+            for hook in entry["hooks"]:
+                command = hook["command"]
+                assert command.startswith("/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/codex/")
 
 
 AGENT_FIXTURE = """---
@@ -467,5 +482,6 @@ class RelinkHostOwnedSymlinkTest(unittest.TestCase):
 if __name__ == "__main__":
     test_validate_plugin_ok()
     test_load_catalog_from_mcp_json()
+    test_codex_hooks_manifest_is_valid_and_complete()
     unittest.main(argv=[sys.argv[0]], exit=False)
     print("ok")
