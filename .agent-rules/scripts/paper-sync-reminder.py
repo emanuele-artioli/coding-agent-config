@@ -89,7 +89,7 @@ def main() -> None:
     age = f"{hours:.0f}h" if hours >= 1 else f"{hours * 60:.0f}min"
     print(
         f"{args.noun} are {age} newer than the paper's last commit. "
-        f"If this session produced something citable, run /update-paper; "
+        f"If this session produced something citable, use skill `paper`; "
         f"if not, no action needed.",
         file=sys.stderr,
     )

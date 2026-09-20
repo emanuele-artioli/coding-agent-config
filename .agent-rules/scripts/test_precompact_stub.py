@@ -178,7 +178,7 @@ class StrongMessage(unittest.TestCase):
     def test_message_survives_write_failure(self) -> None:
         with mock.patch.object(stub, "write_stub", return_value=None):
             msg = context_nudge.strong_precompact_message({"session_id": "x"})
-        self.assertIn("HANDOFF.md", msg)
+        self.assertIn("could not be written", msg)
         self.assertIn("Compaction imminent", msg)
 
 

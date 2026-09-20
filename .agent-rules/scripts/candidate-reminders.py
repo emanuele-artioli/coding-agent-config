@@ -75,14 +75,14 @@ def messages(platform: str = "cursor", cwd: Path | str | None = None) -> list[st
     if opened and in_config:
         out.append(
             f"Knowledge loop — {opened} open candidate(s) under "
-            f"{CANDIDATES / 'open'}. Consider the evaluate-candidates skill."
+            f"{CANDIDATES / 'open'}. Consider `end-of-session`."
         )
 
     promote = _promote_count()
     if promote and in_config:
         out.append(
             f"Knowledge loop — {promote} lesson(s) seen twice are waiting to be "
-            "promoted (promote-*.md). Twice is a rule: evaluate-candidates, "
+            "promoted (promote-*.md). Twice is a rule: `end-of-session`, "
             "`recurring` branch."
         )
     return out

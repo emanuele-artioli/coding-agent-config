@@ -38,6 +38,5 @@ advisory nudge.
 ## Knowledge loop (Codex)
 
 Queue layout and how to file a candidate: `../candidates/README.md`. The
-procedures are the `end-of-session`, `evaluate-candidates` and `handoff`
-skills; this platform's live-wiring status is
+procedure is the `end-of-session` skill; this platform's live-wiring status is
 `../candidates/pending-verification/codex.md`.

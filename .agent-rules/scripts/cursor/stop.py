@@ -1,21 +1,18 @@
 #!/usr/bin/python3
-"""Cursor stop adapter — medium aging nudge + dirty-tree end-of-session hint.
+"""Cursor stop adapter — closeout capture and plan-waves advisory.
 
-Medium tier prints to stderr (Hooks channel). Does not set followup_message
-(reserved for rare strong loops). Never auto-runs handoff.
+Never auto-runs handoff. Does not set followup_message.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from context_nudge import medium_aging_message  # noqa: E402
 from closeout_adapter import capture_payload, emit_diagnostics  # noqa: E402
 
 _SCRIPTS = Path(__file__).resolve().parent.parent
@@ -25,19 +22,6 @@ _LINT_SPEC = importlib.util.spec_from_file_location(
 _lint = importlib.util.module_from_spec(_LINT_SPEC)
 assert _LINT_SPEC and _LINT_SPEC.loader
 _LINT_SPEC.loader.exec_module(_lint)
-
-
-def _git_dirty() -> bool:
-    try:
-        out = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        return bool(out.stdout.strip()) if out.returncode == 0 else False
-    except (OSError, subprocess.SubprocessError):
-        return False
 
 
 def main() -> int:
@@ -81,17 +65,6 @@ def main() -> int:
             )
     except OSError:
         pass
-
-    msg = medium_aging_message(payload)
-    if msg:
-        print(f"context-nudge medium: {msg}", file=sys.stderr)
-
-    if _git_dirty():
-        print(
-            "Knowledge loop — dirty tree; consider end-of-session "
-            "(commit on invoke, ask before push).",
-            file=sys.stderr,
-        )
 
     # Only explicit closeout boundary fields can trigger capture.  Keep the
     # hook fail-open if an adapter or storage dependency is unavailable.

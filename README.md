@@ -26,6 +26,20 @@ python3 .agent-rules/scripts/install.py --check
 `install.py` only links into agent directories that already exist and
 reports conflicts instead of clobbering real files.
 
+## Skills
+
+Four hats. The senior is the session.
+
+| Skill | When |
+|---|---|
+| `session` | dispatch, intake, escalation, when to ask |
+| `engineer` | plan as signatures plus three-group tests |
+| `paper` | markers, literature, figures, measurement |
+| `end-of-session` | closeout, `HANDOFF.md`, candidates, commit |
+
+Juniors: `implementer`, `paper-screener`, `data-condenser`, `paper-editor`,
+`referee`, `gpu-job-runner`, `stuck-escalation`.
+
 ## Layout
 
 On the author's machine this git repo is the home directory, with an

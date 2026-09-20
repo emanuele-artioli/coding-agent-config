@@ -25,8 +25,8 @@ transcript — fill the sections below (or write a full `HANDOFF.md` and point
 at it) before relying on auto-summary. After compact / on a fresh session,
 read this file first.
 
-- **Prefer** a full `handoff` → `HANDOFF.md` at the project root if you still
-  have turns left; this stub is a bridge, not a replacement.
+- **Prefer** a full `HANDOFF.md` at the project root (skill `end-of-session`)
+  if you still have turns left; this stub is a bridge, not a replacement.
 
 ## Task (one paragraph)
 

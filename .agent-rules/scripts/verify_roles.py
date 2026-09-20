@@ -10,9 +10,10 @@ Code checks what prose would only suggest. Run after editing anything under
 Rules enforced:
 
 * Every `skills/<name>/SKILL.md` has frontmatter `name` equal to its
-  directory and a non-empty `description`. A senior procedure (one listed
-  in SENIOR_SKILLS) names the `session` skill, so the dispatch contract is
-  reached from it, and stays under MAX_SKILL_LINES.
+  directory and a non-empty `description`. Senior hats are engineer,
+  paper, end-of-session. Dispatch hats (engineer, paper) name the
+  `session` skill, so the dispatch contract is reached from them, and
+  stay under MAX_SKILL_LINES.
 * Every `agents/<name>.agent.md` has frontmatter `name` equal to its stem,
   a non-empty `description`, and the five report headings verbatim in its
   body, so a child cannot be spawned without the report contract. A junior
@@ -47,11 +48,9 @@ REPORT_HEADINGS = (
     "## Assumptions",
 )
 SENIOR_SKILLS = (
-    "literature-review",
-    "figure-first",
-    "implementation-plan",
-    "paper-outline",
-    "escalate",
+    "engineer",
+    "paper",
+    "end-of-session",
 )
 JUNIOR_AGENTS = (
     "implementer",
@@ -65,7 +64,23 @@ ESCALATION_AGENTS = ("stuck-escalation",)
 ROLE_RUNGS = {agent: "junior" for agent in JUNIOR_AGENTS} | {
     agent: "escalation" for agent in ESCALATION_AGENTS
 }
-RETIRED_NAMES = ("model-routing", "budget-default", "review-fix", "expert-retry")
+RETIRED_NAMES = (
+    "model-routing",
+    "budget-default",
+    "review-fix",
+    "expert-retry",
+    "evaluate-candidates",
+    "implementation-plan",
+    "test-design",
+    "literature-review",
+    "figure-first",
+    "paper-outline",
+    "paper-structure",
+    "update-paper",
+    "reviewer-response",
+    "results-report",
+    "verify-measurement",
+)
 MAX_SKILL_LINES = 120
 MAX_AGENT_LINES = 100
 JUNIOR_FACTS = AGENTS / "JUNIOR-FACTS.md"

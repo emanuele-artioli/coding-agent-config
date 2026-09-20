@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Codex PreCompact adapter — strong handoff / end-of-session nudge."""
+"""Codex PreCompact adapter — write a resume stub and point at its path."""
 
 from __future__ import annotations
 

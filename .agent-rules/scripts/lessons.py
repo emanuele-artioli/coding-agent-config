@@ -352,7 +352,7 @@ def _replace_metadata(
             f"\n## Occurrence {count}, {when}, {project} ({platform})\n\n"
             f"<!-- lessons-event: {event_id} -->\n"
             "<!-- What happened this time, and why the earlier entry did not "
-            "prevent it.\n     Then promote: evaluate-candidates, `recurring` "
+            "prevent it.\n     Then promote: end-of-session, `recurring` "
             "branch. -->\n"
         )
         if evidence:
