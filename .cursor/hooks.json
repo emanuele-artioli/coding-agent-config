@@ -3,38 +3,38 @@
   "hooks": {
     "beforeShellExecution": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-shell.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/before-shell.py",
         "timeout": 45,
         "failClosed": true
       }
     ],
     "sessionStart": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/session-start.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/session-start.py",
         "timeout": 15
       }
     ],
     "beforeSubmitPrompt": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-submit-prompt.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/before-submit-prompt.py",
         "timeout": 10
       }
     ],
     "stop": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/stop.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/stop.py",
         "timeout": 15
       }
     ],
     "preCompact": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/pre-compact.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/pre-compact.py",
         "timeout": 10
       }
     ],
     "preToolUse": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-task.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/before-task.py",
         "matcher": "Task",
         "timeout": 45,
         "failClosed": true
@@ -42,14 +42,14 @@
     ],
     "subagentStart": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/before-task.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/before-task.py",
         "timeout": 45,
         "failClosed": true
       }
     ],
     "subagentStop": [
       {
-        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/scripts/cursor/subagent-stop.py",
+        "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/subagent-stop.py",
         "timeout": 15
       }
     ]

@@ -20,8 +20,8 @@ trigger a SessionStart reminder.
   `.cursor/rules/cursor-harness.mdc`; TIGAS still has the generated copy
   (`alwaysApply: true`); pointstream uses `host.mdc` pointers.
 - [x] **Effort-tier nudge (added 2026-07-28 from a Claude session — verified
-  live 2026-07-28).** `scripts/cursor/before-task.py` logs an effort-tier
-  nudge from `../effort-models.json` when an allowed model is in-family but
+  live 2026-07-28).** `harness/cursor/before-task.py` logs an effort-tier
+  nudge from `../harness/effort-models.json` when an allowed model is in-family but
   off the mapped low/medium/high tiers for cursor, and also returns it as
   `agent_message` while still `permission: allow`. Tier matching accepts
   live Cursor slugs (`cursor-grok-4.5-high` ≡ `grok-4.5`); `-fast` variants
@@ -53,7 +53,7 @@ trigger a SessionStart reminder.
   cap: `Read` of vscode.git `dist/main.js` (453,563 characters) failed with
   "exceeds maximum allowed characters (100000)" and asked for `offset` /
   `limit`. Cost exists for huge files, but the Claude coupling (must-read
-  before edit + 2000-line default) does not. Stays in `harness/claude.md`.
+  before edit + 2000-line default) does not. Stays in `harness/claude/claude.md`.
   Candidate: `done/2026-07-29-claude-read-edit-cost-of-big-files.md`.
 - [x] **Irreversible-git guard added to `cursor/before-shell.py` (2026-08-31,
   live in Cursor).** `beforeShellExecution` denied `git push --force`,
@@ -102,7 +102,7 @@ trigger a SessionStart reminder.
   Candidate: `done/2026-09-01-cursor-drops-claude-hook-args.md`
   (`needs_verification` on Claude).
 - [ ] **Automated merged worktree cleanup (added 2026-09-07, candidate `2026-09-07-automated-merged-worktree-cleanup`).**
-  Host-wide git post-merge hook (`~/.agent-rules/git-hooks/post-merge`) wired via `core.hooksPath`
+  Host-wide git post-merge hook (`~/.agent-rules/hooks/post-merge`) wired via `core.hooksPath`
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm that merging/pulling a branch in Cursor
   automatically triggers post-merge cleanup, deletes clean fully-merged linked worktrees and local branches,
   and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
@@ -117,7 +117,7 @@ trigger a SessionStart reminder.
   Native `stop` payloads have `status`, `loop_count`, token counts, `model` /
   `model_id` / `model_params`, and **no** `closeout` / `boundary_kind` /
   `context_usage_percent`. Ordinary Stop is a no-op (`ordinary Stop is not
-  captured`). Synthetic payloads through `scripts/cursor/stop.py` with
+  captured`). Synthetic payloads through `harness/cursor/stop.py` with
   `CLOSEOUT_STATE_ROOT` wrote an isolated receipt under
   `.closeout/receipts/<id>--<id>.json`; replay of the same ids did not
   duplicate; `progress` / `question` / `stop_hook_active` skipped. Native

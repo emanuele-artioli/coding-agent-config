@@ -23,12 +23,14 @@ Deliberately not testing
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "hooks"))
 import context_nudge
 import precompact_stub as stub
 

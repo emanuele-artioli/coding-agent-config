@@ -14,7 +14,7 @@ from unittest import mock
 
 
 _SPEC = importlib.util.spec_from_file_location(
-    "closeout", Path(__file__).resolve().parent / "closeout.py"
+    "closeout", Path(__file__).resolve().parent.parent / "hooks" / "closeout.py"
 )
 closeout = importlib.util.module_from_spec(_SPEC)
 assert _SPEC and _SPEC.loader

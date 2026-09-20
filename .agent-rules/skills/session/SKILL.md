@@ -6,7 +6,7 @@ description: The senior's dispatch procedure. Use at the start of multi-step wor
 # Session: route, dispatch, verify, close
 
 You are the senior. You hold the goal, the context, and the judgment.
-Children hold one bounded task each. Rungs live in `effort-models.json`.
+Children hold one bounded task each. Rungs live in `harness/effort-models.json`.
 Spawn by agent name; omit Task `model`. Give a child the smallest complete
 brief: goal, allowed paths, relevant canonical constraints, scoped facts,
 and its check; do not paste senior-only workflow or unrelated harness context.

@@ -2,7 +2,7 @@
 
 Edit **this file** for anything that should apply to every agent using this
 repo, on any machine. Tool names and per-agent config paths belong in
-`harness/<agent>.md`. Lab GPU / NFS facts belong in `host.md` (this
+`harness/<agent>/`. Lab GPU / NFS facts belong in `host.md` (this
 machine only).
 
 It is **the register of things that have gone wrong more than once** —
@@ -41,7 +41,7 @@ A wrong merge is a revert.
 Irreversible git is a human's to run: force push (`--force-with-lease`
 included), deleting a remote branch or tag, `push --mirror/--prune`,
 `reflog expire`, `gc --prune=now`, and `git clean -f`. Enforced by
-`guardlib/destructive_git.py` on agent shells. An editor's git panel
+`hooks/guardlib/destructive_git.py` on agent shells. An editor's git panel
 talks to git itself and is not that hook.
 
 <!-- scope: tests/**, **/tests/**, **/test_*.py, **/*_test.py, conftest.py, **/conftest.py -->

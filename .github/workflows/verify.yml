@@ -47,9 +47,9 @@ jobs:
           python3 .agent-rules/scripts/test_paper_markers_lint.py
           python3 .agent-rules/scripts/test_sync_agent_rules.py
           python3 .agent-rules/scripts/test_precompact_stub.py
-          python3 .agent-rules/scripts/antigravity/test_before_shell.py
-          python3 .agent-rules/scripts/antigravity/test_guard_model_family.py
-          python3 .agent-rules/scripts/cursor/test_subagent_stop.py
+          python3 .agent-rules/harness/antigravity/test_before_shell.py
+          python3 .agent-rules/harness/antigravity/test_guard_model_family.py
+          python3 .agent-rules/harness/cursor/test_subagent_stop.py
 
       - name: Measured claims carry a date
         run: python3 .agent-rules/scripts/verify.py --only claims
@@ -57,4 +57,4 @@ jobs:
       - name: Guard unit tests
         run: |
           python3 -m pip install --quiet pytest
-          python3 -m pytest .agent-rules/scripts/guardlib -q
+          python3 -m pytest .agent-rules/hooks/guardlib -q
