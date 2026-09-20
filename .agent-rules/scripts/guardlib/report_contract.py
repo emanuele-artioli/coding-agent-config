@@ -13,10 +13,12 @@ read their platform's payload and print in their platform's shape.
 
 Wiring these adapters into a settings file is the senior's step, not this
 module's — nothing here reads or writes any configuration. The Claude side
-targets the documented `SubagentStop` event. **The Cursor side is pending
-verification**: the `subagentStop` event's payload field for the child's
-final message has not been observed live, so the adapter accepts more than
-one field name (see its docstring).
+targets the documented `SubagentStop` event and reads
+`last_assistant_message`. Wave 0.1 (2026-09-20): Cursor `subagentStop`
+fires, but the native payload has no child-final-text field (`task` is
+the prompt). That adapter stays silent unless a real final-text field
+appears; it does not treat prompt or status keys as the child's last
+message.
 """
 
 from __future__ import annotations

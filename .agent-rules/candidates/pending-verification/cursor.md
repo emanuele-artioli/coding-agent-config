@@ -106,13 +106,13 @@ trigger a SessionStart reminder.
   and `~/bin/git-clean-merged-worktrees` CLI on PATH. Confirm that merging/pulling a branch in Cursor
   automatically triggers post-merge cleanup, deletes clean fully-merged linked worktrees and local branches,
   and preserves dirty or unmerged worktrees. Manual test: run `git clean-merged-worktrees --dry-run`.
-- [ ] **subagentStop report-contract adapter (added 2026-09-18, re-probed 2026-09-20).**
-  Adapter is authored and now listed in `.cursor/hooks.json`. This session added
-  `subagentStop` to the live user hooks file; no payload was written to
-  `~/.cursor/subagent-stop.log` (Cursor did not reload extra hook events in-session).
-  Confirm from a restarted Cursor session that the payload field carrying the
-  child's final message is one of the logged string keys, and that a missing
-  report-contract heading reaches the parent as stderr / Hooks-channel text.
+- [x] **subagentStop report-contract adapter (added 2026-09-18, wave 0.1 2026-09-20).**
+  `subagentStop` fires. The native payload has no child's final text;
+  `task` is the prompt, not the last message. A broken report cannot reach
+  the parent as an advisory — the parent must re-run the check. The adapter
+  stays silent unless a real final-text field appears
+  (`last_assistant_message`, `final_message`, camelCase). Do not treat
+  `task` as the child's last message.
 - [x] **Explicit closeout adapter (added 2026-09-20, probed 2026-09-20).**
   Native `stop` payloads have `status`, `loop_count`, token counts, `model` /
   `model_id` / `model_params`, and **no** `closeout` / `boundary_kind` /

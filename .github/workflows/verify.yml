@@ -52,6 +52,7 @@ jobs:
           python3 .agent-rules/scripts/test_precompact_stub.py
           python3 .agent-rules/scripts/antigravity/test_before_shell.py
           python3 .agent-rules/scripts/antigravity/test_guard_model_family.py
+          python3 .agent-rules/scripts/cursor/test_subagent_stop.py
 
       - name: Measured claims carry a date
         run: python3 .agent-rules/scripts/verify.py --only claims
