@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from context_nudge import medium_aging_message  # noqa: E402
+from closeout_adapter import capture_payload, emit_diagnostics  # noqa: E402
 
 _SCRIPTS = Path(__file__).resolve().parent.parent
 _LINT_SPEC = importlib.util.spec_from_file_location(
@@ -87,6 +88,13 @@ def main() -> int:
             "(commit on invoke, ask before push).",
             file=sys.stderr,
         )
+
+    # Explicit boundary signals only; the Stop hook itself is not completion
+    # evidence.  The adapter is fail-open so it cannot hold up Codex.
+    try:
+        emit_diagnostics(capture_payload(payload, "codex"), "codex")
+    except Exception as exc:  # pragma: no cover - defensive hook fail-open
+        print(f"codex/closeout: adapter exception ({type(exc).__name__}); skipped", file=sys.stderr)
 
     # Soft plan-waves advisory (recent plans only — avoid nagging on history).
     try:

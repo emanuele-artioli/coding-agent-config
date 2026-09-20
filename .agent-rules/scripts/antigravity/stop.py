@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from context_nudge import medium_aging_message  # noqa: E402
+from closeout_adapter import capture_payload, emit_diagnostics  # noqa: E402
 
 
 def _git_dirty() -> bool:
@@ -65,6 +66,12 @@ def main() -> int:
             "(commit on invoke, ask before push).",
             file=sys.stderr,
         )
+
+    # Capture only an explicit boundary; all adapter errors remain advisory.
+    try:
+        emit_diagnostics(capture_payload(payload, "antigravity"), "antigravity")
+    except Exception as exc:  # pragma: no cover - defensive hook fail-open
+        print(f"antigravity/closeout: adapter exception ({type(exc).__name__}); skipped", file=sys.stderr)
 
     return 0
 
