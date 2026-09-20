@@ -128,7 +128,8 @@ def check_hooks(fix: bool) -> Result:
         capture_output=True,
         text=True,
     ).stdout.strip()
-    expected_hooks = HOOKS
+    canonical_hooks = HOME / ".agent-rules" / "hooks"
+    expected_hooks = canonical_hooks if canonical_hooks.is_dir() else HOOKS
     if not global_hooks_raw or Path(global_hooks_raw).resolve() != expected_hooks.resolve():
         if fix:
             subprocess.run(

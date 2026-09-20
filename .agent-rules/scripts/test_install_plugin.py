@@ -426,6 +426,152 @@ class CodexInstallerSafetyTest(unittest.TestCase):
         self.assertEqual(rules, [])
 
 
+class AntigravityAgentMarkdownTest(unittest.TestCase):
+    """render_antigravity_agent() must emit in-family flash models and omit Claude fields."""
+
+    def setUp(self) -> None:
+        self.mod = _load_install()
+
+    def _rungs(self):
+        rungs = self.mod.antigravity_rungs()
+        self.assertEqual(self.mod.validate_antigravity_rungs(rungs), [])
+        return rungs
+
+    def _render(self, stem: str) -> str:
+        rungs = self._rungs()
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Path(tmp) / f"{stem}.agent.md"
+            rung = "escalation" if stem == "stuck-escalation" else "junior"
+            agent.write_text(
+                AGENT_FIXTURE.replace("rung: junior", f"rung: {rung}"),
+                encoding="utf-8",
+            )
+            return self.mod.render_antigravity_agent(agent, rungs)
+
+    def test_native_frontmatter_omits_claude_controls(self) -> None:
+        text = self._render("tiny-probe")
+        self.assertIn("name: tiny-probe", text)
+        self.assertIn("model: flash", text)
+        self.assertIn("effort: medium", text)
+        self.assertIn("reasoningEffort: medium", text)
+        self.assertIn("subagent: true", text)
+        self.assertNotIn("model: opus", text)
+        self.assertNotIn("tools:", text.split("---", 2)[1] if text.startswith("---") else text)
+        self.assertNotIn("omitClaudeMd:", text)
+        self.assertNotIn("maxTurns:", text)
+        self.assertEqual(self.mod._antigravity_ownership(text), "managed")
+        self.assertIn("omitted Claude-only source controls", text)
+
+    def test_escalation_uses_high_effort(self) -> None:
+        text = self._render("stuck-escalation")
+        self.assertIn("model: flash", text)
+        self.assertIn("effort: high", text)
+        self.assertIn("reasoningEffort: high", text)
+        self.assertIn("subagent: true", text)
+
+    def test_all_shared_roles_render_as_owned_native_markdown(self) -> None:
+        rendered = self.mod.antigravity_agent_files()
+        self.assertEqual(len(rendered), 7)
+        rungs = self._rungs()
+        for destination, text in rendered:
+            stem = destination.stem
+            rung = "escalation" if stem == "stuck-escalation" else "junior"
+            self.assertIn(f"model: {rungs[rung]['model']}", text)
+            self.assertIn(f"effort: {rungs[rung]['effort']}", text)
+            self.assertIn("subagent: true", text)
+            self.assertEqual(self.mod._antigravity_ownership(text), "managed")
+            self.assertNotIn("model: opus", text)
+            self.assertNotIn("omitClaudeMd:", text)
+
+    def test_stale_model_metadata_is_rejected(self) -> None:
+        rungs = self._rungs()
+        stale = {
+            key: value.copy() if isinstance(value, dict) else value
+            for key, value in rungs.items()
+        }
+        stale["junior"]["model"] = "opus"
+        issues = self.mod.validate_antigravity_rungs(stale)
+        self.assertTrue(any("junior.model" in issue for issue in issues))
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Path(tmp) / "tiny-probe.agent.md"
+            agent.write_text(AGENT_FIXTURE, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                self.mod.render_antigravity_agent(agent, stale)
+
+
+class AntigravityInstallerSafetyTest(unittest.TestCase):
+    """Ownership and filesystem behavior for generated Antigravity artifacts."""
+
+    def setUp(self) -> None:
+        self.mod = _load_install()
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.host = root / "host"
+        self.host.mkdir()
+        self.agents = self.host / "agents"
+        self.agents.mkdir()
+        self.home = root / "home"
+        self.home.mkdir()
+        self.gemini_config = self.home / ".gemini" / "config"
+        self.gemini_config.mkdir(parents=True)
+        self.mod.HOST = self.host
+        self.mod.HOME = self.home
+        self.mod.AGENTS = self.agents
+        self.agent = self.agents / "tiny-probe.agent.md"
+        self.agent.write_text(AGENT_FIXTURE, encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _destinations(self) -> list[tuple[Path, str]]:
+        return self.mod.antigravity_agent_files()
+
+    def test_unowned_files_are_conflicts_and_unchanged(self) -> None:
+        for dest, _ in self._destinations():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text("user-owned content\n", encoding="utf-8")
+        result = self.mod.apply_antigravity_agents(check=False)
+        self.assertTrue(all(status == "conflict" for _, status in result))
+        for dest, _ in self._destinations():
+            self.assertEqual(dest.read_text(encoding="utf-8"), "user-owned content\n")
+
+    def test_known_symlink_is_retired(self) -> None:
+        dest = self.gemini_config / "agents" / "tiny-probe.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.symlink_to(self.agent)
+        result = dict(self.mod.apply_antigravity_agents(check=False))
+        self.assertEqual(result["Antigravity agent tiny-probe.md"], "updated")
+        self.assertTrue(dest.is_file())
+        self.assertFalse(dest.is_symlink())
+        self.assertEqual(self.mod._antigravity_ownership(dest.read_text(encoding="utf-8")), "managed")
+        self.assertIn("model: flash", dest.read_text(encoding="utf-8"))
+        self.assertIn("subagent: true", dest.read_text(encoding="utf-8"))
+
+    def test_user_edit_of_managed_file_is_preserved(self) -> None:
+        self.mod.apply_antigravity_agents(check=False)
+        dest = self.gemini_config / "agents" / "tiny-probe.md"
+        dest.write_text(dest.read_text(encoding="utf-8") + "user edit\n", encoding="utf-8")
+        result = dict(self.mod.apply_antigravity_agents(check=False))
+        self.assertEqual(result["Antigravity agent tiny-probe.md"], "conflict")
+        self.assertTrue(dest.read_text(encoding="utf-8").endswith("user edit\n"))
+
+    def test_hooks_generation_and_check(self) -> None:
+        # Initial check reports missing
+        self.assertEqual(self.mod.apply_antigravity_hooks(check=True), [("Antigravity hooks.json", "missing")])
+        # Apply creates hooks.json
+        self.assertEqual(self.mod.apply_antigravity_hooks(check=False), [("Antigravity hooks.json", "created")])
+        # Subsequent check reports ok
+        self.assertEqual(self.mod.apply_antigravity_hooks(check=True), [("Antigravity hooks.json", "ok")])
+        hooks_file = self.gemini_config / "hooks.json"
+        self.assertTrue(hooks_file.is_file())
+        content = hooks_file.read_text(encoding="utf-8")
+        self.assertIn("shell-guard", content)
+        self.assertIn("before-shell.py", content)
+        self.assertIn("model-family-guard", content)
+        self.assertIn("guard-model-family.py", content)
+        self.assertIn(str(self.host), content)
+
+
 class RelinkHostOwnedSymlinkTest(unittest.TestCase):
     """Layout moves retarget a symlink whose old and new targets are in HOST."""
 
