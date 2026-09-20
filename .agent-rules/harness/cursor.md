@@ -93,22 +93,29 @@ message, per the host-wide plan-mode rule; keep sequential work in one agent.
 
 Read skill `session` before the first `Task` spawn. If the project
 `AGENTS.md` names its own ladder, follow that. Spawn juniors by
-`subagent_type` and omit `model` so the file's frontmatter `model` applies;
-an inline Task `model` currently wins over Explore-settings and can fight
-the profile. Custom subagent files use YAML frontmatter; bracket options
+`subagent_type`. Generated `~/.cursor/agents/<n>.md` files carry the
+in-family slug (`cursor-grok-4.6-medium`, escalation `-high`). Do **not**
+rely on the shared source `model: opus` — live 2026-09-20 that value is
+resolved to `claude-opus-5-thinking-high` at `subagentStart` even when the
+Task call passed `inherit`, and the family gate denies the spawn. An
+inline Task `model` currently wins over Explore-settings for built-in
+types, but a custom agent's file model still wins at `subagentStart`.
+Custom subagent files use YAML frontmatter; bracket options
 (`composer-2.5[fast=false]`) work there, while the Task `model` enum only
 accepts exact live slugs. Cursor has no separate subagent `effort` field —
 the slug is the effort (`cursor-grok-4.6-medium` or `-high`). Escalate with
 a fresh `stuck-escalation` child after `STUCK: out of ideas.` or a failed
 check, not by resuming the previous child.
 
-Global SoT agents live in `../agents/<name>.agent.md` and are linked into
-`~/.cursor/agents/<name>.md` by `../scripts/install.py`. Shared project
+Global SoT agents live in `../agents/<name>.agent.md`. `../scripts/install.py`
+writes Cursor-native copies into `~/.cursor/agents/<name>.md` (ownership
+markers, in-family `model`, Claude-only fields omitted). Shared project
 agents stay real under `.claude/agents/` with `.cursor/agents` → symlink
 when that tree exists. A project-only ladder may be real files in
 `.cursor/agents/` (Cursor's native path; no `.claude` copy required).
-Claude-oriented `tools:` frontmatter on those files is ignored here —
-Cursor uses its own tool set; keep the prompt body tool-agnostic.
+Claude-oriented `tools:`, `omitClaudeMd`, `maxTurns`, and `effort`
+frontmatter is unsupported here — Cursor uses its own tool set and the
+slug is the effort; keep the prompt body tool-agnostic.
 
 ## Rungs (subagent spawns only)
 
@@ -134,9 +141,14 @@ here until that lands. `ask` remains valid for `beforeShellExecution`.
 Rung matching accepts Cursor’s live slugs (`cursor-grok-4.6-medium` ≡
 `grok-4.6`); product variants like `composer-2.5-fast` / `grok-4.6-fast`
 still nudge. Composer stays in-family for the hard gate but is off the
-rung table. A `subagentStop` adapter `scripts/cursor/subagent-stop.py`
-exists for the report contract; its wiring in `~/.cursor/hooks.json` and
-the payload field name are pending verification from a Cursor session.
+rung table. Cursor also loads Claude's `~/.claude/settings.json` hooks:
+`guard-model-family.py` must no-op on Cursor-shaped payloads
+(`cursor_version` or `preToolUse`/`subagentStart`), otherwise an explicit
+`cursor-grok-4.6-high` spawn is denied as off-family for Claude. A
+`subagentStop` adapter `scripts/cursor/subagent-stop.py` is wired in
+`~/.cursor/hooks.json`; the payload field for the child's final message
+is logged to `~/.cursor/subagent-stop.log` until the first live payload
+is trimmed.
 
 If in-house models are clearly struggling, ask the user; prefer switching
 platform/session over silently crossing family. Settings hygiene: Explore

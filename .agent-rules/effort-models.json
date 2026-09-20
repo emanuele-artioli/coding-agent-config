@@ -68,6 +68,23 @@
         "verified": true,
         "effort_settable": false,
         "note": "effort is the slug suffix: cursor-grok-4.6-high"
+      },
+      "capabilities": {
+        "native_format": "markdown",
+        "supported_fields": [
+          "name",
+          "description",
+          "model"
+        ],
+        "omitted_source_fields": [
+          "tools",
+          "omitClaudeMd",
+          "maxTurns",
+          "effort"
+        ],
+        "diagnostic_mode": "html_comments",
+        "verified": false,
+        "note": "Claude agent frontmatter is source metadata; generated Cursor files carry an in-family slug. Live 2026-09-20: source model opus is applied at subagentStart and denied."
       }
     },
     "codex": {

@@ -89,6 +89,29 @@ class ExplicitBoundaryFixtures(CloseoutAdapterCase):
         # Five explicit boundaries per harness, with no ignored/no-op receipt.
         self.assertEqual(len(receipts), 5 * len(HARNESS_FIXTURES))
 
+    def test_cursor_observation_inherits_harness_platform(self) -> None:
+        result = self.capture(
+            {
+                "end_of_session": True,
+                "session_id": "cursor-platform-session",
+                "observations": [
+                    {
+                        "candidate_id": "cursor-platform-lesson",
+                        "axis": "platform",
+                        "summary": "Cursor closeout must not default to Codex",
+                    }
+                ],
+            },
+            "cursor",
+        )
+        self.assertTrue(result.captured)
+        assert result.event is not None
+        self.assertEqual(result.event.platform, "cursor")
+        receipt = json.loads(result.result.receipt_path.read_text())  # type: ignore[union-attr]
+        self.assertEqual(receipt["observations"][0]["platform"], "cursor")
+        candidate = self.root / "candidates" / "open" / "platform" / "promote-cursor-platform-lesson.md"
+        self.assertIn('source_platform: "cursor"', candidate.read_text())
+
     def test_explicit_end_flag_needs_stable_identity(self) -> None:
         result = self.capture({"end_of_session": True}, "codex")
         self.assertTrue(result.skipped)

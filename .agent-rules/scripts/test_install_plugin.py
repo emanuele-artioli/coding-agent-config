@@ -180,6 +180,129 @@ class CodexAgentTomlTest(unittest.TestCase):
         self.assertIn('backslash \\ and a quote "', parsed["developer_instructions"])
 
 
+class CursorAgentMarkdownTest(unittest.TestCase):
+    """render_cursor_agent() must emit in-family slugs and omit Claude fields."""
+
+    def setUp(self) -> None:
+        self.mod = _load_install()
+
+    def _rungs(self):
+        rungs = self.mod.cursor_rungs()
+        self.assertEqual(self.mod.validate_cursor_rungs(rungs), [])
+        return rungs
+
+    def _render(self, stem: str) -> str:
+        rungs = self._rungs()
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Path(tmp) / f"{stem}.agent.md"
+            rung = "escalation" if stem == "stuck-escalation" else "junior"
+            agent.write_text(
+                AGENT_FIXTURE.replace("rung: junior", f"rung: {rung}"),
+                encoding="utf-8",
+            )
+            return self.mod.render_cursor_agent(agent, rungs)
+
+    def test_native_frontmatter_omits_claude_controls(self) -> None:
+        text = self._render("tiny-probe")
+        self.assertIn("name: tiny-probe", text)
+        self.assertIn("model: cursor-grok-4.6-medium", text)
+        self.assertNotIn("model: opus", text)
+        self.assertNotIn("tools:", text.split("---", 2)[1] if text.startswith("---") else text)
+        self.assertNotIn("omitClaudeMd:", text)
+        self.assertNotIn("maxTurns:", text)
+        self.assertNotIn("\neffort:", text)
+        self.assertEqual(self.mod._cursor_ownership(text), "managed")
+        self.assertIn("omitted Claude-only source controls", text)
+
+    def test_escalation_uses_high_slug(self) -> None:
+        text = self._render("stuck-escalation")
+        self.assertIn("model: cursor-grok-4.6-high", text)
+
+    def test_all_shared_roles_render_as_owned_native_markdown(self) -> None:
+        rendered = self.mod.cursor_agent_files()
+        self.assertEqual(len(rendered), 7)
+        rungs = self._rungs()
+        for destination, text in rendered:
+            stem = destination.stem
+            rung = "escalation" if stem == "stuck-escalation" else "junior"
+            expected = self.mod.cursor_model_slug(rungs[rung])
+            self.assertIn(f"model: {expected}", text)
+            self.assertEqual(self.mod._cursor_ownership(text), "managed")
+            self.assertNotIn("model: opus", text)
+            self.assertNotIn("omitClaudeMd:", text)
+
+    def test_stale_model_metadata_is_rejected(self) -> None:
+        rungs = self._rungs()
+        stale = {
+            key: value.copy() if isinstance(value, dict) else value
+            for key, value in rungs.items()
+        }
+        stale["junior"]["effort"] = "high"
+        issues = self.mod.validate_cursor_rungs(stale)
+        self.assertTrue(any("junior.effort" in issue for issue in issues))
+        with tempfile.TemporaryDirectory() as tmp:
+            agent = Path(tmp) / "tiny-probe.agent.md"
+            agent.write_text(AGENT_FIXTURE, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                self.mod.render_cursor_agent(agent, stale)
+
+
+class CursorInstallerSafetyTest(unittest.TestCase):
+    """Ownership and filesystem behavior for generated Cursor artifacts."""
+
+    def setUp(self) -> None:
+        self.mod = _load_install()
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.host = root / "host"
+        self.host.mkdir()
+        self.agents = self.host / "agents"
+        self.agents.mkdir()
+        self.home = root / "home"
+        self.home.mkdir()
+        self.cursor = self.home / ".cursor"
+        self.cursor.mkdir()
+        self.mod.HOST = self.host
+        self.mod.HOME = self.home
+        self.mod.AGENTS = self.agents
+        self.agent = self.agents / "tiny-probe.agent.md"
+        self.agent.write_text(AGENT_FIXTURE, encoding="utf-8")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _destinations(self) -> list[tuple[Path, str]]:
+        return self.mod.cursor_agent_files()
+
+    def test_unowned_files_are_conflicts_and_unchanged(self) -> None:
+        for dest, _ in self._destinations():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text("user-owned content\n", encoding="utf-8")
+        result = self.mod.apply_cursor_agents(check=False)
+        self.assertTrue(all(status == "conflict" for _, status in result))
+        for dest, _ in self._destinations():
+            self.assertEqual(dest.read_text(encoding="utf-8"), "user-owned content\n")
+
+    def test_known_symlink_is_retired(self) -> None:
+        dest = self.cursor / "agents" / "tiny-probe.md"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.symlink_to(self.agent)
+        result = dict(self.mod.apply_cursor_agents(check=False))
+        self.assertEqual(result["Cursor agent tiny-probe.md"], "updated")
+        self.assertTrue(dest.is_file())
+        self.assertFalse(dest.is_symlink())
+        self.assertEqual(self.mod._cursor_ownership(dest.read_text(encoding="utf-8")), "managed")
+        self.assertIn("model: cursor-grok-4.6-medium", dest.read_text(encoding="utf-8"))
+
+    def test_user_edit_of_managed_file_is_preserved(self) -> None:
+        self.mod.apply_cursor_agents(check=False)
+        dest = self.cursor / "agents" / "tiny-probe.md"
+        dest.write_text(dest.read_text(encoding="utf-8") + "user edit\n", encoding="utf-8")
+        result = dict(self.mod.apply_cursor_agents(check=False))
+        self.assertEqual(result["Cursor agent tiny-probe.md"], "conflict")
+        self.assertTrue(dest.read_text(encoding="utf-8").endswith("user edit\n"))
+
+
 class CodexInstallerSafetyTest(unittest.TestCase):
     """Ownership and filesystem behavior for generated Codex artifacts."""
 

@@ -68,6 +68,13 @@ def main() -> int:
                         "has_fill": any(k in payload for k in fill_keys),
                         "status": payload.get("status"),
                         "loop_count": payload.get("loop_count"),
+                        "model": payload.get("model"),
+                        "model_id": payload.get("model_id"),
+                        "model_params": payload.get("model_params"),
+                        "input_tokens": payload.get("input_tokens"),
+                        "output_tokens": payload.get("output_tokens"),
+                        "cache_read_tokens": payload.get("cache_read_tokens"),
+                        "cache_write_tokens": payload.get("cache_write_tokens"),
                     }
                 )
                 + "\n"
