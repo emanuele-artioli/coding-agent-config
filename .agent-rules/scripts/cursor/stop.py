@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from context_nudge import medium_aging_message  # noqa: E402
+from closeout_adapter import capture_payload, emit_diagnostics  # noqa: E402
 
 _SCRIPTS = Path(__file__).resolve().parent.parent
 _LINT_SPEC = importlib.util.spec_from_file_location(
@@ -84,6 +85,13 @@ def main() -> int:
             "(commit on invoke, ask before push).",
             file=sys.stderr,
         )
+
+    # Only explicit closeout boundary fields can trigger capture.  Keep the
+    # hook fail-open if an adapter or storage dependency is unavailable.
+    try:
+        emit_diagnostics(capture_payload(payload, "cursor"), "cursor")
+    except Exception as exc:  # pragma: no cover - defensive hook fail-open
+        print(f"cursor/closeout: adapter exception ({type(exc).__name__}); skipped", file=sys.stderr)
 
     # Soft plan-waves advisory (recent plans only — avoid nagging on history).
     try:

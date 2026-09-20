@@ -144,3 +144,9 @@ from a Claude Code session after live verification.
   cache_read` from its transcript; expect at most 19k (tools and rules
   dropped) or at most 11k (skill listing dropped too). Above 30k means a
   field did not take; check the snapshot's `tools` array length (was 22).
+- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/claude/stop.py`
+  now calls the shared adapter only when the payload contains an explicit
+  `closeout` boundary and stable event identity; ordinary Stop and re-entry
+  remain advisory no-ops. Confirm from a fresh Claude session that the Stop
+  payload exposes those fields and that the receipt is written under the
+  configured state root without forcing a continuation.

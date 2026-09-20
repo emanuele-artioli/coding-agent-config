@@ -44,6 +44,8 @@ jobs:
           python3 .agent-rules/scripts/verify_roles.py
           python3 .agent-rules/scripts/test_install_plugin.py
           python3 .agent-rules/scripts/test_lessons.py
+          python3 .agent-rules/scripts/test_closeout.py
+          python3 .agent-rules/scripts/test_closeout_adapter.py
           python3 .agent-rules/scripts/test_paper_markers_lint.py
           python3 .agent-rules/scripts/test_sync_agent_rules.py
           python3 .agent-rules/scripts/test_precompact_stub.py

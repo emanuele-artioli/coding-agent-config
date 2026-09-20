@@ -35,12 +35,14 @@ than trusting either this file or a directory listing.
    Live platform configs and “this works on X” claims belong to platform X;
    cross-writes become `needs_verification` under
    `candidates/pending-verification/`.
-4. **Close-out / evaluate** — `skills/end-of-session` (commit on invoke, ask
-   before push; conditional handoff) and `skills/evaluate-candidates`
-   (async apply/discard from a coding-agent-config session). Progressive
-   context nudges (Cursor: `beforeSubmitPrompt` / `stop` / `preCompact`)
-   suggest handoff earlier than auto-compact; they never force mid-task
-   handoff.
+4. **Close-out / evaluate** — `skills/end-of-session` (semantic review,
+   conditional handoff, and commit on invoke) plus the deterministic
+   `scripts/closeout.py` receipt/event ledger, and
+   `skills/evaluate-candidates` (async apply/discard from a
+   coding-agent-config session). Progressive context nudges (Cursor:
+   `beforeSubmitPrompt` / `stop` / `preCompact`) suggest handoff earlier than
+   auto-compact; verified adapters only record explicit completion boundaries
+   and never infer a lesson or force mid-task handoff.
 
 <!-- arch:flows:start -->
 ```mermaid
