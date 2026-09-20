@@ -459,6 +459,23 @@ CODEX_ESCALATION_AGENTS = {"stuck-escalation"}
 CODEX_OWNER_MARKER = "# coding-agent-config installer ownership: codex-v1"
 CODEX_DIGEST_PREFIX = "# coding-agent-config installer digest: sha256:"
 
+# Codex's native role schema is deliberately narrower than the shared Claude
+# agent frontmatter.  Keep this contract next to the renderer so a source
+# field cannot silently become a Codex setting just because it has a similar
+# name on another harness.
+CODEX_REQUIRED_RUNG_METADATA = {
+    "junior": {"model": "gpt-5.6-luna", "effort": "max"},
+    "escalation": {"model": "gpt-5.6-astra", "effort": "low"},
+}
+CODEX_CLAUDE_ONLY_FIELDS = ("tools", "omitClaudeMd", "maxTurns")
+CODEX_SUPPORTED_FIELDS = (
+    "name",
+    "description",
+    "developer_instructions",
+    "model",
+    "model_reasoning_effort",
+)
+
 
 def _split_frontmatter(path: Path) -> tuple[dict[str, str], str]:
     """Return (frontmatter mapping, body text after the closing fence)."""
@@ -549,24 +566,115 @@ def codex_rungs() -> dict[str, dict]:
     return codex if isinstance(codex, dict) else {}
 
 
+def validate_codex_rungs(rungs: dict[str, dict]) -> list[str]:
+    """Return errors for stale or unsafe Codex role metadata.
+
+    The model and effort values are a checked interface, rather than a best
+    effort fallback.  A typo here would otherwise generate a valid-looking
+    TOML file that dispatches the wrong rung.
+    """
+    issues: list[str] = []
+    for rung, expected in CODEX_REQUIRED_RUNG_METADATA.items():
+        spec = rungs.get(rung)
+        if not isinstance(spec, dict):
+            issues.append(f"missing platforms.codex.{rung} metadata")
+            continue
+        for key, value in expected.items():
+            actual = spec.get(key)
+            if actual != value:
+                issues.append(
+                    f"platforms.codex.{rung}.{key}={actual!r}; expected {value!r}"
+                )
+
+    capabilities = rungs.get("capabilities")
+    if not isinstance(capabilities, dict):
+        issues.append("missing platforms.codex.capabilities metadata")
+    else:
+        supported = capabilities.get("supported_fields")
+        if supported != list(CODEX_SUPPORTED_FIELDS):
+            issues.append(
+                "platforms.codex.capabilities.supported_fields does not match "
+                "the native Codex renderer"
+            )
+        omitted = capabilities.get("omitted_source_fields")
+        if not isinstance(omitted, list) or any(
+            field not in omitted for field in CODEX_CLAUDE_ONLY_FIELDS
+        ):
+            issues.append(
+                "platforms.codex.capabilities.omitted_source_fields must include "
+                "tools, omitClaudeMd, maxTurns"
+            )
+        if capabilities.get("diagnostic_mode") != "comments":
+            issues.append(
+                "platforms.codex.capabilities.diagnostic_mode must be 'comments'"
+            )
+    return issues
+
+
+def _role_rung(agent: Path, frontmatter: dict[str, str]) -> str:
+    """Read portable ``rung`` metadata, with a legacy filename fallback."""
+    stem = agent.name.removesuffix(".agent.md")
+    rung = frontmatter.get("rung")
+    if rung is None:
+        # Keep old source files readable while all canonical roles carry the
+        # explicit field.  Once present, an invalid value is an error rather
+        # than silently routing the role to junior.
+        return "escalation" if stem in CODEX_ESCALATION_AGENTS else "junior"
+    if rung not in CODEX_REQUIRED_RUNG_METADATA:
+        raise ValueError(f"agents/{agent.name}: unsupported rung {rung!r}")
+    return rung
+
+
+def _codex_capabilities(rungs: dict[str, dict]) -> dict:
+    capabilities = rungs.get("capabilities")
+    return capabilities if isinstance(capabilities, dict) else {}
+
+
+def codex_role_diagnostics(agent: Path, rungs: dict[str, dict]) -> list[str]:
+    """Describe source controls intentionally omitted from a Codex artifact."""
+    fm, _ = _split_frontmatter(agent)
+    capabilities = _codex_capabilities(rungs)
+    omitted = capabilities.get("omitted_source_fields")
+    if not isinstance(omitted, list):
+        omitted = list(CODEX_CLAUDE_ONLY_FIELDS)
+    omitted_names = ", ".join(str(field) for field in omitted)
+    present = [field for field in omitted if field in fm]
+    present_note = (
+        "present in this source: " + ", ".join(str(field) for field in present)
+        if present
+        else "none are present in this source"
+    )
+    return [
+        "Codex capability diagnostics: omitted Claude-only source controls: "
+        f"{omitted_names} ({present_note}).",
+        "Codex capability diagnostics: source model/effort are overridden by "
+        "the validated platforms.codex rung metadata.",
+    ]
+
+
 def render_codex_agent(agent: Path, rungs: dict[str, dict]) -> str:
     """Render one shared agent file as a Codex agent TOML."""
+    issues = validate_codex_rungs(rungs)
+    if issues:
+        raise ValueError("invalid Codex role metadata: " + "; ".join(issues))
     fm, body = _split_frontmatter(agent)
     stem = agent.name.removesuffix(".agent.md")
     name = fm.get("name") or stem
-    rung = "escalation" if stem in CODEX_ESCALATION_AGENTS else "junior"
+    rung = _role_rung(agent, fm)
     spec = rungs.get(rung) or {}
     model = spec.get("model", "")
     effort = spec.get("effort", "")
+    diagnostics = codex_role_diagnostics(agent, rungs)
     payload = (
         f"# Generated by scripts/install.py from agents/{agent.name}\n"
         f"# Rung: {rung} (effort-models.json → platforms.codex.{rung})\n"
         "# Edit the agent file, not this one.\n"
-        f"name = {_toml_basic(name)}\n"
-        f"description = {_toml_basic(fm.get('description', ''))}\n"
-        f"developer_instructions = {_toml_multiline(body)}\n"
-        f"model = {_toml_basic(model)}\n"
-        f"model_reasoning_effort = {_toml_basic(effort)}\n"
+        + "".join(f"# {diagnostic}\n" for diagnostic in diagnostics)
+        + f"name = {_toml_basic(name)}\n"
+        + f"description = {_toml_basic(fm.get('description', ''))}\n"
+        + f"developer_instructions = {_toml_multiline(body)}\n"
+        + f"model = {_toml_basic(model)}\n"
+        + f"model_reasoning_effort = {_toml_basic(effort)}\n"
     )
     return _owned_codex_text(payload)
 
@@ -595,6 +703,9 @@ def codex_agent_files() -> list[tuple[Path, str]]:
     if not AGENTS.is_dir():
         return []
     rungs = codex_rungs()
+    issues = validate_codex_rungs(rungs)
+    if issues:
+        raise ValueError("invalid Codex role metadata: " + "; ".join(issues))
     out: list[tuple[Path, str]] = []
     for agent in sorted(AGENTS.glob("*.agent.md")):
         stem = agent.name.removesuffix(".agent.md")
@@ -620,7 +731,11 @@ def apply_codex_agents(*, check: bool) -> list[tuple[str, str]]:
     if not CODEX_HOME_SET or not CODEX_HOME.is_dir():
         return [("Codex shared agents (*.toml)", "skipped")]
     results: list[tuple[str, str]] = []
-    for dest, content in codex_host_rules_file() + codex_agent_files():
+    try:
+        generated = codex_host_rules_file() + codex_agent_files()
+    except ValueError as exc:
+        return [("Codex role model metadata", f"conflict: {exc}")]
+    for dest, content in generated:
         label = (
             "Codex host rules AGENTS.md"
             if dest.name == "AGENTS.md"

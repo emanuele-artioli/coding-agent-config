@@ -1,5 +1,6 @@
 ---
 name: stuck-escalation
+rung: escalation
 description: Escalation rung. Call after a child returned `STUCK: out of ideas.` or failed its check and has no next idea, with the same dispatch fields plus what that child already tried. Returns the same report as any child, either with the check passing or with a STUCK report naming what was tried. Not a default reviewer of work that already passed, and not a second attempt at a design question the senior should answer.
 tools: Bash, Read, Edit, Write, Glob, Grep, WebFetch
 model: opus
