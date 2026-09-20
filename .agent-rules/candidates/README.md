@@ -60,6 +60,9 @@ The knowledge itself — enough that evaluation does not need the chat.
 - Any session may write into `open/` by absolute path
   (`/home/itec/emanuele/.agent-rules/candidates/...`).
 - `end-of-session` considers both axes and writes only when warranted.
+- `scripts/closeout.py` stores a receipt under the caller's state root and
+  passes stable event IDs to `lessons.py`; receipts are operational state, not
+  candidates and are kept outside auto-loaded instructions.
 - `evaluate-candidates` (coding-agent-config) applies, discards, or defers.
 - Platform write-ownership: shared SoT edits are fine; live platform configs
   and verification claims belong to that platform.

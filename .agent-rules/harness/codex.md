@@ -21,16 +21,19 @@ The shell hook blocks unrecoverable git operations and protected-path removal, a
 
 ## Rungs
 
-Rung map in `../effort-models.json` (no `model_family` adapter on this
-platform yet). Junior: Luna extra-high. Senior: Sol medium — the
+Rung map in `../effort-models.json` (the model-family adapter is still
+limited). Generated Codex junior roles use `gpt-5.6-luna` with maximum
+reasoning effort. Senior: Sol medium — the
 interactive model, whatever the user set in the Codex UI. Escalation:
 Astra low, rarely — it often dies mid-prompt. `agents.job_max_runtime_seconds`
 in `config.toml` is the mechanical budget for a junior. Codex custom
 subagents are TOML `[agents]`, not the shared markdown files; the shared
 agents are `implementer`, `paper-screener`, `data-condenser`,
 `paper-editor`, `referee`, `gpu-job-runner`, `stuck-escalation`. Read skill
-`session` before spawning helpers. There is no report-contract hook on this
-platform yet — the senior re-runs the junior's check itself.
+`session` before spawning helpers. The senior still re-runs the junior's
+check itself. Stop hooks may record a closeout only when the payload carries
+an explicit boundary and stable event identity; an ordinary Stop remains an
+advisory nudge.
 
 ## Knowledge loop (Codex)
 

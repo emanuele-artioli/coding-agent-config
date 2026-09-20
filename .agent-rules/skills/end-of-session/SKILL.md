@@ -1,13 +1,14 @@
 ---
 name: end-of-session
-description: Close out a coding session — surface knowledge candidates on project and platform axes, re-check repo/job state, optionally hand off, commit (invoke = consent), then ask before push. Use when the user says end/close/wrap up session, accepts a context or Stop nudge, or needs a clean boundary before a new task.
+description: Close out a coding session — surface knowledge candidates on project and platform axes, re-check repo/job state, optionally hand off, commit (invoke = consent), and finish already-authorized repo actions. Use when the user says end/close/wrap up session, accepts a context or Stop nudge, or needs a clean boundary before a new task.
 ---
 
 # End of session
 
 Close-out orchestrator. Not gated on “context is full” (that is already too
-late). Progressive context hooks may *nudge* toward this skill; they never
-auto-run it.
+late). Progressive context hooks may *nudge* toward this skill. A verified
+adapter may create a deterministic receipt at an explicit completion boundary,
+but it never asks an LLM to infer a lesson or commits on its own.
 
 ## Procedure (in order)
 
@@ -45,6 +46,10 @@ zero, so read the printed list too.
 - Nothing matches → new candidate, **with `keywords:`** so the next session
   can find it.
 
+The parent session owns this semantic review. Use `scripts/closeout.py` for
+the boundary receipt and event-id bookkeeping; a replay of the same boundary
+must be a no-op, and a close with no lesson is still a valid receipt.
+
 ### 3. Other close-out checks (advisory)
 
 - If the project has outputs + paper dirs (or a wired paper-sync hook),
@@ -69,8 +74,9 @@ candidate / handoff files; commit with a clear message. Do **not** push yet.
 
 ### 6. Push
 
-Show `git status` / ahead count and **ask once**. Push only after the user
-confirms.
+Show `git status` / ahead count. Push when the session's existing
+authorization covers it; otherwise ask once. Invoking close-out does not add
+new authority.
 
 ### 7. Summary
 

@@ -7,7 +7,9 @@ description: The senior's dispatch procedure. Use at the start of multi-step wor
 
 You are the senior. You hold the goal, the context, and the judgment.
 Children hold one bounded task each. Read `effort-models.json` once for
-the rungs on this platform; spawn by agent name and omit `model`.
+the rungs on this platform. Give a child the smallest complete brief: goal,
+allowed paths, relevant canonical constraints, scoped facts, and its check;
+do not paste senior-only workflow or unrelated harness context.
 
 ## Route
 
@@ -44,7 +46,10 @@ conversation, so the prompt must stand alone.
    `STUCK: out of ideas.` plus what was tried.
 
 Independent children run in parallel in one message, on disjoint paths.
-A child that must write in the same files as another waits.
+A child that must write in the same files as another waits. Reuse a child
+only for analysis followed by implementation in the same area, at the same
+model and effort, with an explicit scope extension. Start a fresh child for a
+new area or after a stuck/failed check; never resume one to change its model.
 
 ## Report contract
 

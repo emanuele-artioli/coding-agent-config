@@ -18,10 +18,15 @@ Unchecked items trigger the Codex SessionStart reminder.
   `effort-models.json` (junior for all, escalation for `stuck-escalation`), and
   links `generated/codex-AGENTS.md` as `$CODEX_HOME/AGENTS.md` when it exists.
   Confirm from a Codex session that the generated TOML files load, that
-  `implementer` spawns on Luna extra-high and `stuck-escalation` on Astra, and
+  `implementer` spawns on Luna max and `stuck-escalation` on Astra, and
   that `$CODEX_HOME/AGENTS.md` now carries the Codex harness section.
   Also: `$CODEX_HOME/config.toml` still defines its own `[agents.luna_medium]`,
   `[agents.terra_medium]` and `[agents.sol_medium]` tables next to the seven
   generated `agents/*.toml`. Once the generated ones spawn, remove those three
   tables so there is one ladder at user level; PointStream's project copy was
   deleted on 2026-09-19 for the same reason.
+- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/codex/stop.py`
+  now calls the shared adapter only for an explicit `closeout` boundary and
+  stable event identity; ordinary Stop and re-entry remain advisory no-ops.
+  Confirm from a fresh Codex session that the Stop payload exposes those fields,
+  the receipt is written under `$CODEX_HOME`, and no continuation loop starts.

@@ -50,3 +50,8 @@ from an Antigravity session after live verification. Hook commands must be
   `~/.gemini/config/agents/<n>.md`. Confirm from an Antigravity session that the
   seven shared agents are listed and spawnable from a project checkout that has
   no `.agents/agents/` directory of its own.
+- [ ] **Explicit closeout adapter (added 2026-09-20).** `scripts/antigravity/stop.py`
+  now calls the shared adapter only for an explicit `closeout` boundary and
+  stable event identity; ordinary Stop and re-entry remain no-ops. Confirm from
+  a fresh Antigravity session that the Stop payload carries those fields and
+  that the receipt is isolated under the configured state root.
