@@ -95,6 +95,39 @@ class ExplicitBoundaryFixtures(CloseoutAdapterCase):
         self.assertIn("missing stable boundary/event identity", result.diagnostics[0])
         self.assertFalse(self.root.exists())
 
+    def test_antigravity_live_payload_fixtures(self) -> None:
+        live_payload = {
+            "conversationId": "6ee41b8a-2bbc-4a32-b723-c52e876c0696",
+            "artifactDirectoryPath": "/home/itec/emanuele/.gemini/antigravity/brain/test",
+            "executionNum": 1,
+            "fullyIdle": True,
+            "modelName": "auto",
+            "terminationReason": "model_stop",
+            "transcriptPath": "/home/itec/emanuele/.gemini/antigravity/brain/test/transcript.jsonl",
+            "workspacePaths": ["/tmp/cac-antigravity-audit"],
+            "boundary_kind": "completed_session",
+            "boundary_id": "turn-boundary-live",
+            "observations": [
+                {
+                    "candidate_id": "lesson-antigravity-audit",
+                    "axis": "project",
+                    "summary": "Antigravity audit verification observation",
+                    "evidence": "Live Antigravity session probe",
+                }
+            ],
+        }
+        res = self.capture(live_payload, "antigravity")
+        self.assertIsNotNone(res.event)
+        assert res.event is not None
+        self.assertEqual(res.event.boundary_kind, "completed_session")
+        self.assertTrue(res.captured)
+        self.assertFalse(res.replay)
+
+        # Replay with identical payload
+        replay_res = self.capture(live_payload, "antigravity")
+        self.assertTrue(replay_res.captured)
+        self.assertTrue(replay_res.replay)
+
 
 class NoOpFixtures(CloseoutAdapterCase):
     def test_ordinary_child_progress_question_reentry_and_malformed_payloads_do_nothing(self) -> None:

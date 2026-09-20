@@ -57,6 +57,16 @@ def _requested_model(payload: dict) -> str | None:
     return None
 
 
+def _tool_name(payload: dict) -> str:
+    tool_call = payload.get("toolCall") or payload.get("tool_call")
+    if isinstance(tool_call, dict):
+        name = tool_call.get("name")
+        if isinstance(name, str):
+            return name
+    name = payload.get("tool") or payload.get("name")
+    return name if isinstance(name, str) else ""
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -65,20 +75,24 @@ def main() -> int:
     if not isinstance(payload, dict):
         payload = {}
 
+    tool = _tool_name(payload)
     # If the matcher already narrowed to the spawn tool, still inspect.
     # Unknown tool names with an explicit model are also checked.
     requested = _requested_model(payload)
     if requested is None and tool and tool not in _SPAWN_HINTS:
+        json.dump({"decision": "allow"}, sys.stdout)
         return 0
 
     reason = model_family.inspect(requested, "antigravity")
     if reason:
         print(reason, file=sys.stderr)
+        json.dump({"decision": "deny", "reason": reason}, sys.stdout)
         return 2
 
     nudge = model_family.tier_nudge(requested, "antigravity")
     if nudge:
         print(f"[effort-tier nudge, non-blocking] {nudge}", file=sys.stderr)
+    json.dump({"decision": "allow"}, sys.stdout)
     return 0
 
 
