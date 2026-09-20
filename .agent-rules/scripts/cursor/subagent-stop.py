@@ -1,6 +1,15 @@
 #!/usr/bin/python3
 """Cursor subagentStop adapter — flag a report that breaks the contract.
 
+Wave 0.1 (2026-09-20): subagentStop fires. The native payload does not
+contain the child's final text. `task` is the prompt, not the child's last
+message. A broken report contract cannot reach the parent.
+
+Stay silent unless a real final-text field appears
+(`last_assistant_message`, `final_message`, and their camelCase
+spellings). Do not treat `task` or other prompt/status keys as the
+child's last message.
+
 Same policy as the Claude adapter (guardlib/report_contract.py): a report
 missing one of the five headings, carrying a Result value that is not
 PASS/FAIL/STUCK, or pasting no output under Check, is a FAIL whatever it
@@ -8,10 +17,6 @@ claims. Advisory only — printed on stderr, the Hooks channel that
 cursor/stop.py already uses for its nudges, with `{}` on stdout so Cursor
 never reads the advisory as a control response. Always exits 0.
 
-The payload field that carries the child's final message is still
-taken from the first live `subagentStop` log line. This adapter reads
-Claude's `last_assistant_message`, `final_message`, camelCase spellings,
-and a few other string fields, then stays silent when none are present.
 It always writes payload keys to `~/.cursor/subagent-stop.log`.
 """
 
@@ -32,21 +37,13 @@ from guardlib import report_contract  # noqa: E402
 
 PROBE_LOG = Path.home() / ".cursor" / "subagent-stop.log"
 
-# Live 2026-09-20: subagentStop wiring is committed; the field that carries
-# the child's final message is still confirmed from the first real payload.
+# Wave 0.1 (2026-09-20): native payload has no child-final-text field.
+# Stay silent unless one of these real final-text names appears.
 MESSAGE_FIELDS = (
     "last_assistant_message",
     "final_message",
     "lastAssistantMessage",
     "finalMessage",
-    "message",
-    "text",
-    "output",
-    "result",
-    "content",
-    "response",
-    "summary",
-    "task",
 )
 
 

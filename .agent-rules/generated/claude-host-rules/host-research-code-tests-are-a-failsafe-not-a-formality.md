@@ -9,7 +9,5 @@ description: Host rule — Research code — tests are a failsafe, not a formali
 
 Cover envisioned behavior and plausible misuse of code we own. Skip
 unreachable branches, third-party behavior, and errors a caller cannot
-produce. **A test that exists only to raise a coverage number is a
-defect.** If the project has a paper, tests that pay for themselves check
-*the claim*: an experiment whose result violates what the paper asserts
-should fail loudly.
+produce. **A test that exists only to raise a coverage number is a defect.**
+If the project has a paper, tests that pay for themselves check the claim.

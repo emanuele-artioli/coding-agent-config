@@ -2,8 +2,7 @@
   "_comment": "SUBAGENT spawn map only (never overrides the human's interactive model). Three rungs: junior = bounded child with a runnable check; senior = the interactive parent (set in the product UI, listed here only so the ladder is visible); escalation = fresh child after STUCK or a failed check. Seniority follows model size and effort: seniors wrangle more context and uncertainty, juniors are well scoped. Only Codex has a real model spread today; the other platforms ladder by effort on their one good model. Snapshot 2026-09-18: API Pareto is GPT-heavy; this host follows subscription quota. Soft nudge via scripts/guardlib/model_family.py. Cursor Task has no separate effort field (slug suffix). Codex has no model_family adapter yet; slugs here are for parents reading the file.",
   "snapshot": {
     "date": "2026-09-18",
-    "source": "Artificial Analysis Intelligence Index vs Cost (API list prices)",
-    "chart": "assets/2026-09-18-intelligence-index-vs-cost-simplified.png"
+    "source": "Artificial Analysis Intelligence Index vs Cost (API list prices)"
   },
   "rungs": {
     "junior": "bounded child: goal, allowed paths, runnable check, budget; returns the fixed report",
