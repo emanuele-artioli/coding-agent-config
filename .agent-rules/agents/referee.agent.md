@@ -46,6 +46,7 @@ Rules:
 
 ## Review rules
 
+- Read skill paper for what a claim needs.
 - Read only the `.tex` files and figure files the prompt names. Edit
   nothing. You write no file at all.
 - Return a numbered list of findings. Each finding states, in this

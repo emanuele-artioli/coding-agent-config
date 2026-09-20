@@ -29,16 +29,15 @@ TASK_CHANGE = re.compile(
 
 MSG_SOFT = (
     "Warm session + possible new task — context may already be stale. "
-    "Consider `handoff` or a fresh chat; otherwise continue."
+    "Consider a fresh chat; otherwise continue."
 )
 MSG_MEDIUM = (
     "Session is getting long (context rot often starts ~50% fill). "
-    "A mid-task handoff will hurt — plan `handoff` or `end-of-session` "
-    "at the next natural boundary."
+    "Finish the current unit of work before starting another."
 )
 MSG_STRONG = (
-    "Compaction imminent — prefer `end-of-session` / `handoff` now over "
-    "relying on auto-summary. Do not wait for full context."
+    "Compaction imminent — fill the resume stub rather than relying on "
+    "auto-summary. Do not wait for full context."
 )
 
 
@@ -163,11 +162,8 @@ def strong_precompact_message(payload: dict) -> str:
 
     stub = write_stub(conversation_id(payload))
     if stub is None:
-        return (
-            f"{base} Fill a `HANDOFF.md` now if you can; after compact, resume "
-            "from that file rather than auto-summary alone."
-        )
+        return f"{base} Resume stub could not be written."
     return (
-        f"{base} Resume stub (empty template — fill it, or write `HANDOFF.md`): "
-        f"{stub}. After compact, read that file first before re-exploring."
+        f"{base} Resume stub: {stub}. After compact, read that file first "
+        "before re-exploring."
     )

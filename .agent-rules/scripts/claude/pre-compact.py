@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code PreCompact adapter — strong handoff / end-of-session nudge.
+"""Claude Code PreCompact adapter — write a resume stub and point at its path.
 
 Plain stdout on exit 0 is injected into context before compaction happens,
 same mechanism as SessionStart. PreCompact's stdin has no fill-percentage

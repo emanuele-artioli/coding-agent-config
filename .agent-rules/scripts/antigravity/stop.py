@@ -1,34 +1,19 @@
 #!/usr/bin/env python3
-"""Antigravity Stop adapter — medium aging nudge + dirty-tree end-of-session hint.
+"""Antigravity Stop adapter — closeout capture.
 
-Always exits 0 for advisory nudges.
+Always exits 0 for advisory hooks.
 Logs side-channel probe under ~/.gemini/stop-probe.log to verify payload fields.
 """
 
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from context_nudge import medium_aging_message  # noqa: E402
 from closeout_adapter import capture_payload, emit_diagnostics  # noqa: E402
-
-
-def _git_dirty() -> bool:
-    try:
-        out = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        return bool(out.stdout.strip()) if out.returncode == 0 else False
-    except (OSError, subprocess.SubprocessError):
-        return False
 
 
 def main() -> int:
@@ -55,17 +40,6 @@ def main() -> int:
             )
     except OSError:
         pass
-
-    msg = medium_aging_message(payload)
-    if msg:
-        print(f"context-nudge medium: {msg}", file=sys.stderr)
-
-    if _git_dirty():
-        print(
-            "Knowledge loop — dirty tree; consider end-of-session "
-            "(commit on invoke, ask before push).",
-            file=sys.stderr,
-        )
 
     # Capture only an explicit boundary; all adapter errors remain advisory.
     try:

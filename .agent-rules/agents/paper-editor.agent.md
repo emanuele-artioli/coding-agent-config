@@ -46,6 +46,7 @@ Rules:
 
 ## Editing rules
 
+- Read skill paper for the marker spec.
 - Fill exactly the marker ids the prompt names (`GOAL`, `HOLE`). Read
   only the `.tex` files named, the evidence paths the senior gives, and
   the paper repo's own `AGENTS.md` or `CLAUDE.md` for marker syntax and

@@ -1,15 +1,15 @@
 ---
 name: session
-description: The senior's dispatch procedure. Use at the start of multi-step work, before the first subagent spawn on any harness, when a child reports STUCK or fails its check, and when finishing a unit of work. Holds the routing table, the dispatch contract, the report contract, and the escalation ladder. Ordinary one-file edits do not need it.
+description: The senior's dispatch procedure. Use at the start of multi-step work, before the first subagent spawn on any harness, when a child reports STUCK or fails its check, and when finishing a unit of work. Holds the routing table, the dispatch contract, the report contract, and when to stop and ask the human. Ordinary one-file edits do not need it.
 ---
 
 # Session: route, dispatch, verify, close
 
 You are the senior. You hold the goal, the context, and the judgment.
-Children hold one bounded task each. Read `effort-models.json` once for
-the rungs on this platform. Give a child the smallest complete brief: goal,
-allowed paths, relevant canonical constraints, scoped facts, and its check;
-do not paste senior-only workflow or unrelated harness context.
+Children hold one bounded task each. Rungs live in `effort-models.json`.
+Spawn by agent name; omit Task `model`. Give a child the smallest complete
+brief: goal, allowed paths, relevant canonical constraints, scoped facts,
+and its check; do not paste senior-only workflow or unrelated harness context.
 
 ## Route
 
@@ -24,9 +24,8 @@ do not paste senior-only workflow or unrelated harness context.
 | long GPU or CPU job | `gpu-job-runner` |
 | after `STUCK` or a failed check | `stuck-escalation` |
 
-Senior procedures are skills: `literature-review`, `figure-first`,
-`implementation-plan`, `paper-outline`, `escalate` (report to the human),
-`end-of-session`. A project's own session skill wins over this one.
+Senior procedures are hats you wear: `engineer`, `paper`, `end-of-session`.
+A project's own session skill wins over this one.
 
 ## Dispatch contract
 
@@ -87,11 +86,15 @@ when it did not say so.
 ## Escalation ladder
 
 `STUCK` or a failed check after intake: spawn a **fresh** child on the
-`escalation` rung with the same seven fields plus what the first child
-tried. Never resume the stuck child to change its model. If the second
-child is also stuck, or the failure is a design question, stop and run
-`escalate`. Do not loop. File a candidate when the cause was a missing
-rule, not a hard task.
+escalation rung with the same seven fields plus what the first child
+tried. Never resume the stuck child to change its model.
+
+## Decision needed
+
+If the second child is also stuck, or the failure is a design question,
+stop. Do not loop. Put one question in front of the human, with the
+evidence and your recommendation — short, not an essay. File a candidate
+when the cause was a missing rule, not a hard task.
 
 ## Close
 

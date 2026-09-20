@@ -2,7 +2,7 @@
 
 Central queue for knowledge surfaced from any project × platform cell.
 Evaluation happens asynchronously in a coding-agent-config session
-(`evaluate-candidates` skill). **Write a candidate only when there is
+(`end-of-session` skill). **Write a candidate only when there is
 something to surface** — an empty `open/` tree means nothing is pending.
 
 ## Layout
@@ -53,7 +53,7 @@ The knowledge itself — enough that evaluation does not need the chat.
    dated occurrence stub. The prefix is what `candidate-reminders.py` counts, by
    name alone — no `open()` per file, which matters on this NFS home. A repeat
    of an already-`applied` lesson means its delivery was too weak; see the
-   `recurring` branch in `evaluate-candidates`.
+   `recurring` branch in `end-of-session`.
 
 ## Who writes / who evaluates
 
@@ -63,6 +63,6 @@ The knowledge itself — enough that evaluation does not need the chat.
 - `scripts/closeout.py` stores a receipt under the caller's state root and
   passes stable event IDs to `lessons.py`; receipts are operational state, not
   candidates and are kept outside auto-loaded instructions.
-- `evaluate-candidates` (coding-agent-config) applies, discards, or defers.
+- `end-of-session` (coding-agent-config) applies, discards, or defers.
 - Platform write-ownership: shared SoT edits are fine; live platform configs
   and verification claims belong to that platform.
