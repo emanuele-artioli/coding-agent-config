@@ -31,6 +31,13 @@ assert _SPEC and _SPEC.loader
 _SPEC.loader.exec_module(_mod)
 messages = _mod.messages
 
+_STATUS = _HOST / "hooks" / "session-status.py"
+_STATUS_SPEC = importlib.util.spec_from_file_location("session_status", _STATUS)
+_status_mod = importlib.util.module_from_spec(_STATUS_SPEC)
+assert _STATUS_SPEC and _STATUS_SPEC.loader
+_STATUS_SPEC.loader.exec_module(_status_mod)
+status_lines = _status_mod.status_lines
+
 from precompact_stub import resume_messages  # noqa: E402
 
 PROBE_LOG = Path.home() / ".claude" / "session-start.log"
@@ -93,7 +100,8 @@ def main() -> int:
 
     cwd = payload.get("cwd")
     cwd_path = Path(cwd) if isinstance(cwd, str) and cwd else None
-    lines = messages("claude", cwd=cwd_path)
+    lines = status_lines(cwd_path)
+    lines.extend(messages("claude", cwd=cwd_path))
     lines.extend(resume_messages(cwd_path))
     lines.extend(lines_from_verify)
     _log(payload, lines)
