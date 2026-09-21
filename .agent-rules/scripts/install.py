@@ -29,6 +29,12 @@ files, Cursor as generated `~/.cursor/agents/<n>.md` files, and Antigravity as
 generated `~/.gemini/config/agents/<n>.md` files (written, not linked: each
 wants model inline, and Antigravity requires `subagent: true`), with the rungs
 read from `effort-models.json`.
+
+Cursor's `~/.cursor/hooks.json` is generated from the same lifecycle job
+list as Codex (Codex event names mapped onto Cursor event names), plus
+Cursor-only family-gate and subagentStop jobs. Unknown user hooks are
+preserved. The tracked `.cursor/hooks.json` in this repo is checked
+against that renderer.
 """
 
 from __future__ import annotations
@@ -1217,6 +1223,298 @@ def apply_antigravity_hooks(*, check: bool) -> list[tuple[str, str]]:
     _atomic_write_text(target, desired)
     return [(label, "updated" if current is not None else "created")]
 
+  
+# ---------------------------------------------------------------------------
+# Cursor hooks.json — same job list as Codex, Cursor event names
+# ---------------------------------------------------------------------------
+#
+# Codex's `$CODEX_HOME/hooks.json` is the static dialect of this list
+# (`harness/codex/codex-hooks.json`). Cursor cannot use that file: event
+# names, failClosed, and matcher fields differ. One job list, two
+# renderers. Cursor-only jobs (family gate, subagentStop) have no Codex
+# event.
+
+CURSOR_HOOKS_PYTHON = "/usr/bin/python3"
+CURSOR_HOOKS_OWNERSHIP = "cursor-hooks-v1"
+CURSOR_HOOKS_META_KEY = "_codingAgentConfig"
+# Path prefix baked into the tracked `.cursor/hooks.json` in this repo.
+TRACKED_CURSOR_HOST = Path("/home/itec/emanuele/.agent-rules")
+
+
+def cursor_hook_jobs() -> list[dict[str, object]]:
+    """Lifecycle jobs shared with Codex, plus Cursor-only family/subagent jobs.
+
+    `codex_event` / `codex_script` are None for Cursor-only jobs. Callers
+    rely on `cursor_event` + `cursor_script` being present on every row.
+    """
+    return [
+        {
+            "name": "shell-guard",
+            "codex_event": "PreToolUse",
+            "codex_script": "pre-tool-use.py",
+            "cursor_event": "beforeShellExecution",
+            "cursor_script": "before-shell.py",
+            "timeout": 45,
+            "fail_closed": True,
+        },
+        {
+            "name": "session-start",
+            "codex_event": "SessionStart",
+            "codex_script": "session-start.py",
+            "cursor_event": "sessionStart",
+            "cursor_script": "session-start.py",
+            "timeout": 15,
+        },
+        {
+            "name": "prompt-submit",
+            "codex_event": "UserPromptSubmit",
+            "codex_script": "user-prompt-submit.py",
+            "cursor_event": "beforeSubmitPrompt",
+            "cursor_script": "before-submit-prompt.py",
+            "timeout": 10,
+        },
+        {
+            "name": "stop",
+            "codex_event": "Stop",
+            "codex_script": "stop.py",
+            "cursor_event": "stop",
+            "cursor_script": "stop.py",
+            "timeout": 15,
+        },
+        {
+            "name": "pre-compact",
+            "codex_event": "PreCompact",
+            "codex_script": "pre-compact.py",
+            "cursor_event": "preCompact",
+            "cursor_script": "pre-compact.py",
+            "timeout": 10,
+        },
+        {
+            "name": "model-family",
+            "codex_event": None,
+            "codex_script": None,
+            "cursor_event": "preToolUse",
+            "cursor_script": "before-task.py",
+            "timeout": 45,
+            "fail_closed": True,
+            "matcher": "Task",
+        },
+        {
+            "name": "model-family-subagent",
+            "codex_event": None,
+            "codex_script": None,
+            "cursor_event": "subagentStart",
+            "cursor_script": "before-task.py",
+            "timeout": 45,
+            "fail_closed": True,
+        },
+        {
+            "name": "subagent-stop",
+            "codex_event": None,
+            "codex_script": None,
+            "cursor_event": "subagentStop",
+            "cursor_script": "subagent-stop.py",
+            "timeout": 15,
+        },
+    ]
+
+
+def _cursor_hook_command(host: Path, script: str) -> str:
+    return f"{CURSOR_HOOKS_PYTHON} {host / 'harness' / 'cursor' / script}"
+
+
+def _cursor_hook_entry(host: Path, job: dict[str, object]) -> dict[str, object]:
+    entry: dict[str, object] = {
+        "command": _cursor_hook_command(host, str(job["cursor_script"])),
+        "timeout": int(job["timeout"]),
+    }
+    matcher = job.get("matcher")
+    if isinstance(matcher, str) and matcher:
+        entry["matcher"] = matcher
+    if job.get("fail_closed"):
+        entry["failClosed"] = True
+    return entry
+
+
+def _cursor_hooks_digest(hooks: dict[str, object]) -> str:
+    payload = json.dumps(hooks, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def render_cursor_hooks(*, host: Path | None = None) -> dict[str, object]:
+    """Return the managed Cursor hooks.json document for ``host``.
+
+    Does not include user-owned extra hooks. The digest covers only
+    ``hooks``. Callers merge extras before writing.
+    """
+    root = host if host is not None else HOST
+    hooks: dict[str, list[dict[str, object]]] = {}
+    for job in cursor_hook_jobs():
+        event = str(job["cursor_event"])
+        hooks.setdefault(event, []).append(_cursor_hook_entry(root, job))
+    digest = _cursor_hooks_digest(hooks)
+    return {
+        "version": 1,
+        "hooks": hooks,
+        CURSOR_HOOKS_META_KEY: {
+            "ownership": CURSOR_HOOKS_OWNERSHIP,
+            "digest": digest,
+        },
+    }
+
+
+def _hook_script_path(command: object) -> Path | None:
+    if not isinstance(command, str) or not command.strip():
+        return None
+    parts = command.split()
+    candidate = parts[-1]
+    try:
+        return Path(candidate)
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_managed_cursor_command(command: object, host: Path) -> bool:
+    script = _hook_script_path(command)
+    if script is None:
+        return False
+    try:
+        resolved = script.resolve()
+        cursor_dir = (host / "harness" / "cursor").resolve()
+    except OSError:
+        return str(script).startswith(str(host / "harness" / "cursor"))
+    try:
+        resolved.relative_to(cursor_dir)
+        return True
+    except ValueError:
+        return False
+
+
+def _split_cursor_hooks(
+    hooks: object, host: Path
+) -> tuple[dict[str, list], dict[str, list]]:
+    """Return (managed_subset, user_extras) keyed by event name."""
+    managed: dict[str, list] = {}
+    extras: dict[str, list] = {}
+    if not isinstance(hooks, dict):
+        return managed, extras
+    for event, entries in hooks.items():
+        if not isinstance(event, str) or not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                extras.setdefault(event, []).append(entry)
+                continue
+            bucket = (
+                managed if _is_managed_cursor_command(entry.get("command"), host) else extras
+            )
+            bucket.setdefault(event, []).append(entry)
+    return managed, extras
+
+
+def _merge_cursor_hooks(
+    managed: dict[str, list], extras: dict[str, list]
+) -> dict[str, list]:
+    merged: dict[str, list] = {}
+    for event, entries in managed.items():
+        merged[event] = list(entries)
+    for event, entries in extras.items():
+        merged.setdefault(event, []).extend(entries)
+    return merged
+
+
+def _cursor_hooks_ownership(doc: dict, host: Path) -> str | None:
+    """Return ``managed``, ``modified``, or ``None`` for a legacy file."""
+    meta = doc.get(CURSOR_HOOKS_META_KEY)
+    if not isinstance(meta, dict):
+        return None
+    if meta.get("ownership") != CURSOR_HOOKS_OWNERSHIP:
+        return "modified"
+    digest = meta.get("digest")
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        return "modified"
+    managed, _ = _split_cursor_hooks(doc.get("hooks"), host)
+    return "managed" if digest == _cursor_hooks_digest(managed) else "modified"
+
+
+def _dumps_cursor_hooks(doc: dict[str, object]) -> str:
+    return json.dumps(doc, indent=2) + "\n"
+
+
+def _parse_cursor_hooks(text: str) -> dict | None:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _desired_cursor_hooks(host: Path, extras: dict[str, list]) -> dict[str, object]:
+    rendered = render_cursor_hooks(host=host)
+    hooks = rendered["hooks"]
+    assert isinstance(hooks, dict)
+    merged = _merge_cursor_hooks(hooks, extras)
+    rendered["hooks"] = merged
+    rendered[CURSOR_HOOKS_META_KEY] = {
+        "ownership": CURSOR_HOOKS_OWNERSHIP,
+        "digest": _cursor_hooks_digest(hooks),
+    }
+    return rendered
+
+
+def apply_cursor_hooks(*, check: bool) -> list[tuple[str, str]]:
+    """Write (or check) generated ``~/.cursor/hooks.json``, keeping user extras."""
+    cursor_home = HOME / ".cursor"
+    dest = cursor_home / "hooks.json"
+    label = "Cursor hooks.json"
+    results: list[tuple[str, str]] = []
+    if not cursor_home.is_dir():
+        return [(label, "skipped")]
+    desired_managed = render_cursor_hooks(host=HOST)
+    managed_hooks = desired_managed["hooks"]
+    assert isinstance(managed_hooks, dict)
+
+    if dest.is_symlink():
+        if check:
+            return [(label, "conflict")]
+        return [(label, "conflict")]
+
+    current_text = dest.read_text(encoding="utf-8") if dest.is_file() else None
+    extras: dict[str, list] = {}
+    ownership: str | None = None
+    if current_text is not None:
+        parsed = _parse_cursor_hooks(current_text)
+        if parsed is None:
+            return [(label, "conflict")]
+        _, extras = _split_cursor_hooks(parsed.get("hooks"), HOST)
+        ownership = _cursor_hooks_ownership(parsed, HOST)
+        if ownership == "modified":
+            return [(label, "conflict")]
+
+    desired = _desired_cursor_hooks(HOST, extras)
+    desired_text = _dumps_cursor_hooks(desired)
+    if current_text == desired_text:
+        results.append((label, "ok"))
+    elif check:
+        results.append((label, "stale" if current_text is not None else "missing"))
+    else:
+        _atomic_write_text(dest, desired_text)
+        results.append((label, "updated" if current_text is not None else "created"))
+
+    tracked = HOST.parent / ".cursor" / "hooks.json"
+    if tracked.is_file():
+        tracked_label = "tracked .cursor/hooks.json"
+        expected = _dumps_cursor_hooks(render_cursor_hooks(host=TRACKED_CURSOR_HOST))
+        try:
+            tracked_text = tracked.read_text(encoding="utf-8")
+        except OSError:
+            results.append((tracked_label, "conflict"))
+        else:
+            results.append(
+                (tracked_label, "ok" if tracked_text == expected else "stale")
+            )
+    return results
+
 
 # ---------------------------------------------------------------------------
 # MCP catalog → per-platform configs
@@ -1382,6 +1680,12 @@ def main() -> int:
 
     print()
     for label, status in apply_cursor_agents(check=args.check):
+        print(f"{status:9} {label}")
+        if status in {"missing", "stale", "conflict"}:
+            problems += 1
+            
+    print()
+    for label, status in apply_cursor_hooks(check=args.check):
         print(f"{status:9} {label}")
         if status in {"missing", "stale", "conflict"}:
             problems += 1

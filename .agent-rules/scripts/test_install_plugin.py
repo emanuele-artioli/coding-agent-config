@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -608,6 +609,135 @@ class RelinkHostOwnedSymlinkTest(unittest.TestCase):
         self.link.symlink_to(outside)
         self.assertFalse(self.mod.apply(self.item))
         self.assertEqual(self.link.resolve(), outside.resolve())
+
+
+class CursorHooksJsonTest(unittest.TestCase):
+    """Generated ~/.cursor/hooks.json: job list, digest, user extras."""
+
+    def setUp(self) -> None:
+        self.mod = _load_install()
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.host = root / "host"
+        self.cursor_dir = self.host / "harness" / "cursor"
+        self.cursor_dir.mkdir(parents=True)
+        for name in (
+            "before-shell.py",
+            "session-start.py",
+            "before-submit-prompt.py",
+            "stop.py",
+            "pre-compact.py",
+            "before-task.py",
+            "subagent-stop.py",
+        ):
+            (self.cursor_dir / name).write_text("# probe\n", encoding="utf-8")
+        self.home = root / "home"
+        self.home.mkdir()
+        self.cursor = self.home / ".cursor"
+        self.cursor.mkdir()
+        self.mod.HOST = self.host
+        self.mod.HOME = self.home
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_render_maps_codex_jobs_to_cursor_events(self) -> None:
+        doc = self.mod.render_cursor_hooks(host=self.host)
+        hooks = doc["hooks"]
+        self.assertEqual(
+            list(hooks),
+            [
+                "beforeShellExecution",
+                "sessionStart",
+                "beforeSubmitPrompt",
+                "stop",
+                "preCompact",
+                "preToolUse",
+                "subagentStart",
+                "subagentStop",
+            ],
+        )
+        shell = hooks["beforeShellExecution"][0]
+        self.assertTrue(shell["failClosed"])
+        self.assertIn("before-shell.py", shell["command"])
+        self.assertEqual(hooks["preToolUse"][0]["matcher"], "Task")
+        self.assertIn("before-task.py", hooks["subagentStart"][0]["command"])
+        meta = doc[self.mod.CURSOR_HOOKS_META_KEY]
+        self.assertEqual(meta["ownership"], self.mod.CURSOR_HOOKS_OWNERSHIP)
+        self.assertEqual(self.mod._cursor_hooks_ownership(doc, self.host), "managed")
+
+    def test_shared_jobs_are_named_in_codex_hooks_file(self) -> None:
+        codex = (
+            Path(__file__).resolve().parent.parent
+            / "harness"
+            / "codex"
+            / "codex-hooks.json"
+        )
+        blob = codex.read_text(encoding="utf-8")
+        for job in self.mod.cursor_hook_jobs():
+            if job["codex_script"] is None:
+                continue
+            self.assertIn(str(job["codex_script"]), blob)
+            self.assertIn(str(job["codex_event"]), blob)
+
+    def test_preserves_unknown_user_hooks(self) -> None:
+        dest = self.cursor / "hooks.json"
+        dest.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "hooks": {
+                        "afterFileEdit": [
+                            {"command": "/usr/bin/true", "timeout": 5}
+                        ]
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        result = dict(self.mod.apply_cursor_hooks(check=False))
+        self.assertEqual(result["Cursor hooks.json"], "updated")
+        data = json.loads(dest.read_text(encoding="utf-8"))
+        self.assertEqual(
+            data["hooks"]["afterFileEdit"],
+            [{"command": "/usr/bin/true", "timeout": 5}],
+        )
+        self.assertIn("sessionStart", data["hooks"])
+        self.assertEqual(
+            self.mod._cursor_hooks_ownership(data, self.host), "managed"
+        )
+
+    def test_user_edit_of_managed_hooks_is_conflict(self) -> None:
+        self.mod.apply_cursor_hooks(check=False)
+        dest = self.cursor / "hooks.json"
+        data = json.loads(dest.read_text(encoding="utf-8"))
+        data["hooks"]["sessionStart"][0]["timeout"] = 99
+        dest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        result = dict(self.mod.apply_cursor_hooks(check=False))
+        self.assertEqual(result["Cursor hooks.json"], "conflict")
+        self.assertEqual(
+            json.loads(dest.read_text(encoding="utf-8"))["hooks"]["sessionStart"][0][
+                "timeout"
+            ],
+            99,
+        )
+
+    def test_check_does_not_write(self) -> None:
+        dest = self.cursor / "hooks.json"
+        result = dict(self.mod.apply_cursor_hooks(check=True))
+        self.assertEqual(result["Cursor hooks.json"], "missing")
+        self.assertFalse(dest.exists())
+
+    def test_tracked_hooks_json_matches_renderer(self) -> None:
+        tracked = (
+            Path(__file__).resolve().parent.parent.parent / ".cursor" / "hooks.json"
+        )
+        rendered = self.mod.render_cursor_hooks(host=self.mod.TRACKED_CURSOR_HOST)
+        self.assertEqual(
+            tracked.read_text(encoding="utf-8"),
+            self.mod._dumps_cursor_hooks(rendered),
+        )
 
 
 if __name__ == "__main__":
