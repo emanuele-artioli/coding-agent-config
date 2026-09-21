@@ -32,6 +32,25 @@
         "model": "flash",
         "effort": "high",
         "verified": true
+      },
+      "capabilities": {
+        "native_format": "markdown",
+        "supported_fields": [
+          "name",
+          "description",
+          "model",
+          "effort",
+          "reasoningEffort",
+          "subagent"
+        ],
+        "omitted_source_fields": [
+          "tools",
+          "omitClaudeMd",
+          "maxTurns"
+        ],
+        "diagnostic_mode": "html_comments",
+        "verified": false,
+        "note": "Claude agent frontmatter is source metadata; generated Antigravity files carry in-family model/effort and subagent: true."
       }
     },
     "cursor": {

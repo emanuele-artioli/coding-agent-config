@@ -25,9 +25,10 @@ Codex's `$CODEX_HOME/AGENTS.md` is written at install time: `AGENTS.md`,
 alone.
 
 Shared subagents reach Codex as generated `$CODEX_HOME/agents/<n>.toml`
-files and Cursor as generated `~/.cursor/agents/<n>.md` files (written, not
-linked: each wants model inline), with the rungs read from
-`effort-models.json`.
+files, Cursor as generated `~/.cursor/agents/<n>.md` files, and Antigravity as
+generated `~/.gemini/config/agents/<n>.md` files (written, not linked: each
+wants model inline, and Antigravity requires `subagent: true`), with the rungs
+read from `effort-models.json`.
 
 Cursor's `~/.cursor/hooks.json` is generated from the same lifecycle job
 list as Codex (Codex event names mapped onto Cursor event names), plus
@@ -243,18 +244,10 @@ def plan() -> list[Link]:
                     create_parents=True,
                 )
             )
-            # Cursor native agents are generated files, not source symlinks.
-            # `model: opus` on the shared markdown is applied at subagentStart
-            # and denied by the Cursor family gate. See apply_cursor_agents().
-            links.append(
-                Link(
-                    HOME / ".gemini" / "config" / "agents" / f"{stem}.md",
-                    agent,
-                    "Antigravity global agents",
-                    requires=HOME / ".gemini" / "config",
-                    create_parents=True,
-                )
-            )
+            # Cursor and Antigravity native agents are generated files, not source symlinks.
+            # `model: opus` on the shared markdown is applied at spawn time and
+            # denied by family gates (and Antigravity requires `subagent: true`).
+            # See apply_cursor_agents() and apply_antigravity_agents().
             links.append(
                 Link(
                     HOME / ".copilot" / "agents" / agent.name,
@@ -912,6 +905,326 @@ def apply_cursor_agents(*, check: bool) -> list[tuple[str, str]]:
 
 
 # ---------------------------------------------------------------------------
+# Antigravity native agent markdown & hooks
+# ---------------------------------------------------------------------------
+#
+# Antigravity discovers global subagents in `~/.gemini/config/agents/*.md`.
+# Antigravity requires `subagent: true` in the YAML frontmatter to treat an
+# agent as an invocable subagent, and `model: opus` triggers off-family
+# denials. So Antigravity gets generated markdown carrying in-family models
+# (flash) and effort levels from effort-models.json, written rather than
+# linked, with the same ownership/conflict rules as Cursor.
+# Lifecycle hooks in `~/.gemini/config/hooks.json` are also managed with absolute paths.
+
+ANTIGRAVITY_OWNER_MARKER = "<!-- coding-agent-config installer ownership: antigravity-v1 -->"
+ANTIGRAVITY_DIGEST_PREFIX = "<!-- coding-agent-config installer digest: sha256:"
+ANTIGRAVITY_REQUIRED_RUNG_METADATA = {
+    "junior": {"model": "flash", "effort": "medium"},
+    "escalation": {"model": "flash", "effort": "high"},
+}
+ANTIGRAVITY_CLAUDE_ONLY_FIELDS = ("tools", "omitClaudeMd", "maxTurns")
+ANTIGRAVITY_SUPPORTED_FIELDS = (
+    "name",
+    "description",
+    "model",
+    "effort",
+    "reasoningEffort",
+    "subagent",
+)
+
+
+def antigravity_rungs() -> dict[str, dict]:
+    """The `antigravity` platform block of effort-models.json."""
+    if not EFFORT_MODELS.is_file():
+        return {}
+    data = json.loads(EFFORT_MODELS.read_text(encoding="utf-8"))
+    platforms = data.get("platforms")
+    if not isinstance(platforms, dict):
+        return {}
+    antigravity = platforms.get("antigravity")
+    return antigravity if isinstance(antigravity, dict) else {}
+
+
+def validate_antigravity_rungs(rungs: dict[str, dict]) -> list[str]:
+    """Return errors for stale or unsafe Antigravity role metadata."""
+    issues: list[str] = []
+    for rung, expected in ANTIGRAVITY_REQUIRED_RUNG_METADATA.items():
+        spec = rungs.get(rung)
+        if not isinstance(spec, dict):
+            issues.append(f"missing platforms.antigravity.{rung} metadata")
+            continue
+        for key, value in expected.items():
+            actual = spec.get(key)
+            if actual != value:
+                issues.append(
+                    f"platforms.antigravity.{rung}.{key}={actual!r}; expected {value!r}"
+                )
+    capabilities = rungs.get("capabilities")
+    if not isinstance(capabilities, dict):
+        issues.append("missing platforms.antigravity.capabilities metadata")
+    else:
+        supported = capabilities.get("supported_fields")
+        if supported != list(ANTIGRAVITY_SUPPORTED_FIELDS):
+            issues.append(
+                "platforms.antigravity.capabilities.supported_fields does not match "
+                "the native Antigravity renderer"
+            )
+        omitted = capabilities.get("omitted_source_fields")
+        if not isinstance(omitted, list) or any(
+            field not in omitted for field in ANTIGRAVITY_CLAUDE_ONLY_FIELDS
+        ):
+            issues.append(
+                "platforms.antigravity.capabilities.omitted_source_fields must include "
+                "tools, omitClaudeMd, maxTurns"
+            )
+        if capabilities.get("diagnostic_mode") != "html_comments":
+            issues.append(
+                "platforms.antigravity.capabilities.diagnostic_mode must be 'html_comments'"
+            )
+    return issues
+
+
+def _antigravity_capabilities(rungs: dict[str, dict]) -> dict:
+    capabilities = rungs.get("capabilities")
+    return capabilities if isinstance(capabilities, dict) else {}
+
+
+def antigravity_role_diagnostics(agent: Path, rungs: dict[str, dict]) -> list[str]:
+    """Describe source controls omitted from an Antigravity artifact."""
+    fm, _ = _split_frontmatter(agent)
+    capabilities = _antigravity_capabilities(rungs)
+    omitted = capabilities.get("omitted_source_fields")
+    if not isinstance(omitted, list):
+        omitted = list(ANTIGRAVITY_CLAUDE_ONLY_FIELDS)
+    omitted_names = ", ".join(str(field) for field in omitted)
+    present = [field for field in omitted if field in fm]
+    present_note = (
+        "present in this source: " + ", ".join(str(field) for field in present)
+        if present
+        else "none are present in this source"
+    )
+    return [
+        "Antigravity capability diagnostics: omitted Claude-only source controls: "
+        f"{omitted_names} ({present_note}).",
+        "Antigravity capability diagnostics: source model/effort are overridden by "
+        "the validated platforms.antigravity rung metadata.",
+    ]
+
+
+def _owned_antigravity_text(payload: str) -> str:
+    """Insert ownership comments after YAML frontmatter."""
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    markers = (
+        f"{ANTIGRAVITY_OWNER_MARKER}\n"
+        f"{ANTIGRAVITY_DIGEST_PREFIX}{digest} -->\n"
+    )
+    if payload.startswith("---"):
+        end = payload.find("\n---\n")
+        if end >= 0:
+            head = payload[: end + 5]
+            rest = payload[end + 5 :]
+            if rest.startswith("\n"):
+                rest = rest[1:]
+            return head + "\n" + markers + rest
+    return markers + payload
+
+
+def _antigravity_ownership(text: str) -> str | None:
+    """Return ``managed``, ``modified``, or ``None`` for legacy text."""
+    owner = ANTIGRAVITY_OWNER_MARKER
+    digest_re = re.compile(
+        re.escape(ANTIGRAVITY_DIGEST_PREFIX) + r"([0-9a-f]{64}) -->"
+    )
+    if owner not in text:
+        return None
+    match = digest_re.search(text)
+    if match is None:
+        return "modified"
+    payload = text.replace(owner + "\n", "", 1)
+    payload = payload.replace(match.group(0) + "\n", "", 1)
+    expected = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return "managed" if match.group(1) == expected else "modified"
+
+
+def render_antigravity_agent(agent: Path, rungs: dict[str, dict]) -> str:
+    """Render one shared agent file as Antigravity-native markdown."""
+    issues = validate_antigravity_rungs(rungs)
+    if issues:
+        raise ValueError("invalid Antigravity role metadata: " + "; ".join(issues))
+    fm, body = _split_frontmatter(agent)
+    stem = agent.name.removesuffix(".agent.md")
+    name = fm.get("name") or stem
+    rung = _role_rung(agent, fm)
+    spec = rungs.get(rung) or {}
+    model = str(spec.get("model") or "").strip()
+    effort = str(spec.get("effort") or "").strip()
+    description = fm.get("description", "").replace("\n", " ").strip()
+    diagnostics = antigravity_role_diagnostics(agent, rungs)
+    diag_block = "".join(f"<!-- {diagnostic} -->\n" for diagnostic in diagnostics)
+    payload = (
+        "---\n"
+        f"name: {name}\n"
+        f"description: {_yaml_flow_scalar(description)}\n"
+        f"model: {model}\n"
+        f"effort: {effort}\n"
+        f"reasoningEffort: {effort}\n"
+        "subagent: true\n"
+        "---\n\n"
+        f"{diag_block}\n"
+        f"{body}"
+    )
+    return _owned_antigravity_text(payload)
+
+
+def antigravity_agent_files() -> list[tuple[Path, str]]:
+    """(destination path, rendered content) for every shared agent."""
+    if not AGENTS.is_dir():
+        return []
+    rungs = antigravity_rungs()
+    issues = validate_antigravity_rungs(rungs)
+    if issues:
+        raise ValueError("invalid Antigravity role metadata: " + "; ".join(issues))
+    dest_dir = HOME / ".gemini" / "config" / "agents"
+    out: list[tuple[Path, str]] = []
+    for agent in sorted(AGENTS.glob("*.agent.md")):
+        stem = agent.name.removesuffix(".agent.md")
+        out.append((dest_dir / f"{stem}.md", render_antigravity_agent(agent, rungs)))
+    return out
+
+
+def _known_antigravity_symlink_target(dest: Path) -> Path | None:
+    """Return the exact legacy target that this destination may replace."""
+    agents_dir = HOME / ".gemini" / "config" / "agents"
+    if dest.parent == agents_dir and dest.suffix == ".md":
+        source = AGENTS / f"{dest.stem}.agent.md"
+        return source if source.is_file() else None
+    return None
+
+
+def apply_antigravity_agents(*, check: bool) -> list[tuple[str, str]]:
+    """Write (or check) generated Antigravity agent markdown files."""
+    gemini_config = HOME / ".gemini" / "config"
+    if not gemini_config.is_dir():
+        return [("Antigravity shared agents (*.md)", "skipped")]
+    results: list[tuple[str, str]] = []
+    try:
+        generated = antigravity_agent_files()
+    except ValueError as exc:
+        return [("Antigravity role model metadata", f"conflict: {exc}")]
+    for dest, content in generated:
+        label = f"Antigravity agent {dest.name}"
+        known_symlink = False
+        if dest.is_symlink():
+            managed_target = _known_antigravity_symlink_target(dest)
+            try:
+                canonical_target = HOME / ".agent-rules" / "agents" / f"{dest.stem}.agent.md"
+                exact = (
+                    managed_target is not None
+                    and (
+                        dest.resolve() == managed_target.resolve()
+                        or (canonical_target.is_file() and dest.resolve() == canonical_target.resolve())
+                    )
+                )
+            except OSError:
+                exact = False
+            if not exact or check:
+                results.append((label, "conflict"))
+                continue
+            known_symlink = True
+        if dest.exists() and not dest.is_file():
+            results.append((label, "conflict"))
+            continue
+        current = dest.read_text(encoding="utf-8") if dest.is_file() else None
+        if current == content:
+            if dest.is_symlink():
+                _atomic_write_text(dest, content)
+                results.append((label, "updated"))
+            else:
+                results.append((label, "ok"))
+            continue
+        if check:
+            results.append((label, "stale" if current is not None else "missing"))
+            continue
+        if current is not None and not known_symlink and _antigravity_ownership(current) != "managed":
+            results.append((label, "conflict"))
+            continue
+        _atomic_write_text(dest, content)
+        results.append((label, "updated" if current is not None else "created"))
+    return results
+
+
+def render_antigravity_hooks() -> dict:
+    """Antigravity lifecycle hooks with absolute paths."""
+    canonical = HOME / ".agent-rules" / "harness" / "antigravity"
+    harness = canonical if canonical.is_dir() else (HOST / "harness" / "antigravity")
+    return {
+        "shell-guard": {
+            "PreToolUse": [
+                {
+                    "matcher": "run_command",
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": f"/usr/bin/python3 {harness / 'before-shell.py'}",
+                            "timeout": 15,
+                        }
+                    ],
+                }
+            ]
+        },
+        "model-family-guard": {
+            "PreToolUse": [
+                {
+                    "matcher": "invoke_subagent",
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": f"/usr/bin/python3 {harness / 'guard-model-family.py'}",
+                            "timeout": 15,
+                        }
+                    ],
+                }
+            ]
+        },
+        "candidate-reminders": {
+            "PreInvocation": [
+                {
+                    "type": "command",
+                    "command": f"/usr/bin/python3 {harness / 'pre-invocation.py'}",
+                    "timeout": 15,
+                }
+            ]
+        },
+        "session-stop": {
+            "Stop": [
+                {
+                    "type": "command",
+                    "command": f"/usr/bin/python3 {harness / 'stop.py'}",
+                    "timeout": 15,
+                }
+            ]
+        },
+    }
+
+
+def apply_antigravity_hooks(*, check: bool) -> list[tuple[str, str]]:
+    """Write (or check) Antigravity hooks.json with absolute script paths."""
+    gemini_config = HOME / ".gemini" / "config"
+    if not gemini_config.is_dir():
+        return [("Antigravity hooks.json", "skipped")]
+    target = gemini_config / "hooks.json"
+    desired = json.dumps(render_antigravity_hooks(), indent=2) + "\n"
+    current = target.read_text(encoding="utf-8") if target.is_file() else None
+    label = "Antigravity hooks.json"
+    if current == desired:
+        return [(label, "ok")]
+    if check:
+        return [(label, "stale" if current is not None else "missing")]
+    _atomic_write_text(target, desired)
+    return [(label, "updated" if current is not None else "created")]
+
+  
+# ---------------------------------------------------------------------------
 # Cursor hooks.json — same job list as Codex, Cursor event names
 # ---------------------------------------------------------------------------
 #
@@ -1370,9 +1683,21 @@ def main() -> int:
         print(f"{status:9} {label}")
         if status in {"missing", "stale", "conflict"}:
             problems += 1
-
+            
     print()
     for label, status in apply_cursor_hooks(check=args.check):
+        print(f"{status:9} {label}")
+        if status in {"missing", "stale", "conflict"}:
+            problems += 1
+
+    print()
+    for label, status in apply_antigravity_agents(check=args.check):
+        print(f"{status:9} {label}")
+        if status in {"missing", "stale", "conflict"}:
+            problems += 1
+
+    print()
+    for label, status in apply_antigravity_hooks(check=args.check):
         print(f"{status:9} {label}")
         if status in {"missing", "stale", "conflict"}:
             problems += 1
