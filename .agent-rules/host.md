@@ -17,11 +17,6 @@ never work.
 runtime otherwise. Put `import sqlite3` at the top of the package's
 `__init__.py`.
 
-**Ensure a free GPU before experiments.** Check GPU availability on the
-machine (e.g. `nvidia-smi`) before running an experiment. If no GPU is
-free, stop and report this immediately rather than launching onto an
-occupied GPU.
-
 ## NFS
 
 `open()` is expensive on this export. Keep editor servers on `/var/tmp`.
