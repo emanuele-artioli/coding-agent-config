@@ -35,8 +35,8 @@
     "preToolUse": [
       {
         "command": "/usr/bin/python3 /home/itec/emanuele/.agent-rules/harness/cursor/before-task.py",
-        "matcher": "Task",
         "timeout": 45,
+        "matcher": "Task",
         "failClosed": true
       }
     ],
@@ -53,5 +53,9 @@
         "timeout": 15
       }
     ]
+  },
+  "_codingAgentConfig": {
+    "ownership": "cursor-hooks-v1",
+    "digest": "133e8c2cb5e940013f2e8cbfd1ce6b786bf765a48c3425ffad4ec8314a3e0baa"
   }
 }
