@@ -19,9 +19,12 @@ Never hand-roll `pgrep` wait-loops; `guard-wait-loop.py` blocks them.
 ## Subagents
 
 Spawn juniors by `subagent_type`. Omit Task `model` so the generated
-file slug applies. `../../scripts/install.py` writes Cursor-native copies
-into `~/.cursor/agents/<n>.md`. Escalate with a fresh `stuck-escalation`
-child after `STUCK: out of ideas.` or a failed check.
+file slug applies. Juniors are Grok 4.7 Medium and escalation is Grok 4.7
+Extra High (`../effort-models.json`); the senior session stays High in
+the product UI, on the 256k window. `../../scripts/install.py` writes
+Cursor-native copies into `~/.cursor/agents/<n>.md`. Escalate with a
+fresh `stuck-escalation` child after `STUCK: out of ideas.` or a failed
+check.
 
 The senior re-runs the child's check itself. `subagentStop` is wired but
 cannot flag a broken report — the native payload has no child-final-text

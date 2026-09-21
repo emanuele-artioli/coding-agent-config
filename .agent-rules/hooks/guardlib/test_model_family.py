@@ -91,9 +91,17 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertIn("escalation=opus", nudge)
 
     def test_cursor_live_slug_matches_tier_table(self) -> None:
-        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-low", "cursor"))
-        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.6-high", "cursor"))
-        self.assertIsNone(model_family.tier_nudge("grok-4.6", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.7-medium", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("cursor-grok-4.7-xhigh", "cursor"))
+        self.assertIsNone(model_family.tier_nudge("grok-4.7", "cursor"))
+
+    def test_cursor_previous_generation_nudges(self) -> None:
+        for slug in ("cursor-grok-4.6-low", "cursor-grok-4.6-high", "grok-4.6"):
+            with self.subTest(slug=slug):
+                nudge = model_family.tier_nudge(slug, "cursor")
+                self.assertIsNotNone(nudge)
+                assert nudge is not None
+                self.assertIn("junior=grok-4.7", nudge)
 
     def test_cursor_composer_is_in_family_but_off_tier(self) -> None:
         self.assertIsNone(model_family.inspect("composer-2.5", "cursor"))
@@ -101,7 +109,7 @@ class ModelFamilyTierNudge(unittest.TestCase):
         self.assertIsNotNone(nudge)
 
     def test_cursor_fast_variants_still_nudge(self) -> None:
-        for slug in ("grok-4.6-fast", "composer-2.5-fast", "cursor-grok-4.6-fast"):
+        for slug in ("grok-4.7-fast", "composer-2.5-fast", "cursor-grok-4.7-fast"):
             with self.subTest(slug=slug):
                 nudge = model_family.tier_nudge(slug, "cursor")
                 self.assertIsNotNone(nudge)
@@ -122,7 +130,7 @@ class ModelFamilyTierNudge(unittest.TestCase):
     def test_allowed_models_reflects_effort_models_json(self) -> None:
         self.assertEqual(model_family.allowed_models("claude"), {"opus"})
         self.assertEqual(model_family.allowed_models("antigravity"), {"flash"})
-        self.assertEqual(model_family.allowed_models("cursor"), {"grok-4.6"})
+        self.assertEqual(model_family.allowed_models("cursor"), {"grok-4.7"})
         self.assertEqual(model_family.allowed_models("codex"), {"gpt-5.6-luna", "gpt-5.6-astra"})
 
 

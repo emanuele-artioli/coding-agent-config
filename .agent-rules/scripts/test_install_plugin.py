@@ -223,7 +223,7 @@ class CursorAgentMarkdownTest(unittest.TestCase):
     def test_native_frontmatter_omits_claude_controls(self) -> None:
         text = self._render("tiny-probe")
         self.assertIn("name: tiny-probe", text)
-        self.assertIn("model: cursor-grok-4.6-low", text)
+        self.assertIn("model: cursor-grok-4.7-medium", text)
         self.assertNotIn("model: opus", text)
         self.assertNotIn("tools:", text.split("---", 2)[1] if text.startswith("---") else text)
         self.assertNotIn("omitClaudeMd:", text)
@@ -232,9 +232,9 @@ class CursorAgentMarkdownTest(unittest.TestCase):
         self.assertEqual(self.mod._cursor_ownership(text), "managed")
         self.assertIn("omitted Claude-only source controls", text)
 
-    def test_escalation_uses_high_slug(self) -> None:
+    def test_escalation_uses_xhigh_slug(self) -> None:
         text = self._render("stuck-escalation")
-        self.assertIn("model: cursor-grok-4.6-high", text)
+        self.assertIn("model: cursor-grok-4.7-xhigh", text)
 
     def test_all_shared_roles_render_as_owned_native_markdown(self) -> None:
         rendered = self.mod.cursor_agent_files()
@@ -310,7 +310,7 @@ class CursorInstallerSafetyTest(unittest.TestCase):
         self.assertTrue(dest.is_file())
         self.assertFalse(dest.is_symlink())
         self.assertEqual(self.mod._cursor_ownership(dest.read_text(encoding="utf-8")), "managed")
-        self.assertIn("model: cursor-grok-4.6-low", dest.read_text(encoding="utf-8"))
+        self.assertIn("model: cursor-grok-4.7-medium", dest.read_text(encoding="utf-8"))
 
     def test_user_edit_of_managed_file_is_preserved(self) -> None:
         self.mod.apply_cursor_agents(check=False)
