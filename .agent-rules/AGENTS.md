@@ -57,3 +57,8 @@ If the project has a paper, tests that pay for themselves check the claim.
 An option that the code accepts can still be ignored. Before relying on
 a capability, drive it and measure that the output changed in the way
 claimed.
+
+## Ensure a free GPU before experiments
+
+Before running experiments, ensure there is a free GPU in the machine we are
+trying to use. If there is none, stop and report this.
