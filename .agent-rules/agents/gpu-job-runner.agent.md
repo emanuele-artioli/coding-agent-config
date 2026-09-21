@@ -56,6 +56,8 @@ Rules:
   and any weight or asset paths exist first.
 - If the config or experiment is new or just edited, do a cheap dry run
   first and check it looks intended before the real run.
+- Ensure there is a free GPU in the machine we are trying to use (e.g. check
+  `nvidia-smi`) before launching. If none is free, stop and report this.
 - Launch detached, with stdout and stderr redirected to a log file under
   the project's usual logs or results location. Keep the parent chat
   slim: report the tail, never the stream.
