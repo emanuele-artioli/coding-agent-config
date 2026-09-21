@@ -55,18 +55,18 @@
     },
     "cursor": {
       "junior": {
-        "model": "grok-4.6",
-        "effort": "low",
+        "model": "grok-4.7",
+        "effort": "medium",
         "verified": false,
         "effort_settable": false,
-        "note": "generated slug cursor-grok-4.6-low; Task has no separate effort field"
+        "note": "CursorBench 4.0 (2026-09-21): 4.7 low matches 4.6 low; medium is the upgrade (41.6% at $3.49). Slug cursor-grok-4.7-medium. Task has no separate effort field. 256k window; 500k is a 2x bill once input exceeds 256k."
       },
       "escalation": {
-        "model": "grok-4.6",
-        "effort": "high",
-        "verified": true,
+        "model": "grok-4.7",
+        "effort": "xhigh",
+        "verified": false,
         "effort_settable": false,
-        "note": "effort is the slug suffix: cursor-grok-4.6-high"
+        "note": "CursorBench 4.0: extra high is 46.3% at $6.01, level with Opus 5 extra high at about half the price. Slug cursor-grok-4.7-xhigh. Senior default stays Grok 4.7 high in the product UI, not this file."
       },
       "capabilities": {
         "native_format": "markdown",

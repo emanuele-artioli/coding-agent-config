@@ -661,8 +661,8 @@ def apply_codex_agents(*, check: bool) -> list[tuple[str, str]]:
 CURSOR_OWNER_MARKER = "<!-- coding-agent-config installer ownership: cursor-v1 -->"
 CURSOR_DIGEST_PREFIX = "<!-- coding-agent-config installer digest: sha256:"
 CURSOR_REQUIRED_RUNG_METADATA = {
-    "junior": {"model": "grok-4.6", "effort": "low"},
-    "escalation": {"model": "grok-4.6", "effort": "high"},
+    "junior": {"model": "grok-4.7", "effort": "medium"},
+    "escalation": {"model": "grok-4.7", "effort": "xhigh"},
 }
 CURSOR_CLAUDE_ONLY_FIELDS = ("tools", "omitClaudeMd", "maxTurns", "effort")
 CURSOR_SUPPORTED_FIELDS = ("name", "description", "model")

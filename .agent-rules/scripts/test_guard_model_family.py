@@ -38,7 +38,7 @@ class GuardModelFamilyCursorImport(unittest.TestCase):
             "hook_event_name": "preToolUse",
             "cursor_version": "1.0.0",
             "tool_name": "Task",
-            "tool_input": {"model": "cursor-grok-4.6-high"},
+            "tool_input": {"model": "cursor-grok-4.7-xhigh"},
         }
         self.assertEqual(_run(payload).strip(), "")
 
@@ -46,7 +46,7 @@ class GuardModelFamilyCursorImport(unittest.TestCase):
         payload = {
             "hook_event_name": "PreToolUse",
             "tool_name": "Task",
-            "tool_input": {"model": "cursor-grok-4.6-high"},
+            "tool_input": {"model": "cursor-grok-4.7-xhigh"},
         }
         out = json.loads(_run(payload))
         self.assertEqual(
