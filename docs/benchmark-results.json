@@ -1,0 +1,176 @@
+{
+  "created": 1790891511.568249,
+  "host": "gpu1",
+  "per_task_seconds": 60,
+  "runs": [
+    {
+      "case": "bugfix",
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "from stats import median; assert median([]) is None; assert median([7])==7; assert median([4,1,2,3])==2.5; assert median([-3,-1])==-2; a=[3,1,2]; assert median(a)==2 and a==[3,1,2]"
+          ],
+          "passed": true
+        }
+      ],
+      "guidance": "native",
+      "human_review": "accepted: reviewed median implementation and independent edge-case checks",
+      "instruction_words": 0,
+      "native_session": "01a0f973-f400-71a3-a113-24c7d08556bf",
+      "native_usage": [
+        {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 73216,
+          "input_tokens": 87990,
+          "output_tokens": 1233,
+          "reasoning_output_tokens": 86
+        }
+      ],
+      "reason": null,
+      "seconds": 50.59426354605239,
+      "status": "succeeded",
+      "task": "d868a559a2434a5d9179eb6f29cc043a"
+    },
+    {
+      "case": "bugfix",
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "from stats import median; assert median([]) is None; assert median([7])==7; assert median([4,1,2,3])==2.5; assert median([-3,-1])==-2; a=[3,1,2]; assert median(a)==2 and a==[3,1,2]"
+          ],
+          "passed": true
+        }
+      ],
+      "guidance": "legacy",
+      "human_review": "accepted: reviewed median implementation and independent edge-case checks",
+      "instruction_words": 799,
+      "native_session": "01a0f974-dd8a-7212-9624-319f2c47588b",
+      "native_usage": [
+        {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 80512,
+          "input_tokens": 96349,
+          "output_tokens": 1185,
+          "reasoning_output_tokens": 54
+        }
+      ],
+      "reason": null,
+      "seconds": 34.81719506101217,
+      "status": "succeeded",
+      "task": "6deb46f56dff4915b2dccd6507d44499"
+    },
+    {
+      "case": "bugfix",
+      "checks": [
+        {
+          "argv": [
+            "python3",
+            "-c",
+            "from stats import median; assert median([]) is None; assert median([7])==7; assert median([4,1,2,3])==2.5; assert median([-3,-1])==-2; a=[3,1,2]; assert median(a)==2 and a==[3,1,2]"
+          ],
+          "passed": true
+        }
+      ],
+      "guidance": "slim",
+      "human_review": "accepted: reviewed median implementation and independent edge-case checks",
+      "instruction_words": 233,
+      "native_session": "01a0f975-aaa3-7071-951a-38e476585b83",
+      "native_usage": [
+        {
+          "cache_write_input_tokens": 0,
+          "cached_input_tokens": 85376,
+          "input_tokens": 89961,
+          "output_tokens": 1170,
+          "reasoning_output_tokens": 92
+        }
+      ],
+      "reason": null,
+      "seconds": 35.94697351101786,
+      "status": "succeeded",
+      "task": "216f040cd142471db3a9a50f49ba98ec"
+    },
+    {
+      "case": "multi-file",
+      "checks": [],
+      "guidance": "native",
+      "human_review": "pending",
+      "instruction_words": 0,
+      "native_session": "01a0f976-8083-7b33-b808-62b1a5fb3f22",
+      "native_usage": [],
+      "reason": "task: runtime budget exhausted",
+      "seconds": 60.085430674022064,
+      "status": "needs_attention",
+      "task": "230e389bd1904974bb8afa7bea12aa29"
+    },
+    {
+      "case": "multi-file",
+      "checks": [],
+      "guidance": "legacy",
+      "human_review": "pending",
+      "instruction_words": 799,
+      "native_session": "01a0f977-d1b1-7fc1-8b8a-9f55f816c4e4",
+      "native_usage": [],
+      "reason": "task: runtime budget exhausted",
+      "seconds": 60.066411299980246,
+      "status": "needs_attention",
+      "task": "05b4be9895324842bf7b74b016189dd3"
+    },
+    {
+      "case": "multi-file",
+      "checks": [],
+      "guidance": "slim",
+      "human_review": "pending",
+      "instruction_words": 233,
+      "native_session": "01a0f978-ed74-7202-bb14-d80d8954a493",
+      "native_usage": [],
+      "reason": "task: runtime budget exhausted",
+      "seconds": 60.11380770197138,
+      "status": "needs_attention",
+      "task": "878aef9d15444ccb891731d969048eeb"
+    },
+    {
+      "case": "research",
+      "checks": [],
+      "guidance": "native",
+      "human_review": "pending",
+      "instruction_words": 0,
+      "native_session": "01a0f979-f5d7-7b53-bb28-aa6ffcfcef77",
+      "native_usage": [],
+      "reason": "task: runtime budget exhausted",
+      "seconds": 60.0024839870166,
+      "status": "needs_attention",
+      "task": "02a11bb111e241d8ad49466944d58eef"
+    },
+    {
+      "case": "research",
+      "checks": [],
+      "guidance": "legacy",
+      "human_review": "pending",
+      "instruction_words": 799,
+      "native_session": "01a0f97a-f20d-75c3-a931-f05e85429540",
+      "native_usage": [],
+      "reason": "task: runtime budget exhausted",
+      "seconds": 60.074271976947784,
+      "status": "needs_attention",
+      "task": "d31d14655a4142b496a7e9cf6b9e2e98"
+    },
+    {
+      "case": "research",
+      "checks": [],
+      "guidance": "slim",
+      "human_review": "pending",
+      "instruction_words": 233,
+      "native_session": "01a0f97c-36f4-7583-b5f0-3709ee44ec72",
+      "native_usage": [],
+      "reason": "task: runtime budget exhausted",
+      "seconds": 60.01672499103006,
+      "status": "needs_attention",
+      "task": "bafba60eedfe4c73a6d62c9da1b8cd82"
+    }
+  ],
+  "scope": "guidance ablation with fixed native model, safety isolation and checks; legacy hooks not activated"
+}

@@ -1,52 +1,22 @@
-# Allowlist-only .gitignore: this repo tracks exactly the shared coding-agent
-# rules files and nothing else in this home directory. Ignore everything by
-# default, then un-ignore only the specific paths we want tracked.
-#
-# NEVER `git add -A` or `git add .` in this repo — always add the exact
-# allowlisted paths below. This directory holds real credentials
-# (.ssh, .git-credentials, .gsutil, .pki, .config/gh/hosts.yml, .claude.json,
-# .claude/projects/ transcripts, etc.) that must never enter this repo.
-
+# Allowlist retained for the historical home-directory checkout.
 /*
 !/.gitignore
-!/README.md
-
-!/.agent-rules
-!/.agent-rules/**
-
-# CI. This .gitignore is an allowlist -- `/*` ignores everything at the repo
-# root -- so a new tracked directory has to be named here or it silently does
-# not commit, which is exactly what happened the first time this workflow was
-# added: `git add` reported it ignored, the commit succeeded without it, and CI
-# would have looked simply absent rather than broken.
-!/.github
-!/.github/**
-
-# Host rules for a Cursor session opened on this directory. A relative symlink
-# to .agent-rules/AGENTS.md, so it survives a clone; the absolute-path farm
-# (~/.gemini/AGENTS.md, ~/.codex/AGENTS.md) is the installer's job, not git's.
-# Claude Code uses only ~/.claude/CLAUDE.md (tracked below) — no ~/CLAUDE.md.
 !/AGENTS.md
-
-# Guard values for sessions rooted here, read by every agent's hook adapter.
-!/.agent-guards.json
-
-!/.claude
-/.claude/*
-!/.claude/CLAUDE.md
-!/.claude/settings.json
-
-!/.gemini
-/.gemini/*
-!/.gemini/GEMINI.md
-
-# Cursor has no user-level rules file, but it does have user-level hooks.
-# Track hooks.json and .cursor/.gitignore only. The nested gitignore is
-# Cursor-managed between its markers and *un-ignores* session dirs
-# (projects/**, plugins/**, …); our post-marker overrides in that file
-# re-assert the allowlist. Do not rely on `.git/info/exclude` for this —
-# nested .gitignore outranks it.
-!/.cursor
-/.cursor/*
-!/.cursor/hooks.json
-!/.cursor/.gitignore
+!/README.md
+!/pyproject.toml
+!/agentctl/
+!/agentctl/**
+!/tests/
+!/tests/**
+!/docs/
+!/docs/**
+!/examples/
+!/examples/**
+!/archive/
+!/archive/**
+!/.github/
+!/.github/**
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/

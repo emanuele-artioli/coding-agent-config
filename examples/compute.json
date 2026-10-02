@@ -1,0 +1,114 @@
+{
+  "kind": "compute",
+  "repo": "/absolute/path/to/project",
+  "seconds": 1000,
+  "resources": {
+    "cpu_threads": 2,
+    "memory_mb": 4096
+  },
+  "read_only": [
+    "data"
+  ],
+  "compute": {
+    "targets": {
+      "quality": {
+        "min": 0.9
+      },
+      "peak_memory_mb": {
+        "max": 3500
+      }
+    },
+    "representative_input": "versioned representative data manifest",
+    "runtime_environment": "project lockfile and environment description",
+    "hardware": "enrolled CPU host; add a GPU UUID and memory estimate for GPU work",
+    "fingerprint_files": [
+      "data/manifest.json",
+      "environment.lock"
+    ],
+    "preflight_seconds": 300,
+    "confirmation_required": true,
+    "candidates": [
+      {
+        "name": "small",
+        "parameters": {
+          "batch": 4
+        }
+      },
+      {
+        "name": "large",
+        "parameters": {
+          "batch": 8
+        }
+      }
+    ],
+    "stages": {
+      "smoke": {
+        "argv": [
+          "python3",
+          "experiments/preflight.py",
+          "--stage",
+          "smoke",
+          "--batch",
+          "{batch}",
+          "--output",
+          "{output}"
+        ],
+        "entrypoint": "experiments/preflight.py",
+        "production_path": true,
+        "seconds": 30,
+        "metrics_file": "metrics.json"
+      },
+      "pilot": {
+        "argv": [
+          "python3",
+          "experiments/preflight.py",
+          "--stage",
+          "pilot",
+          "--batch",
+          "{batch}",
+          "--output",
+          "{output}"
+        ],
+        "entrypoint": "experiments/preflight.py",
+        "production_path": true,
+        "seconds": 60,
+        "metrics_file": "metrics.json"
+      },
+      "confirmation": {
+        "argv": [
+          "python3",
+          "experiments/preflight.py",
+          "--stage",
+          "confirmation",
+          "--batch",
+          "{batch}",
+          "--output",
+          "{output}"
+        ],
+        "entrypoint": "experiments/preflight.py",
+        "production_path": true,
+        "seconds": 120,
+        "metrics_file": "metrics.json"
+      },
+      "full": {
+        "argv": [
+          "python3",
+          "experiments/preflight.py",
+          "--stage",
+          "full",
+          "--batch",
+          "{batch}",
+          "--output",
+          "{output}"
+        ],
+        "entrypoint": "experiments/preflight.py",
+        "production_path": true,
+        "seconds": 700,
+        "metrics_file": "metrics.json"
+      }
+    },
+    "scale_arguments": {
+      "--stage": "The reviewed project adapter changes sample count and duration only; production quality settings remain invariant. Confirmation establishes throughput and quality before full execution."
+    }
+  }
+}

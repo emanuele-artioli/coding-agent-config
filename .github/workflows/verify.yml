@@ -1,62 +1,16 @@
 name: verify
-
-# The repo had no CI, which is part of why "written but not wired" kept
-# happening: nothing outside a session ever re-ran anything.
-#
-# What can and cannot run here matters. CI is not this host: there is no NFS
-# mount, no ~/.cursor, no ~/.gemini, no /var/tmp/emanuele-*. So the checks that
-# assert *this host's* live state (hooks, hostlocal, shell, measurements) are
-# meaningless on a runner and would fail for the wrong reason. What CI can do
-# is guard the parts that are pure logic — the guard policies, their agreement
-# across the three harness adapters, and the installer/role contracts. Those
-# are exactly the parts a pull request can break, and the host-state checks
-# are covered at SessionStart instead.
-
 on:
   push:
-    branches: [master]
   pull_request:
-
 jobs:
-  policy:
-    runs-on: ubuntu-latest
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Guard policies decide correctly
-        run: python3 .agent-rules/scripts/verify.py --only guards
-
-      - name: All three harness adapters agree
-        # The design claim is one policy, three thin adapters. A drift means a
-        # command denied on one platform and allowed on another, and the
-        # platform where the guard quietly stopped applying is the one nobody
-        # is looking at.
-        run: python3 .agent-rules/scripts/verify.py --only parity
-
-      - name: Role, installer, and knowledge contracts
-        run: |
-          python3 .agent-rules/scripts/verify_roles.py
-          python3 .agent-rules/scripts/test_install_plugin.py
-          python3 .agent-rules/scripts/test_lessons.py
-          python3 .agent-rules/scripts/test_closeout.py
-          python3 .agent-rules/scripts/test_closeout_adapter.py
-          python3 .agent-rules/scripts/test_guard_model_family.py
-          python3 .agent-rules/scripts/test_paper_markers_lint.py
-          python3 .agent-rules/scripts/test_sync_agent_rules.py
-          python3 .agent-rules/scripts/test_precompact_stub.py
-          python3 .agent-rules/harness/antigravity/test_before_shell.py
-          python3 .agent-rules/harness/antigravity/test_guard_model_family.py
-          python3 .agent-rules/harness/cursor/test_subagent_stop.py
-          python3 .agent-rules/harness/cursor/test_session_start.py
-          python3 .agent-rules/hooks/test_session_status.py
-
-      - name: Measured claims carry a date
-        run: python3 .agent-rules/scripts/verify.py --only claims
-
-      - name: Guard unit tests
-        run: |
-          python3 -m pip install --quiet pytest
-          python3 -m pytest .agent-rules/hooks/guardlib -q
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -v
