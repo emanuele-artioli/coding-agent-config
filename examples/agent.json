@@ -1,0 +1,13 @@
+{
+  "kind": "agent",
+  "harness": "codex",
+  "repo": "/absolute/path/to/project",
+  "revision": "HEAD",
+  "changes": ["src/selected-change.py"],
+  "seconds": 600,
+  "resources": {"cpu_threads": 2, "memory_mb": 8192},
+  "prompt": "Fix the assigned issue, review the changes and run the project checks.",
+  "checks": [["python3", "-m", "unittest", "discover", "-s", "tests"]],
+  "read_only": ["data", "results/completed"],
+  "publish": true
+}

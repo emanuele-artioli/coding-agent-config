@@ -1,0 +1,11 @@
+{
+  "kind": "command",
+  "repo": "/absolute/path/to/project",
+  "revision": "HEAD",
+  "changes": [],
+  "seconds": 120,
+  "resources": {"cpu_threads": 2, "memory_mb": 2048},
+  "argv": ["python3", "-m", "unittest", "discover", "-s", "tests"],
+  "read_only": [],
+  "network": false
+}
