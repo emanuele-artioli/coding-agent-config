@@ -104,7 +104,7 @@ else: raise SystemExit(14)
         try:
             command = wrap([sys.executable, "-B", "-c", code, str(work), str(outside)], [work], [outside],
                            readable=[sys.prefix, outside] if scoped else None)
-            result = subprocess.run(command, capture_output=True, timeout=15)
+            result = subprocess.run(command, cwd=work, capture_output=True, timeout=15)
             valid = result.returncode == 0 and outside.read_text() == "preserve" and (work / "allowed").read_text() == "ok"
             lifetime = False
             if valid and sys.platform == "linux":
@@ -124,7 +124,7 @@ else: raise SystemExit(15)
 os._exit(0)
 """
                 lifetime_command = wrap([sys.executable, "-B", "-c", daemon, str(work)], [work], [outside], readable=[sys.prefix])
-                lifetime_result = subprocess.run(lifetime_command, capture_output=True, timeout=5)
+                lifetime_result = subprocess.run(lifetime_command, cwd=work, capture_output=True, timeout=5)
                 time.sleep(0.6)
                 lifetime = lifetime_result.returncode == 0 and (work / "daemon-started").exists() and not (work / "daemon-escaped").exists()
             return {"verified": valid and lifetime, "filesystem_verified": valid,
